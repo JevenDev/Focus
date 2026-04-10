@@ -94,17 +94,19 @@ public final class FocusClientConfig extends Config {
     }
 
     public enum LockOnIndicatorStyle implements EnumTranslatable {
-        OOT_16X("textures/ui/hud/lock_on_indicators/oot_lock_on_16x.png", 8, 14.0F),
-        OOT_32X("textures/ui/hud/lock_on_indicators/oot_lock_on_32x.png", 8, 14.0F);
+        OOT_16X("textures/ui/hud/lock_on_indicators/oot_lock_on_16x.png", 8, IndicatorType.OOT_TRIANGLES),
+        OOT_32X("textures/ui/hud/lock_on_indicators/oot_lock_on_32x.png", 8, IndicatorType.OOT_TRIANGLES),
+        DS2_16X("textures/ui/hud/lock_on_indicators/ds2_lock_on_16x.png", 16, IndicatorType.STATIC_CENTERED),
+        DS2_32X("textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png", 8, IndicatorType.STATIC_CENTERED);
 
         private final ResourceLocation texture;
         private final int drawSize;
-        private final float orbitRadius;
+        private final IndicatorType indicatorType;
 
-        LockOnIndicatorStyle(String texturePath, int drawSize, float orbitRadius) {
+        LockOnIndicatorStyle(String texturePath, int drawSize, IndicatorType indicatorType) {
             this.texture = ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, texturePath);
             this.drawSize = drawSize;
-            this.orbitRadius = orbitRadius;
+            this.indicatorType = indicatorType;
         }
 
         @Override
@@ -120,8 +122,17 @@ public final class FocusClientConfig extends Config {
             return drawSize;
         }
 
-        public float orbitRadius() {
-            return orbitRadius;
+        public IndicatorType indicatorType() {
+            return indicatorType;
+        }
+
+        public boolean usesOotTriangleOrbit() {
+            return indicatorType == IndicatorType.OOT_TRIANGLES;
+        }
+
+        public enum IndicatorType {
+            OOT_TRIANGLES,
+            STATIC_CENTERED
         }
     }
 
