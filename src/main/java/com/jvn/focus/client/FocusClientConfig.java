@@ -1,45 +1,57 @@
 package com.jvn.focus.client;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import com.jvn.focus.Focus;
 
-public final class FocusClientConfig {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+import me.fzzyhmstrs.fzzy_config.api.ConfigApiJava;
+import me.fzzyhmstrs.fzzy_config.api.RegisterType;
+import me.fzzyhmstrs.fzzy_config.config.Config;
+import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean;
+import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedCondition;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
-    public static final ModConfigSpec.BooleanValue AUTO_SWITCH_TO_THIRD_PERSON;
-    public static final ModConfigSpec.BooleanValue ALLOW_FIRST_PERSON_WHILE_TARGETING;
-    public static final ModConfigSpec.BooleanValue SHOW_LOCK_ON_DEBUG_TEXT;
-    public static final ModConfigSpec SPEC;
+public final class FocusClientConfig extends Config {
+    private static FocusClientConfig INSTANCE;
 
-    static {
-        BUILDER.push("lockOn");
+    public ValidatedBoolean autoSwitchToThirdPerson = new ValidatedBoolean(true);
+    public ValidatedBoolean allowFirstPersonWhileTargeting = new ValidatedBoolean(false);
+    public ValidatedCondition<Boolean> allowFrontFacingThirdPersonWhileTargeting =
+            new ValidatedBoolean(false).toCondition(
+                    allowFirstPersonWhileTargeting,
+                    Component.translatable("focus.lock_on_client.allowFrontFacingThirdPersonWhileTargeting.condition"),
+                    () -> false);
+    public ValidatedBoolean showLockOnDebugText = new ValidatedBoolean(false);
 
-        AUTO_SWITCH_TO_THIRD_PERSON = BUILDER
-                .comment("Automatically switch to third-person back camera when lock-on is enabled.")
-                .define("autoSwitchToThirdPerson", true);
-
-        ALLOW_FIRST_PERSON_WHILE_TARGETING = BUILDER
-                .comment("Allow entering and staying in first-person while lock-on is active.")
-                .define("allowFirstPersonWhileTargeting", false);
-
-        SHOW_LOCK_ON_DEBUG_TEXT = BUILDER
-                .comment("Show lock-on debug text in the HUD while a target is locked.")
-                .define("showLockOnDebugText", false);
-
-        BUILDER.pop();
-        SPEC = BUILDER.build();
+    public FocusClientConfig() {
+        super(ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "lock_on_client"));
     }
 
-    private FocusClientConfig() {}
+    public static void init() {
+        if (INSTANCE == null) {
+            INSTANCE = ConfigApiJava.registerAndLoadConfig(FocusClientConfig::new, RegisterType.CLIENT);
+        }
+    }
 
     public static boolean autoSwitchToThirdPerson() {
-        return AUTO_SWITCH_TO_THIRD_PERSON.get();
+        return config().autoSwitchToThirdPerson.get();
     }
 
     public static boolean allowFirstPersonWhileTargeting() {
-        return ALLOW_FIRST_PERSON_WHILE_TARGETING.get();
+        return config().allowFirstPersonWhileTargeting.get();
+    }
+
+    public static boolean allowFrontFacingThirdPersonWhileTargeting() {
+        return config().allowFrontFacingThirdPersonWhileTargeting.get();
     }
 
     public static boolean showLockOnDebugText() {
-        return SHOW_LOCK_ON_DEBUG_TEXT.get();
+        return config().showLockOnDebugText.get();
+    }
+
+    private static FocusClientConfig config() {
+        if (INSTANCE == null) {
+            init();
+        }
+        return INSTANCE;
     }
 }

@@ -3,13 +3,11 @@ package com.jvn.focus;
 import org.slf4j.Logger;
 
 import com.jvn.focus.client.FocusClientConfig;
-import com.jvn.focus.client.FocusClientConfigScreen;
 import com.mojang.logging.LogUtils;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.bus.api.IEventBus;
 
@@ -20,9 +18,8 @@ public final class Focus {
 
     public Focus(IEventBus modEventBus, ModContainer modContainer) {
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            FocusClientConfigScreen.register(modContainer);
+            FocusClientConfig.init();
         }
-        modContainer.registerConfig(ModConfig.Type.CLIENT, FocusClientConfig.SPEC, "focus-client.toml");
         LOGGER.debug("Initializing {}", MOD_ID);
     }
 }

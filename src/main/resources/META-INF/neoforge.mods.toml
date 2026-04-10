@@ -23,3 +23,13 @@ type="required"
 versionRange="[1.21]"
 ordering="NONE"
 side="BOTH"
+
+[[dependencies.focus]]
+modId="fzzy_config"
+type="required"
+versionRange="[0.7.0,)"
+ordering="NONE"
+side="BOTH"
+
+[modproperties.fzzy_config]
+fzzy_config="focus"
