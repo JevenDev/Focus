@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="focus"
+version="1.0.0"
+displayName="Focus"
+description='''
+Lock-on combat camera and targeting tools.
+'''
+
+[[dependencies.focus]]
+modId="neoforge"
+type="required"
+versionRange="[21.0.167,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.focus]]
+modId="minecraft"
+type="required"
+versionRange="[1.21]"
+ordering="NONE"
+side="BOTH"
