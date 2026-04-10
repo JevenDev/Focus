@@ -81,9 +81,12 @@ public final class LockOnHandler {
 
         if (lockedTarget != null) {
             CameraType cameraType = minecraft.options.getCameraType();
-            if (!FocusClientConfig.allowFirstPersonWhileTargeting()
-                    && (cameraType.isFirstPerson() || cameraType == CameraType.THIRD_PERSON_FRONT)) {
+            boolean allowFirstPerson = FocusClientConfig.allowFirstPersonWhileTargeting();
+            boolean allowFrontFacing = FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting();
+            if (cameraType.isFirstPerson() && !allowFirstPerson) {
                 minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            } else if (cameraType == CameraType.THIRD_PERSON_FRONT && !allowFrontFacing) {
+                minecraft.options.setCameraType(allowFirstPerson ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_BACK);
             }
         }
     }
@@ -200,6 +203,18 @@ public final class LockOnHandler {
 
     public static LivingEntity getLockedTarget() {
         return lockedTarget;
+    }
+
+    public static boolean hasLineOfSightToLockedTarget(LocalPlayer player) {
+        return lockedTarget != null && player != null && hasDirectSight(player, lockedTarget);
+    }
+
+    public static boolean isLockedTargetWithinHitRange(LocalPlayer player) {
+        return lockedTarget != null && player != null && player.canInteractWithEntity(lockedTarget, 0.0D);
+    }
+
+    public static boolean canHitLockedTarget(LocalPlayer player) {
+        return hasLineOfSightToLockedTarget(player) && isLockedTargetWithinHitRange(player);
     }
 
     private static final class SmoothingMath {

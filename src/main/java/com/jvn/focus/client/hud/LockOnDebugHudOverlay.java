@@ -5,8 +5,10 @@ import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.api.distmarker.Dist;
@@ -37,7 +39,8 @@ public final class LockOnDebugHudOverlay {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) {
+        LocalPlayer player = minecraft.player;
+        if (player == null) {
             return;
         }
 
@@ -48,22 +51,33 @@ public final class LockOnDebugHudOverlay {
 
         Font font = minecraft.font;
         int y = BASE_Y;
-        float distance = minecraft.player.distanceTo(target);
+        float distance = player.distanceTo(target);
+        boolean hasLineOfSight = LockOnHandler.hasLineOfSightToLockedTarget(player);
+        boolean inHitRange = LockOnHandler.isLockedTargetWithinHitRange(player);
+        boolean canHitNow = LockOnHandler.canHitLockedTarget(player);
 
-        y = drawLine(guiGraphics, font, "Lock-On Debug", y);
-        y = drawLine(guiGraphics, font, "Target: " + target.getName().getString(), y);
-        y = drawLine(guiGraphics, font, String.format("Distance: %.1f", distance), y);
-        y = drawLine(guiGraphics, font, "Camera: " + minecraft.options.getCameraType().name(), y);
-        y = drawLine(guiGraphics, font, "Auto 3P: " + onOff(FocusClientConfig.autoSwitchToThirdPerson()), y);
-        drawLine(guiGraphics, font, "Allow 1P: " + onOff(FocusClientConfig.allowFirstPersonWhileTargeting()), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.title"), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.target", target.getName()), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.distance", String.format("%.1f", distance)), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera", minecraft.options.getCameraType().name()), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.auto_third_person", onOff(FocusClientConfig.autoSwitchToThirdPerson())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_first_person", onOff(FocusClientConfig.allowFirstPersonWhileTargeting())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_front_facing_third_person", onOff(FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.can_hit", yesNo(canHitNow)), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.in_range", yesNo(inHitRange)), y);
+        drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.has_line_of_sight", yesNo(hasLineOfSight)), y);
     }
 
-    private static int drawLine(GuiGraphics guiGraphics, Font font, String text, int y) {
+    private static int drawLine(GuiGraphics guiGraphics, Font font, Component text, int y) {
         guiGraphics.drawString(font, text, BASE_X, y, TEXT_COLOR, true);
         return y + font.lineHeight + LINE_GAP;
     }
 
-    private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+    private static Component onOff(boolean value) {
+        return Component.translatable(value ? "debug.focus.lock_on.on" : "debug.focus.lock_on.off");
+    }
+
+    private static Component yesNo(boolean value) {
+        return Component.translatable(value ? "debug.focus.lock_on.yes" : "debug.focus.lock_on.no");
     }
 }
