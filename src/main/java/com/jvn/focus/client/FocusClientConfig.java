@@ -93,6 +93,38 @@ public final class FocusClientConfig extends Config {
         }
     }
 
+    public enum LockOnIndicatorStyle implements EnumTranslatable {
+        OOT_16X("textures/ui/hud/lock_on_indicators/oot_lock_on_16x.png", 8, 14.0F),
+        OOT_32X("textures/ui/hud/lock_on_indicators/oot_lock_on_32x.png", 8, 14.0F);
+
+        private final ResourceLocation texture;
+        private final int drawSize;
+        private final float orbitRadius;
+
+        LockOnIndicatorStyle(String texturePath, int drawSize, float orbitRadius) {
+            this.texture = ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, texturePath);
+            this.drawSize = drawSize;
+            this.orbitRadius = orbitRadius;
+        }
+
+        @Override
+        public String prefix() {
+            return "focus.lock_on_client.lock_on_indicator_style";
+        }
+
+        public ResourceLocation texture() {
+            return texture;
+        }
+
+        public int drawSize() {
+            return drawSize;
+        }
+
+        public float orbitRadius() {
+            return orbitRadius;
+        }
+    }
+
     public ValidatedBoolean autoSwitchToThirdPerson = new ValidatedBoolean(true);
     public ValidatedBoolean allowFirstPersonWhileTargeting = new ValidatedBoolean(true);
     public ValidatedCondition<Boolean> allowFrontFacingThirdPersonWhileTargeting =
@@ -101,6 +133,8 @@ public final class FocusClientConfig extends Config {
                     Component.translatable("focus.lock_on_client.allowFrontFacingThirdPersonWhileTargeting.condition"),
                     () -> false);
     public ValidatedBoolean showLockOnDebugText = new ValidatedBoolean(false);
+    public ValidatedEnum<LockOnIndicatorStyle> lockOnIndicatorStyle =
+            new ValidatedEnum<>(LockOnIndicatorStyle.OOT_16X, ValidatedEnum.WidgetType.CYCLING);
     public ValidatedBoolean useCustomSwappedShoulderValues = new ValidatedBoolean(false);
     public ValidatedEnum<CameraMode> cameraMode = new ValidatedEnum<>(CameraMode.DYNAMIC, ValidatedEnum.WidgetType.CYCLING);
     public ValidatedDouble cameraFloatiness = new ValidatedDouble(
@@ -149,6 +183,10 @@ public final class FocusClientConfig extends Config {
 
     public static boolean showLockOnDebugText() {
         return config().showLockOnDebugText.get();
+    }
+
+    public static LockOnIndicatorStyle lockOnIndicatorStyle() {
+        return config().lockOnIndicatorStyle.get();
     }
 
     public static boolean useCustomSwappedShoulderValues() {
