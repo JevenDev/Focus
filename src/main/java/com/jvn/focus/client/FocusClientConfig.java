@@ -31,6 +31,10 @@ public final class FocusClientConfig extends Config {
     public static final double DEFAULT_CAMERA_ROTATION = 0.0D;
     public static final double DEFAULT_CAMERA_FLOATINESS = 0.25D;
     public static final double DEFAULT_CAMERA_DRAG = 0.95D;
+    public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.25D;
+    public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 0.7D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.25D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.7D;
     public static final double MIN_CAMERA_OFFSET_X = -4.0D;
     public static final double MAX_CAMERA_OFFSET_X = 4.0D;
     public static final double MIN_CAMERA_OFFSET_Y = -2.0D;
@@ -43,6 +47,14 @@ public final class FocusClientConfig extends Config {
     public static final double MAX_CAMERA_FLOATINESS = 1.0D;
     public static final double MIN_CAMERA_DRAG = 0.0D;
     public static final double MAX_CAMERA_DRAG = 0.95D;
+    public static final double MIN_CAMERA_SWAP_SPEED = 0.01D;
+    public static final double MAX_CAMERA_SWAP_SPEED = 1.0D;
+    public static final double MIN_CAMERA_SWAP_SMOOTHNESS = 0.0D;
+    public static final double MAX_CAMERA_SWAP_SMOOTHNESS = 1.0D;
+    public static final double MIN_DYNAMIC_CAMERA_SWAP_SPEED = 0.01D;
+    public static final double MAX_DYNAMIC_CAMERA_SWAP_SPEED = 1.0D;
+    public static final double MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
+    public static final double MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 1.0D;
     public static final double CAMERA_SLIDER_INCREMENT = 0.1D;
     public static final double ROTATION_SLIDER_INCREMENT = 1.0D;
     private static final int CAMERA_VALUE_SCALE = 1;
@@ -95,6 +107,14 @@ public final class FocusClientConfig extends Config {
             DEFAULT_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS, MIN_CAMERA_FLOATINESS);
     public ValidatedDouble cameraDrag = new ValidatedDouble(
             DEFAULT_CAMERA_DRAG, MAX_CAMERA_DRAG, MIN_CAMERA_DRAG);
+    public ValidatedDouble cameraSwapSpeed = new ValidatedDouble(
+            DEFAULT_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED, MIN_CAMERA_SWAP_SPEED);
+    public ValidatedDouble cameraSwapSmoothness = new ValidatedDouble(
+            DEFAULT_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS, MIN_CAMERA_SWAP_SMOOTHNESS);
+    public ValidatedDouble dynamicCameraSwapSpeed = new ValidatedDouble(
+            DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED, MIN_DYNAMIC_CAMERA_SWAP_SPEED);
+    public ValidatedDouble dynamicCameraSwapSmoothness = new ValidatedDouble(
+            DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
     public ConfigAction openCameraPositionEditor = new ConfigAction.Builder()
             .title(() -> Component.translatable("focus.lock_on_client.openCameraPositionEditor"))
             .desc(Component.translatable("focus.lock_on_client.openCameraPositionEditor.desc"))
@@ -145,6 +165,22 @@ public final class FocusClientConfig extends Config {
 
     public static double cameraDrag() {
         return config().cameraDrag.get();
+    }
+
+    public static double cameraSwapSpeed() {
+        return config().cameraSwapSpeed.get();
+    }
+
+    public static double cameraSwapSmoothness() {
+        return config().cameraSwapSmoothness.get();
+    }
+
+    public static double dynamicCameraSwapSpeed() {
+        return config().dynamicCameraSwapSpeed.get();
+    }
+
+    public static double dynamicCameraSwapSmoothness() {
+        return config().dynamicCameraSwapSmoothness.get();
     }
 
     public static void setUseCustomSwappedShoulderValues(boolean useCustomSwappedShoulderValues, Shoulder sourceShoulder) {
