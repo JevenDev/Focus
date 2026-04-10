@@ -31,10 +31,10 @@ public final class FocusClientConfig extends Config {
     public static final double DEFAULT_CAMERA_ROTATION = 0.0D;
     public static final double DEFAULT_CAMERA_FLOATINESS = 0.25D;
     public static final double DEFAULT_CAMERA_DRAG = 0.95D;
-    public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.25D;
-    public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 0.7D;
-    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.25D;
-    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.7D;
+    public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.1D;
+    public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 1.0D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.01D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
     public static final double MIN_CAMERA_OFFSET_X = -4.0D;
     public static final double MAX_CAMERA_OFFSET_X = 4.0D;
     public static final double MIN_CAMERA_OFFSET_Y = -2.0D;
@@ -102,7 +102,7 @@ public final class FocusClientConfig extends Config {
                     () -> false);
     public ValidatedBoolean showLockOnDebugText = new ValidatedBoolean(false);
     public ValidatedBoolean useCustomSwappedShoulderValues = new ValidatedBoolean(false);
-    public ValidatedEnum<CameraMode> cameraMode = new ValidatedEnum<>(CameraMode.STATIC, ValidatedEnum.WidgetType.CYCLING);
+    public ValidatedEnum<CameraMode> cameraMode = new ValidatedEnum<>(CameraMode.DYNAMIC, ValidatedEnum.WidgetType.CYCLING);
     public ValidatedDouble cameraFloatiness = new ValidatedDouble(
             DEFAULT_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS, MIN_CAMERA_FLOATINESS);
     public ValidatedDouble cameraDrag = new ValidatedDouble(
@@ -289,12 +289,26 @@ public final class FocusClientConfig extends Config {
 
     public static CameraSetupPreset currentCameraSetupPreset() {
         return new CameraSetupPreset(
+                cameraMode(),
+                cameraFloatiness(),
+                cameraDrag(),
+                cameraSwapSpeed(),
+                cameraSwapSmoothness(),
+                dynamicCameraSwapSpeed(),
+                dynamicCameraSwapSmoothness(),
                 currentPreset(Shoulder.LEFT),
                 currentPreset(Shoulder.RIGHT),
                 useCustomSwappedShoulderValues());
     }
 
     public static void applyCameraSetupPreset(CameraSetupPreset setup) {
+        config().cameraMode.validateAndSet(setup.cameraMode());
+        config().cameraFloatiness.validateAndSet(setup.cameraFloatiness());
+        config().cameraDrag.validateAndSet(setup.cameraDrag());
+        config().cameraSwapSpeed.validateAndSet(setup.cameraSwapSpeed());
+        config().cameraSwapSmoothness.validateAndSet(setup.cameraSwapSmoothness());
+        config().dynamicCameraSwapSpeed.validateAndSet(setup.dynamicCameraSwapSpeed());
+        config().dynamicCameraSwapSmoothness.validateAndSet(setup.dynamicCameraSwapSmoothness());
         if (setup.useCustomSwappedShoulderValues()) {
             config().useCustomSwappedShoulderValues.validateAndSet(true);
             setRawPreset(Shoulder.LEFT, setup.leftShoulder());
@@ -312,6 +326,13 @@ public final class FocusClientConfig extends Config {
 
     public static String serializeCameraSetup(CameraSetupPreset setup) {
         JsonObject object = new JsonObject();
+        object.addProperty("cameraMode", setup.cameraMode().name());
+        object.addProperty("cameraFloatiness", setup.cameraFloatiness());
+        object.addProperty("cameraDrag", setup.cameraDrag());
+        object.addProperty("cameraSwapSpeed", setup.cameraSwapSpeed());
+        object.addProperty("cameraSwapSmoothness", setup.cameraSwapSmoothness());
+        object.addProperty("dynamicCameraSwapSpeed", setup.dynamicCameraSwapSpeed());
+        object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
         object.addProperty("useCustomSwappedShoulderValues", setup.useCustomSwappedShoulderValues());
         object.add("leftShoulder", presetToJson(setup.leftShoulder()));
         object.add("rightShoulder", presetToJson(setup.rightShoulder()));
@@ -354,8 +375,25 @@ public final class FocusClientConfig extends Config {
 
         PerspectivePreset left = readPreset(leftElement.getAsJsonObject());
         PerspectivePreset right = readPreset(rightElement.getAsJsonObject());
-        boolean useCustom = readRequiredBoolean(object, "useCustomSwappedShoulderValues");
-        return new CameraSetupPreset(left, right, useCustom);
+        CameraMode cameraMode = readOptionalCameraMode(object, "cameraMode", cameraMode());
+        double cameraFloatiness = readOptionalDouble(object, "cameraFloatiness", cameraFloatiness());
+        double cameraDrag = readOptionalDouble(object, "cameraDrag", cameraDrag());
+        double cameraSwapSpeed = readOptionalDouble(object, "cameraSwapSpeed", cameraSwapSpeed());
+        double cameraSwapSmoothness = readOptionalDouble(object, "cameraSwapSmoothness", cameraSwapSmoothness());
+        double dynamicCameraSwapSpeed = readOptionalDouble(object, "dynamicCameraSwapSpeed", dynamicCameraSwapSpeed());
+        double dynamicCameraSwapSmoothness = readOptionalDouble(object, "dynamicCameraSwapSmoothness", dynamicCameraSwapSmoothness());
+        boolean useCustom = readOptionalBoolean(object, "useCustomSwappedShoulderValues", useCustomSwappedShoulderValues());
+        return new CameraSetupPreset(
+                cameraMode,
+                cameraFloatiness,
+                cameraDrag,
+                cameraSwapSpeed,
+                cameraSwapSmoothness,
+                dynamicCameraSwapSpeed,
+                dynamicCameraSwapSmoothness,
+                left,
+                right,
+                useCustom);
     }
 
     public static void saveConfig() {
@@ -529,6 +567,43 @@ public final class FocusClientConfig extends Config {
         return element.getAsBoolean();
     }
 
+    private static double readOptionalDouble(JsonObject object, String key, double fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IllegalArgumentException("Preset has non-numeric field: " + key);
+        }
+        return element.getAsDouble();
+    }
+
+    private static boolean readOptionalBoolean(JsonObject object, String key, boolean fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+            throw new IllegalArgumentException("Preset has non-boolean field: " + key);
+        }
+        return element.getAsBoolean();
+    }
+
+    private static CameraMode readOptionalCameraMode(JsonObject object, String key, CameraMode fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset has non-string enum field: " + key);
+        }
+        try {
+            return CameraMode.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid camera mode: " + element.getAsString(), e);
+        }
+    }
+
     private static double roundForCamera(double value) {
         return BigDecimal.valueOf(value).setScale(CAMERA_VALUE_SCALE, RoundingMode.HALF_UP).doubleValue();
     }
@@ -540,6 +615,13 @@ public final class FocusClientConfig extends Config {
     }
 
     public record CameraSetupPreset(
+            CameraMode cameraMode,
+            double cameraFloatiness,
+            double cameraDrag,
+            double cameraSwapSpeed,
+            double cameraSwapSmoothness,
+            double dynamicCameraSwapSpeed,
+            double dynamicCameraSwapSmoothness,
             PerspectivePreset leftShoulder,
             PerspectivePreset rightShoulder,
             boolean useCustomSwappedShoulderValues) {
