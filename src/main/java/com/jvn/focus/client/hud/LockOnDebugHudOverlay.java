@@ -76,6 +76,8 @@ public final class LockOnDebugHudOverlay {
         drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.has_line_of_sight", yesNo(hasLineOfSight)), leftY);
 
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.custom_swap_values", onOff(FocusClientConfig.useCustomSwappedShoulderValues())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_floatiness", format(FocusClientConfig.cameraFloatiness())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_drag", format(FocusClientConfig.cameraDrag())), rightY);
         rightY = drawShoulderAwareRightValue(guiGraphics, font, rightY,
                 leftPreset.offsetX(),
                 rightPreset.offsetX(),
