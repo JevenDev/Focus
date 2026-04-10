@@ -54,7 +54,7 @@ public final class LockOnDebugHudOverlay {
         Font font = minecraft.font;
         int leftY = BASE_Y;
         int rightY = BASE_Y;
-        FocusClientConfig.Shoulder activeShoulder = LockOnHandler.getActiveShoulder();
+        FocusClientConfig.Shoulder activeShoulder = LockOnHandler.getDisplayedShoulder();
         FocusClientConfig.PerspectivePreset leftPreset = FocusClientConfig.currentPreset(FocusClientConfig.Shoulder.LEFT);
         FocusClientConfig.PerspectivePreset rightPreset = FocusClientConfig.currentPreset(FocusClientConfig.Shoulder.RIGHT);
         float distance = player.distanceTo(target);
@@ -82,6 +82,10 @@ public final class LockOnDebugHudOverlay {
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.custom_swap_values", onOff(FocusClientConfig.useCustomSwappedShoulderValues())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_floatiness", format(FocusClientConfig.cameraFloatiness())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_drag", format(FocusClientConfig.cameraDrag())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_speed", format(FocusClientConfig.cameraSwapSpeed())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_smoothness", format(FocusClientConfig.cameraSwapSmoothness())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_speed", format(FocusClientConfig.dynamicCameraSwapSpeed())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_smoothness", format(FocusClientConfig.dynamicCameraSwapSmoothness())), rightY);
         rightY = drawShoulderAwareRightValue(guiGraphics, font, rightY,
                 leftPreset.offsetX(),
                 rightPreset.offsetX(),
