@@ -27,7 +27,6 @@ public final class LockOnHandler {
     private static final double OCCLUDED_LOCK_DISTANCE = 10.0D;
     private static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
-    private static final float CAMERA_BACK_DISTANCE = 2.5F;
     private static final float LOOK_RESPONSIVENESS_YAW = 10.0F;
     private static final float LOOK_RESPONSIVENESS_PITCH = 8.0F;
     private static final float LOOK_MAX_YAW_STEP_PER_TICK = 12.0F;
@@ -44,6 +43,7 @@ public final class LockOnHandler {
     private static float smoothedBodyYawOffset;
     private static Vec3 smoothedTargetPoint = Vec3.ZERO;
     private static boolean smoothingInitialized;
+    private static boolean cameraEditorPreviewActive;
 
     private LockOnHandler() {}
 
@@ -56,6 +56,7 @@ public final class LockOnHandler {
             previousCameraType = null;
             smoothingInitialized = false;
             smoothedBodyYawOffset = 0.0F;
+            cameraEditorPreviewActive = false;
             return;
         }
 
@@ -88,6 +89,8 @@ public final class LockOnHandler {
             } else if (cameraType == CameraType.THIRD_PERSON_FRONT && !allowFrontFacing) {
                 minecraft.options.setCameraType(allowFirstPerson ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_BACK);
             }
+        } else if (cameraEditorPreviewActive && minecraft.options.getCameraType() != CameraType.THIRD_PERSON_BACK) {
+            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
     }
 
@@ -115,8 +118,8 @@ public final class LockOnHandler {
 
     @SubscribeEvent
     public static void onDetachedCameraDistance(CalculateDetachedCameraDistanceEvent event) {
-        if (lockedTarget != null) {
-            event.setDistance(Math.max(CAMERA_BACK_DISTANCE, 4.0F));
+        if (lockedTarget != null || cameraEditorPreviewActive) {
+            event.setDistance((float) Math.max(FocusClientConfig.cameraOffsetZ(), 4.0D));
         }
     }
 
@@ -205,6 +208,38 @@ public final class LockOnHandler {
         return lockedTarget;
     }
 
+    public static CameraLockData getActiveCameraData(LocalPlayer player, float partialTick) {
+        if (player == null) {
+            return null;
+        }
+
+        if (lockedTarget != null) {
+            return getLockedTargetCameraData(player, partialTick);
+        }
+
+        if (cameraEditorPreviewActive) {
+            return getEditorPreviewCameraData(player, partialTick);
+        }
+
+        return null;
+    }
+
+    public static void startCameraEditorPreview() {
+        cameraEditorPreviewActive = true;
+    }
+
+    public static void stopCameraEditorPreview(CameraType previousCameraType) {
+        cameraEditorPreviewActive = false;
+        if (lockedTarget == null && previousCameraType != null) {
+            Minecraft minecraft = Minecraft.getInstance();
+            minecraft.options.setCameraType(previousCameraType);
+        }
+    }
+
+    public static boolean isCameraEditorPreviewActive() {
+        return cameraEditorPreviewActive;
+    }
+
     public static boolean hasLineOfSightToLockedTarget(LocalPlayer player) {
         return lockedTarget != null && player != null && hasDirectSight(player, lockedTarget);
     }
@@ -215,6 +250,31 @@ public final class LockOnHandler {
 
     public static boolean canHitLockedTarget(LocalPlayer player) {
         return hasLineOfSightToLockedTarget(player) && isLockedTargetWithinHitRange(player);
+    }
+
+    private static CameraLockData getLockedTargetCameraData(LocalPlayer player, float partialTick) {
+        if (!smoothingInitialized) {
+            initializeSmoothing(player, getTargetAimPoint(lockedTarget, partialTick));
+        }
+
+        Vec3 targetPoint = smoothedTargetPoint.lengthSqr() > 0.0D ? smoothedTargetPoint : getTargetAimPoint(lockedTarget, partialTick);
+        return buildCameraLockData(targetPoint);
+    }
+
+    private static CameraLockData getEditorPreviewCameraData(LocalPlayer player, float partialTick) {
+        Vec3 eye = player.getEyePosition(partialTick);
+        Vec3 forward = player.getViewVector(partialTick);
+        Vec3 targetPoint = eye.add(forward.scale(8.0D));
+        return buildCameraLockData(targetPoint);
+    }
+
+    private static CameraLockData buildCameraLockData(Vec3 targetPoint) {
+        return new CameraLockData(
+                targetPoint,
+                FocusClientConfig.cameraOffsetX(),
+                FocusClientConfig.cameraOffsetY(),
+                FocusClientConfig.cameraOffsetZ(),
+                (float) FocusClientConfig.cameraRotation());
     }
 
     private static final class SmoothingMath {
@@ -329,4 +389,6 @@ public final class LockOnHandler {
             return target.isInvisible() || target.isInvisibleTo(player);
         }
     }
+
+    public record CameraLockData(Vec3 targetPoint, double offsetX, double offsetY, double offsetZ, float rotationDegrees) {}
 }

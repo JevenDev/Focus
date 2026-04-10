@@ -63,6 +63,11 @@ public final class LockOnDebugHudOverlay {
         y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.auto_third_person", onOff(FocusClientConfig.autoSwitchToThirdPerson())), y);
         y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_first_person", onOff(FocusClientConfig.allowFirstPersonWhileTargeting())), y);
         y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_front_facing_third_person", onOff(FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.editor_preview", onOff(LockOnHandler.isCameraEditorPreviewActive())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.offset_x", format(FocusClientConfig.cameraOffsetX())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.offset_y", format(FocusClientConfig.cameraOffsetY())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.offset_z", format(FocusClientConfig.cameraOffsetZ())), y);
+        y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.rotation", format(FocusClientConfig.cameraRotation())), y);
         y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.can_hit", yesNo(canHitNow)), y);
         y = drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.in_range", yesNo(inHitRange)), y);
         drawLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.has_line_of_sight", yesNo(hasLineOfSight)), y);
@@ -79,5 +84,9 @@ public final class LockOnDebugHudOverlay {
 
     private static Component yesNo(boolean value) {
         return Component.translatable(value ? "debug.focus.lock_on.yes" : "debug.focus.lock_on.no");
+    }
+
+    private static String format(double value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 }
