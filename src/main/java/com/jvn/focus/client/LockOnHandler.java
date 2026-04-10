@@ -35,6 +35,12 @@ public final class LockOnHandler {
     private static final float BODY_TURN_RESPONSIVENESS = 10.0F;
     private static final float BODY_FORWARD_DAMPING = 0.65F;
     private static final float TARGET_POINT_RESPONSIVENESS = 16.0F;
+    private static final double DYNAMIC_NEAR_DISTANCE = 2.0D;
+    private static final double DYNAMIC_FAR_DISTANCE = 12.0D;
+    private static final double DYNAMIC_EXTRA_OFFSET_Z_NEAR = 1.2D;
+    private static final double DYNAMIC_EXTRA_OFFSET_Y_NEAR = 0.35D;
+    private static final double DYNAMIC_EXTRA_OFFSET_X_NEAR = 0.4D;
+    private static final double DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS = Math.toRadians(2.0D);
 
     private static LivingEntity lockedTarget;
     private static CameraType previousCameraType;
@@ -45,6 +51,9 @@ public final class LockOnHandler {
     private static boolean smoothingInitialized;
     private static boolean cameraEditorPreviewActive;
     private static FocusClientConfig.Shoulder activeShoulder = FocusClientConfig.Shoulder.LEFT;
+    private static FocusClientConfig.Shoulder dynamicShoulder = FocusClientConfig.Shoulder.LEFT;
+    private static Vec3 previousDynamicTargetOffset = Vec3.ZERO;
+    private static boolean dynamicSwapReferenceInitialized;
 
     private LockOnHandler() {}
 
@@ -58,6 +67,9 @@ public final class LockOnHandler {
             smoothingInitialized = false;
             smoothedBodyYawOffset = 0.0F;
             cameraEditorPreviewActive = false;
+            dynamicShoulder = activeShoulder;
+            previousDynamicTargetOffset = Vec3.ZERO;
+            dynamicSwapReferenceInitialized = false;
             return;
         }
 
@@ -147,6 +159,9 @@ public final class LockOnHandler {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
         initializeSmoothing(player, getTargetAimPoint(nextTarget, 1.0F));
+        dynamicShoulder = activeShoulder;
+        previousDynamicTargetOffset = Vec3.ZERO;
+        dynamicSwapReferenceInitialized = false;
         player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
     }
 
@@ -190,6 +205,9 @@ public final class LockOnHandler {
         }
         smoothingInitialized = false;
         smoothedBodyYawOffset = 0.0F;
+        dynamicShoulder = activeShoulder;
+        previousDynamicTargetOffset = Vec3.ZERO;
+        dynamicSwapReferenceInitialized = false;
     }
 
     private static LivingEntity findTarget(LocalPlayer player) {
@@ -263,11 +281,15 @@ public final class LockOnHandler {
     public static void setActiveShoulder(FocusClientConfig.Shoulder shoulder) {
         if (shoulder != null) {
             activeShoulder = shoulder;
+            dynamicShoulder = shoulder;
+            dynamicSwapReferenceInitialized = false;
         }
     }
 
     public static FocusClientConfig.Shoulder swapShoulder(LocalPlayer player, boolean showMessage) {
         activeShoulder = activeShoulder.opposite();
+        dynamicShoulder = activeShoulder;
+        dynamicSwapReferenceInitialized = false;
         if (showMessage && player != null) {
             player.displayClientMessage(
                     Component.translatable("message.focus.lock_on.shoulder_swapped", activeShoulder.displayName()),
@@ -282,24 +304,91 @@ public final class LockOnHandler {
         }
 
         Vec3 targetPoint = smoothedTargetPoint.lengthSqr() > 0.0D ? smoothedTargetPoint : getTargetAimPoint(lockedTarget, partialTick);
-        return buildCameraLockData(targetPoint);
+        if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
+            return buildDynamicCameraLockData(player, targetPoint);
+        }
+
+        return buildCameraLockData(targetPoint, activeShoulder);
     }
 
     private static CameraLockData getEditorPreviewCameraData(LocalPlayer player, float partialTick) {
         Vec3 eye = player.getEyePosition(partialTick);
         Vec3 forward = player.getViewVector(partialTick);
         Vec3 targetPoint = eye.add(forward.scale(8.0D));
-        return buildCameraLockData(targetPoint);
+        return buildCameraLockData(targetPoint, activeShoulder);
     }
 
-    private static CameraLockData buildCameraLockData(Vec3 targetPoint) {
-        FocusClientConfig.PerspectivePreset preset = FocusClientConfig.currentPreset(activeShoulder);
+    private static CameraLockData buildCameraLockData(Vec3 targetPoint, FocusClientConfig.Shoulder shoulder) {
+        FocusClientConfig.PerspectivePreset preset = FocusClientConfig.currentPreset(shoulder);
         return new CameraLockData(
                 targetPoint,
                 preset.offsetX(),
                 preset.offsetY(),
                 preset.offsetZ(),
                 (float) preset.rotation());
+    }
+
+    private static CameraLockData buildDynamicCameraLockData(LocalPlayer player, Vec3 targetPoint) {
+        updateDynamicShoulder(player, targetPoint);
+
+        FocusClientConfig.PerspectivePreset basePreset = FocusClientConfig.currentPreset(activeShoulder);
+        FocusClientConfig.PerspectivePreset preset = dynamicShoulder == activeShoulder
+                ? basePreset
+                : basePreset.mirroredForOppositeShoulder();
+        double targetDistance = lockedTarget != null ? player.distanceTo(lockedTarget) : player.getEyePosition().distanceTo(targetPoint);
+        double nearFactor = 1.0D - Mth.clamp(
+                (targetDistance - DYNAMIC_NEAR_DISTANCE) / (DYNAMIC_FAR_DISTANCE - DYNAMIC_NEAR_DISTANCE),
+                0.0D,
+                1.0D);
+
+        double offsetXSign = Math.abs(preset.offsetX()) > 1.0E-4D
+                ? Math.signum(preset.offsetX())
+                : (dynamicShoulder == FocusClientConfig.Shoulder.LEFT ? -1.0D : 1.0D);
+        double offsetX = clamp(
+                preset.offsetX() + offsetXSign * DYNAMIC_EXTRA_OFFSET_X_NEAR * nearFactor,
+                FocusClientConfig.MIN_CAMERA_OFFSET_X,
+                FocusClientConfig.MAX_CAMERA_OFFSET_X);
+        double offsetY = clamp(
+                preset.offsetY() + DYNAMIC_EXTRA_OFFSET_Y_NEAR * nearFactor,
+                FocusClientConfig.MIN_CAMERA_OFFSET_Y,
+                FocusClientConfig.MAX_CAMERA_OFFSET_Y);
+        double offsetZ = clamp(
+                preset.offsetZ() + DYNAMIC_EXTRA_OFFSET_Z_NEAR * nearFactor,
+                FocusClientConfig.MIN_CAMERA_OFFSET_Z,
+                FocusClientConfig.MAX_CAMERA_OFFSET_Z);
+
+        return new CameraLockData(
+                targetPoint,
+                offsetX,
+                offsetY,
+                offsetZ,
+                (float) preset.rotation());
+    }
+
+    private static void updateDynamicShoulder(LocalPlayer player, Vec3 targetPoint) {
+        Vec3 currentOffset = targetPoint.subtract(player.position()).multiply(1.0D, 0.0D, 1.0D);
+        if (currentOffset.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+
+        if (dynamicSwapReferenceInitialized) {
+            double cross = previousDynamicTargetOffset.x * currentOffset.z - previousDynamicTargetOffset.z * currentOffset.x;
+            double dot = previousDynamicTargetOffset.x * currentOffset.x + previousDynamicTargetOffset.z * currentOffset.z;
+            double deltaAngle = Math.atan2(cross, dot);
+
+            if (deltaAngle > DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS) {
+                dynamicShoulder = FocusClientConfig.Shoulder.RIGHT;
+            } else if (deltaAngle < -DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS) {
+                dynamicShoulder = FocusClientConfig.Shoulder.LEFT;
+            }
+        }
+
+        previousDynamicTargetOffset = currentOffset;
+        dynamicSwapReferenceInitialized = true;
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private static final class SmoothingMath {

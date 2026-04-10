@@ -66,6 +66,10 @@ public final class LockOnDebugHudOverlay {
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.target", target.getName()), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.distance", String.format("%.1f", distance)), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera", minecraft.options.getCameraType().name()), leftY);
+        leftY = drawLeftLine(guiGraphics, font, Component.translatable(
+                "debug.focus.lock_on.camera_mode",
+                Component.translatable("focus.lock_on_client.camera_mode." + FocusClientConfig.cameraMode().name())),
+                leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.auto_third_person", onOff(FocusClientConfig.autoSwitchToThirdPerson())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_first_person", onOff(FocusClientConfig.allowFirstPersonWhileTargeting())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_front_facing_third_person", onOff(FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting())), leftY);
