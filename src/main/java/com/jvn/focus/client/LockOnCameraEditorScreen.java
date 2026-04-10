@@ -22,7 +22,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int HEADER_HEIGHT = 18;
     private static final int HIDE_SHOW_BUTTON_WIDTH = 72;
     private static final int ACTION_BUTTON_HEIGHT = 18;
-    private static final int CONTROL_ROW_COUNT = 8;
+    private static final int CONTROL_ROW_COUNT = 11;
     private static final int VALUE_PRECISION = 1;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
     private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
@@ -33,6 +33,8 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Slider ySlider;
     private Slider zSlider;
     private Slider rotationSlider;
+    private Button swapShoulderButton;
+    private Button customSwapValuesButton;
     private Button savePresetButton;
     private Button importPresetButton;
     private Button resetButton;
@@ -44,6 +46,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private int sliderWidth;
     private Component statusMessage = Component.empty();
     private long statusMessageUntilMs;
+    private FocusClientConfig.Shoulder editedShoulder = FocusClientConfig.Shoulder.LEFT;
 
     private LockOnCameraEditorScreen(Screen parent, CameraType previousCameraType) {
         super(Component.translatable("screen.focus.camera_editor.title"));
@@ -67,6 +70,7 @@ public final class LockOnCameraEditorScreen extends Screen {
             this.minecraft.gameRenderer.shutdownEffect();
         }
 
+        editedShoulder = LockOnHandler.getActiveShoulder();
         sliderWidth = Math.min(CONTROL_WIDTH, Math.max(170, this.width - 20));
         controlsX = CONTROL_LEFT_MARGIN;
         controlsTop = Math.max(18, this.height - (ROW_HEIGHT * CONTROL_ROW_COUNT) - CONTROLS_BOTTOM_MARGIN);
@@ -75,9 +79,9 @@ public final class LockOnCameraEditorScreen extends Screen {
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 0, sliderWidth,
                 "screen.focus.camera_editor.offset_x",
                 FocusClientConfig.MIN_CAMERA_OFFSET_X, FocusClientConfig.MAX_CAMERA_OFFSET_X,
-                FocusClientConfig::cameraOffsetX,
+                () -> FocusClientConfig.cameraOffsetX(editedShoulder),
                 value -> {
-                    FocusClientConfig.setCameraOffsetX(value);
+                    FocusClientConfig.setCameraOffsetX(editedShoulder, value);
                     FocusClientConfig.saveConfig();
                 }));
 
@@ -85,9 +89,9 @@ public final class LockOnCameraEditorScreen extends Screen {
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 1, sliderWidth,
                 "screen.focus.camera_editor.offset_y",
                 FocusClientConfig.MIN_CAMERA_OFFSET_Y, FocusClientConfig.MAX_CAMERA_OFFSET_Y,
-                FocusClientConfig::cameraOffsetY,
+                () -> FocusClientConfig.cameraOffsetY(editedShoulder),
                 value -> {
-                    FocusClientConfig.setCameraOffsetY(value);
+                    FocusClientConfig.setCameraOffsetY(editedShoulder, value);
                     FocusClientConfig.saveConfig();
                 }));
 
@@ -95,9 +99,9 @@ public final class LockOnCameraEditorScreen extends Screen {
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 2, sliderWidth,
                 "screen.focus.camera_editor.offset_z",
                 FocusClientConfig.MIN_CAMERA_OFFSET_Z, FocusClientConfig.MAX_CAMERA_OFFSET_Z,
-                FocusClientConfig::cameraOffsetZ,
+                () -> FocusClientConfig.cameraOffsetZ(editedShoulder),
                 value -> {
-                    FocusClientConfig.setCameraOffsetZ(value);
+                    FocusClientConfig.setCameraOffsetZ(editedShoulder, value);
                     FocusClientConfig.saveConfig();
                 }));
 
@@ -105,20 +109,29 @@ public final class LockOnCameraEditorScreen extends Screen {
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 3, sliderWidth,
                 "screen.focus.camera_editor.rotation",
                 FocusClientConfig.MIN_CAMERA_ROTATION, FocusClientConfig.MAX_CAMERA_ROTATION,
-                FocusClientConfig::cameraRotation,
+                () -> FocusClientConfig.cameraRotation(editedShoulder),
                 value -> {
-                    FocusClientConfig.setCameraRotation(value);
+                    FocusClientConfig.setCameraRotation(editedShoulder, value);
                     FocusClientConfig.saveConfig();
                 }));
 
-        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
-        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
+        int swapButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
+        int customValuesY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
+        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
+        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7;
         int buttonWidth = (sliderWidth - 8) / 2;
+        swapShoulderButton = addRenderableWidget(Button.builder(Component.empty(), button -> swapEditedShoulder(true))
+                .bounds(controlsX, swapButtonY, sliderWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+        customSwapValuesButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleCustomSwapValues())
+                .bounds(controlsX, customValuesY, sliderWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+
         savePresetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.save_preset"), button -> {
             if (this.minecraft == null) {
                 return;
             }
-            String preset = FocusClientConfig.serializePreset(FocusClientConfig.currentPreset());
+            String preset = FocusClientConfig.serializeCameraSetup(FocusClientConfig.currentCameraSetupPreset());
             this.minecraft.keyboardHandler.setClipboard(preset);
             showStatus("screen.focus.camera_editor.preset_saved");
         }).bounds(controlsX, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
@@ -127,7 +140,7 @@ public final class LockOnCameraEditorScreen extends Screen {
                 importPresetFromClipboard()).bounds(controlsX + buttonWidth + 8, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
 
         resetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.reset_defaults"), button -> {
-            FocusClientConfig.resetCameraOffsetsToDefaults();
+            FocusClientConfig.resetCameraOffsetsToDefaults(editedShoulder);
             FocusClientConfig.saveConfig();
             refreshSlidersFromConfig();
             showStatus("screen.focus.camera_editor.preset_reset_defaults");
@@ -142,6 +155,7 @@ public final class LockOnCameraEditorScreen extends Screen {
             applyControlVisibility();
         }).bounds(controlsX, buttonY + ROW_HEIGHT, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
 
+        refreshShoulderButtons();
         applyControlVisibility();
     }
 
@@ -163,7 +177,7 @@ public final class LockOnCameraEditorScreen extends Screen {
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint"),
                     controlsX, controlsTop - 8, 0xD0D0D0, true);
             if (isStatusVisible()) {
-                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, 0xC8FACC, true);
+                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 10, 0xC8FACC, true);
             }
         } else {
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint_minimized"),
@@ -183,6 +197,10 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (keyCode == GLFW.GLFW_KEY_H) {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_X) {
+            swapEditedShoulder(true);
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -210,6 +228,14 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (rotationSlider != null) {
             rotationSlider.visible = controlsVisible;
             rotationSlider.active = controlsVisible;
+        }
+        if (swapShoulderButton != null) {
+            swapShoulderButton.visible = controlsVisible;
+            swapShoulderButton.active = controlsVisible;
+        }
+        if (customSwapValuesButton != null) {
+            customSwapValuesButton.visible = controlsVisible;
+            customSwapValuesButton.active = controlsVisible;
         }
         if (savePresetButton != null) {
             savePresetButton.visible = controlsVisible;
@@ -241,10 +267,11 @@ public final class LockOnCameraEditorScreen extends Screen {
         }
 
         try {
-            FocusClientConfig.PerspectivePreset preset = FocusClientConfig.deserializePreset(clipboard);
-            FocusClientConfig.applyPreset(preset);
+            FocusClientConfig.CameraSetupPreset setup = FocusClientConfig.deserializeCameraSetup(clipboard);
+            FocusClientConfig.applyCameraSetupPreset(setup);
             FocusClientConfig.saveConfig();
             refreshSlidersFromConfig();
+            refreshShoulderButtons();
             showStatus("screen.focus.camera_editor.preset_imported");
         } catch (IllegalArgumentException e) {
             showStatus("screen.focus.camera_editor.preset_import_failed");
@@ -259,12 +286,48 @@ public final class LockOnCameraEditorScreen extends Screen {
     }
 
     private void showStatus(String translationKey) {
-        statusMessage = Component.translatable(translationKey);
+        showStatus(translationKey, new Object[0]);
+    }
+
+    private void showStatus(String translationKey, Object... args) {
+        statusMessage = Component.translatable(translationKey, args);
         statusMessageUntilMs = Util.getMillis() + STATUS_MESSAGE_DURATION_MS;
     }
 
     private boolean isStatusVisible() {
         return Util.getMillis() <= statusMessageUntilMs && !statusMessage.getString().isEmpty();
+    }
+
+    private void refreshShoulderButtons() {
+        if (swapShoulderButton != null) {
+            swapShoulderButton.setMessage(Component.translatable("screen.focus.camera_editor.swap_shoulder", editedShoulder.displayName()));
+        }
+        if (customSwapValuesButton != null) {
+            customSwapValuesButton.setMessage(Component.translatable(
+                    "screen.focus.camera_editor.custom_swap_values",
+                    FocusClientConfig.useCustomSwappedShoulderValues() ? "x" : " "));
+        }
+    }
+
+    private void swapEditedShoulder(boolean showMessage) {
+        editedShoulder = editedShoulder.opposite();
+        LockOnHandler.setActiveShoulder(editedShoulder);
+        refreshSlidersFromConfig();
+        refreshShoulderButtons();
+        if (showMessage) {
+            showStatus("screen.focus.camera_editor.shoulder_swapped", editedShoulder.displayName());
+        }
+    }
+
+    private void toggleCustomSwapValues() {
+        boolean useCustomValues = !FocusClientConfig.useCustomSwappedShoulderValues();
+        FocusClientConfig.setUseCustomSwappedShoulderValues(useCustomValues, editedShoulder);
+        FocusClientConfig.saveConfig();
+        refreshSlidersFromConfig();
+        refreshShoulderButtons();
+        showStatus(useCustomValues
+                        ? "screen.focus.camera_editor.custom_swap_values_enabled"
+                        : "screen.focus.camera_editor.custom_swap_values_disabled");
     }
 
     private static final class Slider extends AbstractSliderButton {

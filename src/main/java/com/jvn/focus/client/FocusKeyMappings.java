@@ -17,11 +17,14 @@ public final class FocusKeyMappings {
     public static final String CATEGORY = "key.categories.focus";
     public static final KeyMapping LOCK_ON =
             new KeyMapping("key.focus.lock_on", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY);
+    public static final KeyMapping SWAP_SHOULDER =
+            new KeyMapping("key.focus.swap_shoulder", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY);
 
     private FocusKeyMappings() {}
 
     @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event) {
         event.register(LOCK_ON);
+        event.register(SWAP_SHOULDER);
     }
 }

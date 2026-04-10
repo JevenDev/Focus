@@ -44,6 +44,7 @@ public final class LockOnHandler {
     private static Vec3 smoothedTargetPoint = Vec3.ZERO;
     private static boolean smoothingInitialized;
     private static boolean cameraEditorPreviewActive;
+    private static FocusClientConfig.Shoulder activeShoulder = FocusClientConfig.Shoulder.LEFT;
 
     private LockOnHandler() {}
 
@@ -62,6 +63,9 @@ public final class LockOnHandler {
 
         while (FocusKeyMappings.LOCK_ON.consumeClick()) {
             toggleLockOn(minecraft, player);
+        }
+        while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
+            swapShoulder(player, true);
         }
 
         if (lockedTarget != null && (!lockedTarget.isAlive() || isLockOnHiddenFromPlayer(player, lockedTarget))) {
@@ -119,7 +123,7 @@ public final class LockOnHandler {
     @SubscribeEvent
     public static void onDetachedCameraDistance(CalculateDetachedCameraDistanceEvent event) {
         if (lockedTarget != null || cameraEditorPreviewActive) {
-            event.setDistance((float) Math.max(FocusClientConfig.cameraOffsetZ(), 4.0D));
+            event.setDistance((float) Math.max(FocusClientConfig.cameraOffsetZ(activeShoulder), 4.0D));
         }
     }
 
@@ -252,6 +256,26 @@ public final class LockOnHandler {
         return hasLineOfSightToLockedTarget(player) && isLockedTargetWithinHitRange(player);
     }
 
+    public static FocusClientConfig.Shoulder getActiveShoulder() {
+        return activeShoulder;
+    }
+
+    public static void setActiveShoulder(FocusClientConfig.Shoulder shoulder) {
+        if (shoulder != null) {
+            activeShoulder = shoulder;
+        }
+    }
+
+    public static FocusClientConfig.Shoulder swapShoulder(LocalPlayer player, boolean showMessage) {
+        activeShoulder = activeShoulder.opposite();
+        if (showMessage && player != null) {
+            player.displayClientMessage(
+                    Component.translatable("message.focus.lock_on.shoulder_swapped", activeShoulder.displayName()),
+                    true);
+        }
+        return activeShoulder;
+    }
+
     private static CameraLockData getLockedTargetCameraData(LocalPlayer player, float partialTick) {
         if (!smoothingInitialized) {
             initializeSmoothing(player, getTargetAimPoint(lockedTarget, partialTick));
@@ -269,12 +293,13 @@ public final class LockOnHandler {
     }
 
     private static CameraLockData buildCameraLockData(Vec3 targetPoint) {
+        FocusClientConfig.PerspectivePreset preset = FocusClientConfig.currentPreset(activeShoulder);
         return new CameraLockData(
                 targetPoint,
-                FocusClientConfig.cameraOffsetX(),
-                FocusClientConfig.cameraOffsetY(),
-                FocusClientConfig.cameraOffsetZ(),
-                (float) FocusClientConfig.cameraRotation());
+                preset.offsetX(),
+                preset.offsetY(),
+                preset.offsetZ(),
+                (float) preset.rotation());
     }
 
     private static final class SmoothingMath {
