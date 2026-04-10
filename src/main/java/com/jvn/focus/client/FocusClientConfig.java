@@ -17,6 +17,7 @@ import me.fzzyhmstrs.fzzy_config.config.ConfigAction;
 import me.fzzyhmstrs.fzzy_config.config.Config;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedCondition;
+import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedDouble;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLPaths;
@@ -26,6 +27,8 @@ public final class FocusClientConfig extends Config {
     public static final double DEFAULT_CAMERA_OFFSET_Y = 0.4D;
     public static final double DEFAULT_CAMERA_OFFSET_Z = 1.5D;
     public static final double DEFAULT_CAMERA_ROTATION = 0.0D;
+    public static final double DEFAULT_CAMERA_FLOATINESS = 0.25D;
+    public static final double DEFAULT_CAMERA_DRAG = 0.95D;
     public static final double MIN_CAMERA_OFFSET_X = -4.0D;
     public static final double MAX_CAMERA_OFFSET_X = 4.0D;
     public static final double MIN_CAMERA_OFFSET_Y = -2.0D;
@@ -34,6 +37,10 @@ public final class FocusClientConfig extends Config {
     public static final double MAX_CAMERA_OFFSET_Z = 8.0D;
     public static final double MIN_CAMERA_ROTATION = -180.0D;
     public static final double MAX_CAMERA_ROTATION = 180.0D;
+    public static final double MIN_CAMERA_FLOATINESS = 0.01D;
+    public static final double MAX_CAMERA_FLOATINESS = 1.0D;
+    public static final double MIN_CAMERA_DRAG = 0.0D;
+    public static final double MAX_CAMERA_DRAG = 0.95D;
     public static final double CAMERA_SLIDER_INCREMENT = 0.1D;
     public static final double ROTATION_SLIDER_INCREMENT = 1.0D;
     private static final int CAMERA_VALUE_SCALE = 1;
@@ -63,7 +70,7 @@ public final class FocusClientConfig extends Config {
     }
 
     public ValidatedBoolean autoSwitchToThirdPerson = new ValidatedBoolean(true);
-    public ValidatedBoolean allowFirstPersonWhileTargeting = new ValidatedBoolean(false);
+    public ValidatedBoolean allowFirstPersonWhileTargeting = new ValidatedBoolean(true);
     public ValidatedCondition<Boolean> allowFrontFacingThirdPersonWhileTargeting =
             new ValidatedBoolean(false).toCondition(
                     allowFirstPersonWhileTargeting,
@@ -71,6 +78,10 @@ public final class FocusClientConfig extends Config {
                     () -> false);
     public ValidatedBoolean showLockOnDebugText = new ValidatedBoolean(false);
     public ValidatedBoolean useCustomSwappedShoulderValues = new ValidatedBoolean(false);
+    public ValidatedDouble cameraFloatiness = new ValidatedDouble(
+            DEFAULT_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS, MIN_CAMERA_FLOATINESS);
+    public ValidatedDouble cameraDrag = new ValidatedDouble(
+            DEFAULT_CAMERA_DRAG, MAX_CAMERA_DRAG, MIN_CAMERA_DRAG);
     public ConfigAction openCameraPositionEditor = new ConfigAction.Builder()
             .title(() -> Component.translatable("focus.lock_on_client.openCameraPositionEditor"))
             .desc(Component.translatable("focus.lock_on_client.openCameraPositionEditor.desc"))
@@ -109,6 +120,14 @@ public final class FocusClientConfig extends Config {
 
     public static boolean useCustomSwappedShoulderValues() {
         return config().useCustomSwappedShoulderValues.get();
+    }
+
+    public static double cameraFloatiness() {
+        return config().cameraFloatiness.get();
+    }
+
+    public static double cameraDrag() {
+        return config().cameraDrag.get();
     }
 
     public static void setUseCustomSwappedShoulderValues(boolean useCustomSwappedShoulderValues, Shoulder sourceShoulder) {

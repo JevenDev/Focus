@@ -2,6 +2,7 @@ package com.jvn.focus.mixin;
 
 import com.jvn.focus.client.LockOnHandler;
 import com.jvn.focus.client.LockOnHandler.CameraLockData;
+import com.jvn.focus.client.FocusClientConfig;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.player.LocalPlayer;
@@ -22,14 +23,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Camera.class)
 public abstract class CameraMixin {
     @Unique
-    private static final double CAMERA_POSITION_LERP = 0.35D;
-    @Unique
     private static final double CAMERA_COLLISION_BUFFER = 0.12D;
+    @Unique
+    private static final double MIN_CAMERA_ROTATION_LERP = 0.01D;
 
     @Unique
     private static Vec3 focus$smoothedCameraPosition;
     @Unique
     private static boolean focus$hasSmoothedCameraPosition;
+    @Unique
+    private static float focus$smoothedCameraYaw;
+    @Unique
+    private static float focus$smoothedCameraPitch;
+    @Unique
+    private static boolean focus$hasSmoothedCameraRotation;
 
     @Shadow
     private float yRot;
@@ -55,12 +62,14 @@ public abstract class CameraMixin {
 
         if (!(entity instanceof LocalPlayer player) || !detachedBackCamera) {
             focus$hasSmoothedCameraPosition = false;
+            focus$hasSmoothedCameraRotation = false;
             return;
         }
 
         CameraLockData lockData = LockOnHandler.getActiveCameraData(player, partialTick);
         if (lockData == null) {
             focus$hasSmoothedCameraPosition = false;
+            focus$hasSmoothedCameraRotation = false;
             return;
         }
 
@@ -73,7 +82,11 @@ public abstract class CameraMixin {
             focus$hasSmoothedCameraPosition = true;
         }
 
-        focus$smoothedCameraPosition = focus$smoothedCameraPosition.lerp(desiredPosition, CAMERA_POSITION_LERP);
+        double cameraFloatiness = Mth.clamp(
+                FocusClientConfig.cameraFloatiness(),
+                FocusClientConfig.MIN_CAMERA_FLOATINESS,
+                FocusClientConfig.MAX_CAMERA_FLOATINESS);
+        focus$smoothedCameraPosition = focus$smoothedCameraPosition.lerp(desiredPosition, cameraFloatiness);
 
         Vec3 lockPosition = clipCameraToWorld(level, entity, pivotPoint, focus$smoothedCameraPosition);
         Vec3 lookVector = lockData.targetPoint().subtract(lockPosition);
@@ -84,9 +97,22 @@ public abstract class CameraMixin {
         double horizontal = Math.sqrt(lookVector.x * lookVector.x + lookVector.z * lookVector.z);
         float lockYaw = (float) (Mth.atan2(lookVector.z, lookVector.x) * (180.0D / Math.PI)) - 90.0F;
         float lockPitch = (float) -(Mth.atan2(lookVector.y, horizontal) * (180.0D / Math.PI));
+        if (!focus$hasSmoothedCameraRotation) {
+            focus$smoothedCameraYaw = this.yRot;
+            focus$smoothedCameraPitch = this.xRot;
+            focus$hasSmoothedCameraRotation = true;
+        }
+
+        double cameraDrag = Mth.clamp(
+                FocusClientConfig.cameraDrag(),
+                FocusClientConfig.MIN_CAMERA_DRAG,
+                FocusClientConfig.MAX_CAMERA_DRAG);
+        float rotationLerp = (float) Math.max(MIN_CAMERA_ROTATION_LERP, 1.0D - cameraDrag);
+        focus$smoothedCameraYaw = Mth.rotLerp(rotationLerp, focus$smoothedCameraYaw, lockYaw);
+        focus$smoothedCameraPitch = Mth.lerp(rotationLerp, focus$smoothedCameraPitch, lockPitch);
 
         this.setPosition(lockPosition);
-        this.setRotation(lockYaw, Mth.clamp(lockPitch, -90.0F, 90.0F), this.getRoll());
+        this.setRotation(focus$smoothedCameraYaw, Mth.clamp(focus$smoothedCameraPitch, -90.0F, 90.0F), this.getRoll());
         focus$smoothedCameraPosition = lockPosition;
     }
 
