@@ -86,6 +86,10 @@ public final class LockOnDebugHudOverlay {
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_smoothness", format(FocusClientConfig.cameraSwapSmoothness())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_speed", format(FocusClientConfig.dynamicCameraSwapSpeed())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_smoothness", format(FocusClientConfig.dynamicCameraSwapSmoothness())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_player_follow", format(FocusClientConfig.targetSwapPlayerLookFollow())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_blend", format(LockOnHandler.getTargetSwapBlendToNormal())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_camera_pos_factor", format(LockOnHandler.getTargetSwapCameraPositionFactor())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_camera_rot_factor", format(LockOnHandler.getTargetSwapCameraRotationFactor())), rightY);
         rightY = drawShoulderAwareRightValue(guiGraphics, font, rightY,
                 leftPreset.offsetX(),
                 rightPreset.offsetX(),
