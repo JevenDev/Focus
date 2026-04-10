@@ -86,7 +86,9 @@ public abstract class CameraMixin {
                 FocusClientConfig.cameraFloatiness(),
                 FocusClientConfig.MIN_CAMERA_FLOATINESS,
                 FocusClientConfig.MAX_CAMERA_FLOATINESS);
-        focus$smoothedCameraPosition = focus$smoothedCameraPosition.lerp(desiredPosition, cameraFloatiness);
+        float positionFactor = LockOnHandler.getTargetSwapCameraPositionFactor();
+        double effectiveFloatiness = cameraFloatiness * positionFactor;
+        focus$smoothedCameraPosition = focus$smoothedCameraPosition.lerp(desiredPosition, effectiveFloatiness);
 
         Vec3 lockPosition = clipCameraToWorld(level, entity, pivotPoint, focus$smoothedCameraPosition);
         Vec3 lookVector = lockData.targetPoint().subtract(lockPosition);
@@ -107,7 +109,9 @@ public abstract class CameraMixin {
                 FocusClientConfig.cameraDrag(),
                 FocusClientConfig.MIN_CAMERA_DRAG,
                 FocusClientConfig.MAX_CAMERA_DRAG);
-        float rotationLerp = (float) Math.max(MIN_CAMERA_ROTATION_LERP, 1.0D - cameraDrag);
+        float baseRotationLerp = (float) Math.max(MIN_CAMERA_ROTATION_LERP, 1.0D - cameraDrag);
+        float rotationFactor = LockOnHandler.getTargetSwapCameraRotationFactor();
+        float rotationLerp = Math.max((float) MIN_CAMERA_ROTATION_LERP, baseRotationLerp * rotationFactor);
         focus$smoothedCameraYaw = Mth.rotLerp(rotationLerp, focus$smoothedCameraYaw, lockYaw);
         focus$smoothedCameraPitch = Mth.lerp(rotationLerp, focus$smoothedCameraPitch, lockPitch);
 

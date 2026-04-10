@@ -34,6 +34,8 @@ public final class LockOnHandler {
     private static final float BODY_MAX_STRAFE_OFFSET = 16.0F;
     private static final float BODY_TURN_RESPONSIVENESS = 10.0F;
     private static final float BODY_FORWARD_DAMPING = 0.65F;
+    private static final float TARGET_SWAP_HEAD_FOLLOW_BONUS = 0.25F;
+    private static final int TARGET_SWAP_MIN_COOLDOWN_TICKS = 8;
     private static final float TARGET_POINT_RESPONSIVENESS = 16.0F;
     private static final double DYNAMIC_NEAR_DISTANCE = 2.0D;
     private static final double DYNAMIC_FAR_DISTANCE = 12.0D;
@@ -41,6 +43,8 @@ public final class LockOnHandler {
     private static final double DYNAMIC_EXTRA_OFFSET_Y_NEAR = 0.35D;
     private static final double DYNAMIC_EXTRA_OFFSET_X_NEAR = 0.4D;
     private static final double DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS = Math.toRadians(2.0D);
+    private static final float TARGET_SWAP_CAMERA_POSITION_FACTOR_MIN = 0.22F;
+    private static final float TARGET_SWAP_CAMERA_ROTATION_FACTOR_MIN = 0.2F;
 
     private static LivingEntity lockedTarget;
     private static CameraType previousCameraType;
@@ -57,6 +61,12 @@ public final class LockOnHandler {
     private static double dynamicAutoCurrentBlend;
     private static Vec3 previousDynamicTargetOffset = Vec3.ZERO;
     private static boolean dynamicSwapReferenceInitialized;
+    private static double pendingMouseDeltaX;
+    private static double pendingMouseDeltaY;
+    private static int targetSwapCooldownTicks;
+    private static int targetSwapSmoothingTicks;
+    private static int targetSwapSmoothingDurationTicks;
+    private static boolean targetSwapReadyForNewFlick = true;
 
     private LockOnHandler() {}
 
@@ -76,6 +86,9 @@ public final class LockOnHandler {
             dynamicAutoCurrentBlend = 0.0D;
             previousDynamicTargetOffset = Vec3.ZERO;
             dynamicSwapReferenceInitialized = false;
+            resetTargetSwapInput();
+            targetSwapSmoothingTicks = 0;
+            targetSwapSmoothingDurationTicks = 0;
             return;
         }
 
@@ -100,6 +113,28 @@ public final class LockOnHandler {
                         Component.translatable(obstructed ? "message.focus.lock_on.obstructed" : "message.focus.lock_on.lost"),
                         true);
             }
+        }
+
+        if (targetSwapCooldownTicks > 0) {
+            targetSwapCooldownTicks--;
+            if (targetSwapCooldownTicks == 0 && !targetSwapReadyForNewFlick) {
+                targetSwapReadyForNewFlick = true;
+                pendingMouseDeltaX = 0.0D;
+                pendingMouseDeltaY = 0.0D;
+            }
+        }
+        if (targetSwapSmoothingTicks > 0) {
+            targetSwapSmoothingTicks--;
+            if (targetSwapSmoothingTicks == 0) {
+                targetSwapSmoothingDurationTicks = 0;
+            }
+        }
+        if (lockedTarget != null) {
+            tryDirectionalTargetSwap(player);
+        } else {
+            resetTargetSwapInput();
+            targetSwapSmoothingTicks = 0;
+            targetSwapSmoothingDurationTicks = 0;
         }
 
         if (lockedTarget != null) {
@@ -171,6 +206,9 @@ public final class LockOnHandler {
         dynamicAutoCurrentBlend = 0.0D;
         previousDynamicTargetOffset = Vec3.ZERO;
         dynamicSwapReferenceInitialized = false;
+        resetTargetSwapInput();
+        targetSwapSmoothingTicks = 0;
+        targetSwapSmoothingDurationTicks = 0;
         player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
     }
 
@@ -183,16 +221,45 @@ public final class LockOnHandler {
     }
 
     private static void updateSmoothedOrientation(LocalPlayer player, LivingEntity target, float partialTick, float deltaTicks) {
+        float targetPointResponsiveness = TARGET_POINT_RESPONSIVENESS;
+        float lookYawResponsiveness = LOOK_RESPONSIVENESS_YAW;
+        float lookPitchResponsiveness = LOOK_RESPONSIVENESS_PITCH;
+        float lookYawMaxStep = LOOK_MAX_YAW_STEP_PER_TICK;
+        float lookPitchMaxStep = LOOK_MAX_PITCH_STEP_PER_TICK;
+        if (targetSwapSmoothingTicks > 0 && targetSwapSmoothingDurationTicks > 0) {
+            float easedBlend = currentTargetSwapBlendToNormal();
+            targetPointResponsiveness = Mth.lerp(
+                    easedBlend,
+                    FocusClientConfig.targetSwapTargetPointResponsiveness(),
+                    TARGET_POINT_RESPONSIVENESS);
+            lookYawResponsiveness = Mth.lerp(
+                    easedBlend,
+                    FocusClientConfig.targetSwapLookYawResponsiveness(),
+                    LOOK_RESPONSIVENESS_YAW);
+            lookPitchResponsiveness = Mth.lerp(
+                    easedBlend,
+                    FocusClientConfig.targetSwapLookPitchResponsiveness(),
+                    LOOK_RESPONSIVENESS_PITCH);
+            lookYawMaxStep = Mth.lerp(
+                    easedBlend,
+                    FocusClientConfig.targetSwapLookMaxYawStepPerTick(),
+                    LOOK_MAX_YAW_STEP_PER_TICK);
+            lookPitchMaxStep = Mth.lerp(
+                    easedBlend,
+                    FocusClientConfig.targetSwapLookMaxPitchStepPerTick(),
+                    LOOK_MAX_PITCH_STEP_PER_TICK);
+        }
+
         Vec3 currentTargetPoint = getTargetAimPoint(target, partialTick);
-        smoothedTargetPoint = SmoothingMath.smoothVec(smoothedTargetPoint, currentTargetPoint, TARGET_POINT_RESPONSIVENESS, deltaTicks);
+        smoothedTargetPoint = SmoothingMath.smoothVec(smoothedTargetPoint, currentTargetPoint, targetPointResponsiveness, deltaTicks);
 
         float targetYaw = SmoothingMath.computeTargetYaw(player, smoothedTargetPoint, partialTick);
         float targetPitch = SmoothingMath.computeTargetPitch(player, smoothedTargetPoint, partialTick);
 
         smoothedLookYaw = SmoothingMath.smoothAngle(
-                smoothedLookYaw, targetYaw, LOOK_RESPONSIVENESS_YAW, LOOK_MAX_YAW_STEP_PER_TICK, deltaTicks);
+                smoothedLookYaw, targetYaw, lookYawResponsiveness, lookYawMaxStep, deltaTicks);
         smoothedLookPitch = SmoothingMath.smoothAngle(
-                smoothedLookPitch, targetPitch, LOOK_RESPONSIVENESS_PITCH, LOOK_MAX_PITCH_STEP_PER_TICK, deltaTicks);
+                smoothedLookPitch, targetPitch, lookPitchResponsiveness, lookPitchMaxStep, deltaTicks);
         smoothedBodyYawOffset = SmoothingMath.smoothValue(
                 smoothedBodyYawOffset,
                 SmoothingMath.computeDesiredBodyYawOffset(player, BODY_FORWARD_DAMPING, BODY_MAX_STRAFE_OFFSET),
@@ -201,10 +268,24 @@ public final class LockOnHandler {
     }
 
     private static void applyPlayerLook(LocalPlayer player, float yaw, float pitch) {
-        player.setYRot(yaw);
-        player.setXRot(Mth.clamp(pitch, -90.0F, 90.0F));
-        player.setYHeadRot(yaw);
-        player.setYBodyRot(yaw + smoothedBodyYawOffset);
+        float appliedYaw = yaw;
+        float appliedPitch = pitch;
+        float headYaw = yaw;
+        if (targetSwapSmoothingTicks > 0 && targetSwapSmoothingDurationTicks > 0) {
+            float easedBlend = currentTargetSwapBlendToNormal();
+            float followAlpha = Mth.lerp(easedBlend, FocusClientConfig.targetSwapPlayerLookFollow(), 1.0F);
+            appliedYaw = Mth.rotLerp(followAlpha, player.getYRot(), yaw);
+            appliedPitch = Mth.lerp(followAlpha, player.getXRot(), pitch);
+            float headFollowAlpha = Mth.clamp(followAlpha + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F);
+            headYaw = Mth.rotLerp(headFollowAlpha, player.getYHeadRot(), yaw);
+        } else {
+            headYaw = appliedYaw;
+        }
+        float clampedPitch = Mth.clamp(appliedPitch, -90.0F, 90.0F);
+        player.setYRot(appliedYaw);
+        player.setXRot(clampedPitch);
+        player.setYHeadRot(headYaw);
+        player.setYBodyRot(appliedYaw + smoothedBodyYawOffset);
     }
 
     private static void restoreCamera(Minecraft minecraft) {
@@ -220,6 +301,9 @@ public final class LockOnHandler {
         dynamicAutoCurrentBlend = 0.0D;
         previousDynamicTargetOffset = Vec3.ZERO;
         dynamicSwapReferenceInitialized = false;
+        resetTargetSwapInput();
+        targetSwapSmoothingTicks = 0;
+        targetSwapSmoothingDurationTicks = 0;
     }
 
     private static LivingEntity findTarget(LocalPlayer player) {
@@ -236,6 +320,15 @@ public final class LockOnHandler {
 
     private static boolean isLockOnHiddenFromPlayer(LocalPlayer player, LivingEntity target) {
         return Targeting.isLockOnHiddenFromPlayer(player, target);
+    }
+
+    public static void onRawMouseInput(double deltaX, double deltaY) {
+        if (lockedTarget == null) {
+            return;
+        }
+
+        pendingMouseDeltaX += deltaX;
+        pendingMouseDeltaY += deltaY;
     }
 
     public static LivingEntity getLockedTarget() {
@@ -256,6 +349,18 @@ public final class LockOnHandler {
         }
 
         return null;
+    }
+
+    public static float getTargetSwapBlendToNormal() {
+        return currentTargetSwapBlendToNormal();
+    }
+
+    public static float getTargetSwapCameraPositionFactor() {
+        return Mth.lerp(getTargetSwapBlendToNormal(), TARGET_SWAP_CAMERA_POSITION_FACTOR_MIN, 1.0F);
+    }
+
+    public static float getTargetSwapCameraRotationFactor() {
+        return Mth.lerp(getTargetSwapBlendToNormal(), TARGET_SWAP_CAMERA_ROTATION_FACTOR_MIN, 1.0F);
     }
 
     public static void startCameraEditorPreview() {
@@ -474,6 +579,74 @@ public final class LockOnHandler {
         return blend >= 0.5D ? activeShoulder.opposite() : activeShoulder;
     }
 
+    private static float currentTargetSwapBlendToNormal() {
+        if (targetSwapSmoothingTicks <= 0 || targetSwapSmoothingDurationTicks <= 0) {
+            return 1.0F;
+        }
+
+        float blendToNormal = 1.0F - (float) targetSwapSmoothingTicks / (float) targetSwapSmoothingDurationTicks;
+        blendToNormal = Mth.clamp(blendToNormal, 0.0F, 1.0F);
+        return blendToNormal * blendToNormal * (3.0F - 2.0F * blendToNormal);
+    }
+
+    private static void tryDirectionalTargetSwap(LocalPlayer player) {
+        if (!targetSwapReadyForNewFlick) {
+            return;
+        }
+        if (targetSwapCooldownTicks > 0) {
+            pendingMouseDeltaX = 0.0D;
+            pendingMouseDeltaY = 0.0D;
+            return;
+        }
+
+        double mouseInputDecay = FocusClientConfig.targetSwapInputDecay();
+        double mouseMagnitudeSqr =
+                pendingMouseDeltaX * pendingMouseDeltaX + pendingMouseDeltaY * pendingMouseDeltaY;
+        double deadzone = FocusClientConfig.targetSwapMouseDeadzone();
+        if (mouseMagnitudeSqr < deadzone * deadzone) {
+            dampenTargetSwapInput(mouseInputDecay);
+            return;
+        }
+        double activation = FocusClientConfig.targetSwapMouseActivation();
+        if (mouseMagnitudeSqr < activation * activation) {
+            dampenTargetSwapInput(mouseInputDecay);
+            return;
+        }
+
+        Vec2 mouseDirection = new Vec2((float) pendingMouseDeltaX, (float) -pendingMouseDeltaY);
+
+        LivingEntity swappedTarget = Targeting.findDirectionalTarget(player, lockedTarget, mouseDirection);
+        if (swappedTarget == null) {
+            // Keep some momentum but force a stronger follow-up flick to complete the swap.
+            dampenTargetSwapInput(0.45D);
+            return;
+        }
+
+        resetTargetSwapInput();
+        lockedTarget = swappedTarget;
+        targetSwapCooldownTicks = Math.max(TARGET_SWAP_MIN_COOLDOWN_TICKS, FocusClientConfig.targetSwapCooldownTicks());
+        targetSwapReadyForNewFlick = false;
+        targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
+        targetSwapSmoothingTicks = targetSwapSmoothingDurationTicks;
+        if (!smoothingInitialized) {
+            initializeSmoothing(player, getTargetAimPoint(swappedTarget, 1.0F));
+        }
+        previousDynamicTargetOffset = Vec3.ZERO;
+        dynamicSwapReferenceInitialized = false;
+    }
+
+    private static void dampenTargetSwapInput(double factor) {
+        pendingMouseDeltaX *= factor;
+        pendingMouseDeltaY *= factor;
+    }
+
+    private static void resetTargetSwapInput() {
+        pendingMouseDeltaX = 0.0D;
+        pendingMouseDeltaY = 0.0D;
+        targetSwapCooldownTicks = 0;
+        targetSwapReadyForNewFlick = true;
+    }
+
     private static double currentDetachedCameraDistance() {
         if (lockedTarget == null) {
             return FocusClientConfig.cameraOffsetZ(activeShoulder);
@@ -596,6 +769,85 @@ public final class LockOnHandler {
             return bestTarget;
         }
 
+        private static LivingEntity findDirectionalTarget(LocalPlayer player, LivingEntity currentTarget, Vec2 mouseDirection) {
+            if (currentTarget == null) {
+                return null;
+            }
+
+            float mouseMagnitude = Mth.sqrt(
+                    mouseDirection.x * mouseDirection.x + mouseDirection.y * mouseDirection.y);
+            if (mouseMagnitude < 1.0E-4F) {
+                return null;
+            }
+
+            float mouseDirX = mouseDirection.x / mouseMagnitude;
+            float mouseDirY = mouseDirection.y / mouseMagnitude;
+            Vec3 eyePosition = player.getEyePosition();
+            Vec3 lookDirection = player.getLookAngle().normalize();
+            Vec3 right = lookDirection.cross(new Vec3(0.0D, 1.0D, 0.0D));
+            if (right.lengthSqr() < 1.0E-6D) {
+                right = new Vec3(1.0D, 0.0D, 0.0D);
+            } else {
+                right = right.normalize();
+            }
+            Vec3 up = right.cross(lookDirection).normalize();
+
+            Vec2 currentTargetScreen = projectToScreenSpace(eyePosition, lookDirection, right, up, currentTarget);
+            if (currentTargetScreen == null) {
+                return null;
+            }
+
+            double directionThreshold = FocusClientConfig.targetSwapDirectionThreshold();
+            double minScreenSeparation = FocusClientConfig.targetSwapMinScreenSeparation();
+            LivingEntity bestTarget = null;
+            float bestScreenDistance = Float.MAX_VALUE;
+            float bestAlignment = (float) directionThreshold;
+            double bestDistanceSqr = Double.MAX_VALUE;
+
+            for (LivingEntity entity : player.level().getEntitiesOfClass(
+                    LivingEntity.class,
+                    player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
+                    candidate -> candidate != player && candidate.isAlive() && candidate != currentTarget)) {
+                if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
+                    continue;
+                }
+
+                Vec2 candidateScreen = projectToScreenSpace(eyePosition, lookDirection, right, up, entity);
+                if (candidateScreen == null) {
+                    continue;
+                }
+
+                float deltaX = candidateScreen.x - currentTargetScreen.x;
+                float deltaY = candidateScreen.y - currentTargetScreen.y;
+                float candidateScreenDistance = Mth.sqrt(deltaX * deltaX + deltaY * deltaY);
+                if (candidateScreenDistance < minScreenSeparation) {
+                    continue;
+                }
+
+                float candidateDirX = deltaX / candidateScreenDistance;
+                float candidateDirY = deltaY / candidateScreenDistance;
+                float directionalAlignment = candidateDirX * mouseDirX + candidateDirY * mouseDirY;
+                if (directionalAlignment < directionThreshold) {
+                    continue;
+                }
+
+                double distanceSqr = player.distanceToSqr(entity);
+                if (candidateScreenDistance < bestScreenDistance - 1.0E-4F
+                        || (Math.abs(candidateScreenDistance - bestScreenDistance) <= 1.0E-4F
+                                && directionalAlignment > bestAlignment + 1.0E-4F)
+                        || (Math.abs(candidateScreenDistance - bestScreenDistance) <= 1.0E-4F
+                                && Math.abs(directionalAlignment - bestAlignment) <= 1.0E-4F
+                                && distanceSqr < bestDistanceSqr)) {
+                    bestScreenDistance = candidateScreenDistance;
+                    bestAlignment = directionalAlignment;
+                    bestDistanceSqr = distanceSqr;
+                    bestTarget = entity;
+                }
+            }
+
+            return bestTarget;
+        }
+
         private static Vec3 getTargetAimPoint(LivingEntity target, float partialTick) {
             return target.getPosition(partialTick).add(0.0D, target.getBbHeight() * 0.75D, 0.0D);
         }
@@ -608,6 +860,23 @@ public final class LockOnHandler {
             }
 
             return toTarget.scale(1.0D / Math.sqrt(lengthSqr)).dot(lookDirection);
+        }
+
+        private static Vec2 projectToScreenSpace(
+                Vec3 eyePosition,
+                Vec3 lookDirection,
+                Vec3 right,
+                Vec3 up,
+                LivingEntity target) {
+            Vec3 toTarget = getTargetAimPoint(target, 1.0F).subtract(eyePosition);
+            double forward = toTarget.dot(lookDirection);
+            if (forward <= 1.0E-3D) {
+                return null;
+            }
+
+            double screenX = toTarget.dot(right) / forward;
+            double screenY = toTarget.dot(up) / forward;
+            return new Vec2((float) screenX, (float) screenY);
         }
 
         private static boolean isWithinAllowedLockDistance(LocalPlayer player, LivingEntity target) {

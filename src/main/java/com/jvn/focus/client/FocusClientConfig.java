@@ -35,6 +35,19 @@ public final class FocusClientConfig extends Config {
     public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 1.0D;
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.01D;
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
+    public static final double DEFAULT_TARGET_SWAP_MOUSE_DEADZONE = 12.0D;
+    public static final double DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION = 21.0D;
+    public static final double DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD = 0.56D;
+    public static final double DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION = 0.06D;
+    public static final double DEFAULT_TARGET_SWAP_INPUT_DECAY = 0.82D;
+    public static final double DEFAULT_TARGET_SWAP_COOLDOWN_TICKS = 8.0D;
+    public static final double DEFAULT_TARGET_SWAP_SMOOTH_TICKS = 12.0D;
+    public static final double DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW = 2.8D;
+    public static final double DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH = 2.4D;
+    public static final double DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK = 3.8D;
+    public static final double DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK = 2.8D;
+    public static final double DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS = 4.2D;
+    public static final double DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 0.3D;
     public static final double MIN_CAMERA_OFFSET_X = -4.0D;
     public static final double MAX_CAMERA_OFFSET_X = 4.0D;
     public static final double MIN_CAMERA_OFFSET_Y = -2.0D;
@@ -55,6 +68,32 @@ public final class FocusClientConfig extends Config {
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SPEED = 1.0D;
     public static final double MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 1.0D;
+    public static final double MIN_TARGET_SWAP_MOUSE_DEADZONE = 0.0D;
+    public static final double MAX_TARGET_SWAP_MOUSE_DEADZONE = 60.0D;
+    public static final double MIN_TARGET_SWAP_MOUSE_ACTIVATION = 0.0D;
+    public static final double MAX_TARGET_SWAP_MOUSE_ACTIVATION = 80.0D;
+    public static final double MIN_TARGET_SWAP_DIRECTION_THRESHOLD = 0.0D;
+    public static final double MAX_TARGET_SWAP_DIRECTION_THRESHOLD = 1.0D;
+    public static final double MIN_TARGET_SWAP_MIN_SCREEN_SEPARATION = 0.0D;
+    public static final double MAX_TARGET_SWAP_MIN_SCREEN_SEPARATION = 0.5D;
+    public static final double MIN_TARGET_SWAP_INPUT_DECAY = 0.0D;
+    public static final double MAX_TARGET_SWAP_INPUT_DECAY = 1.0D;
+    public static final double MIN_TARGET_SWAP_COOLDOWN_TICKS = 0.0D;
+    public static final double MAX_TARGET_SWAP_COOLDOWN_TICKS = 40.0D;
+    public static final double MIN_TARGET_SWAP_SMOOTH_TICKS = 0.0D;
+    public static final double MAX_TARGET_SWAP_SMOOTH_TICKS = 40.0D;
+    public static final double MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW = 0.1D;
+    public static final double MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW = 20.0D;
+    public static final double MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH = 0.1D;
+    public static final double MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH = 20.0D;
+    public static final double MIN_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK = 0.1D;
+    public static final double MAX_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK = 30.0D;
+    public static final double MIN_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK = 0.1D;
+    public static final double MAX_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK = 30.0D;
+    public static final double MIN_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS = 0.1D;
+    public static final double MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS = 30.0D;
+    public static final double MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 0.0D;
+    public static final double MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 1.0D;
     public static final double CAMERA_SLIDER_INCREMENT = 0.1D;
     public static final double ROTATION_SLIDER_INCREMENT = 1.0D;
     private static final int CAMERA_VALUE_SCALE = 1;
@@ -160,6 +199,44 @@ public final class FocusClientConfig extends Config {
             DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED, MIN_DYNAMIC_CAMERA_SWAP_SPEED);
     public ValidatedDouble dynamicCameraSwapSmoothness = new ValidatedDouble(
             DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
+    public ValidatedDouble targetSwapMouseDeadzone = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_MOUSE_DEADZONE, MAX_TARGET_SWAP_MOUSE_DEADZONE, MIN_TARGET_SWAP_MOUSE_DEADZONE);
+    public ValidatedDouble targetSwapMouseActivation = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION, MAX_TARGET_SWAP_MOUSE_ACTIVATION, MIN_TARGET_SWAP_MOUSE_ACTIVATION);
+    public ValidatedDouble targetSwapDirectionThreshold = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD, MAX_TARGET_SWAP_DIRECTION_THRESHOLD, MIN_TARGET_SWAP_DIRECTION_THRESHOLD);
+    public ValidatedDouble targetSwapMinScreenSeparation = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION, MAX_TARGET_SWAP_MIN_SCREEN_SEPARATION, MIN_TARGET_SWAP_MIN_SCREEN_SEPARATION);
+    public ValidatedDouble targetSwapInputDecay = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_INPUT_DECAY, MAX_TARGET_SWAP_INPUT_DECAY, MIN_TARGET_SWAP_INPUT_DECAY);
+    public ValidatedDouble targetSwapCooldownTicks = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_COOLDOWN_TICKS, MAX_TARGET_SWAP_COOLDOWN_TICKS, MIN_TARGET_SWAP_COOLDOWN_TICKS);
+    public ValidatedDouble targetSwapSmoothTicks = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_SMOOTH_TICKS, MAX_TARGET_SWAP_SMOOTH_TICKS, MIN_TARGET_SWAP_SMOOTH_TICKS);
+    public ValidatedDouble targetSwapLookYawResponsiveness = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW,
+            MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW,
+            MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW);
+    public ValidatedDouble targetSwapLookPitchResponsiveness = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH,
+            MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH,
+            MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH);
+    public ValidatedDouble targetSwapLookMaxYawStepPerTick = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK,
+            MAX_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK,
+            MIN_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK);
+    public ValidatedDouble targetSwapLookMaxPitchStepPerTick = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK,
+            MAX_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK,
+            MIN_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK);
+    public ValidatedDouble targetSwapTargetPointResponsiveness = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS,
+            MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS,
+            MIN_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS);
+    public ValidatedDouble targetSwapPlayerLookFollow = new ValidatedDouble(
+            DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW,
+            MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW,
+            MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW);
     public ConfigAction openCameraPositionEditor = new ConfigAction.Builder()
             .title(() -> Component.translatable("focus.lock_on_client.openCameraPositionEditor"))
             .desc(Component.translatable("focus.lock_on_client.openCameraPositionEditor.desc"))
@@ -230,6 +307,58 @@ public final class FocusClientConfig extends Config {
 
     public static double dynamicCameraSwapSmoothness() {
         return config().dynamicCameraSwapSmoothness.get();
+    }
+
+    public static double targetSwapMouseDeadzone() {
+        return config().targetSwapMouseDeadzone.get();
+    }
+
+    public static double targetSwapMouseActivation() {
+        return Math.max(targetSwapMouseDeadzone(), config().targetSwapMouseActivation.get());
+    }
+
+    public static double targetSwapDirectionThreshold() {
+        return config().targetSwapDirectionThreshold.get();
+    }
+
+    public static double targetSwapMinScreenSeparation() {
+        return config().targetSwapMinScreenSeparation.get();
+    }
+
+    public static double targetSwapInputDecay() {
+        return config().targetSwapInputDecay.get();
+    }
+
+    public static int targetSwapCooldownTicks() {
+        return (int) Math.round(config().targetSwapCooldownTicks.get());
+    }
+
+    public static int targetSwapSmoothTicks() {
+        return (int) Math.round(config().targetSwapSmoothTicks.get());
+    }
+
+    public static float targetSwapLookYawResponsiveness() {
+        return config().targetSwapLookYawResponsiveness.get().floatValue();
+    }
+
+    public static float targetSwapLookPitchResponsiveness() {
+        return config().targetSwapLookPitchResponsiveness.get().floatValue();
+    }
+
+    public static float targetSwapLookMaxYawStepPerTick() {
+        return config().targetSwapLookMaxYawStepPerTick.get().floatValue();
+    }
+
+    public static float targetSwapLookMaxPitchStepPerTick() {
+        return config().targetSwapLookMaxPitchStepPerTick.get().floatValue();
+    }
+
+    public static float targetSwapTargetPointResponsiveness() {
+        return config().targetSwapTargetPointResponsiveness.get().floatValue();
+    }
+
+    public static float targetSwapPlayerLookFollow() {
+        return config().targetSwapPlayerLookFollow.get().floatValue();
     }
 
     public static void setUseCustomSwappedShoulderValues(boolean useCustomSwappedShoulderValues, Shoulder sourceShoulder) {
@@ -345,6 +474,19 @@ public final class FocusClientConfig extends Config {
                 cameraSwapSmoothness(),
                 dynamicCameraSwapSpeed(),
                 dynamicCameraSwapSmoothness(),
+                config().targetSwapMouseDeadzone.get(),
+                config().targetSwapMouseActivation.get(),
+                config().targetSwapDirectionThreshold.get(),
+                config().targetSwapMinScreenSeparation.get(),
+                config().targetSwapInputDecay.get(),
+                config().targetSwapCooldownTicks.get(),
+                config().targetSwapSmoothTicks.get(),
+                config().targetSwapLookYawResponsiveness.get(),
+                config().targetSwapLookPitchResponsiveness.get(),
+                config().targetSwapLookMaxYawStepPerTick.get(),
+                config().targetSwapLookMaxPitchStepPerTick.get(),
+                config().targetSwapTargetPointResponsiveness.get(),
+                config().targetSwapPlayerLookFollow.get(),
                 currentPreset(Shoulder.LEFT),
                 currentPreset(Shoulder.RIGHT),
                 useCustomSwappedShoulderValues());
@@ -358,6 +500,19 @@ public final class FocusClientConfig extends Config {
         config().cameraSwapSmoothness.validateAndSet(setup.cameraSwapSmoothness());
         config().dynamicCameraSwapSpeed.validateAndSet(setup.dynamicCameraSwapSpeed());
         config().dynamicCameraSwapSmoothness.validateAndSet(setup.dynamicCameraSwapSmoothness());
+        config().targetSwapMouseDeadzone.validateAndSet(setup.targetSwapMouseDeadzone());
+        config().targetSwapMouseActivation.validateAndSet(setup.targetSwapMouseActivation());
+        config().targetSwapDirectionThreshold.validateAndSet(setup.targetSwapDirectionThreshold());
+        config().targetSwapMinScreenSeparation.validateAndSet(setup.targetSwapMinScreenSeparation());
+        config().targetSwapInputDecay.validateAndSet(setup.targetSwapInputDecay());
+        config().targetSwapCooldownTicks.validateAndSet(setup.targetSwapCooldownTicks());
+        config().targetSwapSmoothTicks.validateAndSet(setup.targetSwapSmoothTicks());
+        config().targetSwapLookYawResponsiveness.validateAndSet(setup.targetSwapLookYawResponsiveness());
+        config().targetSwapLookPitchResponsiveness.validateAndSet(setup.targetSwapLookPitchResponsiveness());
+        config().targetSwapLookMaxYawStepPerTick.validateAndSet(setup.targetSwapLookMaxYawStepPerTick());
+        config().targetSwapLookMaxPitchStepPerTick.validateAndSet(setup.targetSwapLookMaxPitchStepPerTick());
+        config().targetSwapTargetPointResponsiveness.validateAndSet(setup.targetSwapTargetPointResponsiveness());
+        config().targetSwapPlayerLookFollow.validateAndSet(setup.targetSwapPlayerLookFollow());
         if (setup.useCustomSwappedShoulderValues()) {
             config().useCustomSwappedShoulderValues.validateAndSet(true);
             setRawPreset(Shoulder.LEFT, setup.leftShoulder());
@@ -382,6 +537,19 @@ public final class FocusClientConfig extends Config {
         object.addProperty("cameraSwapSmoothness", setup.cameraSwapSmoothness());
         object.addProperty("dynamicCameraSwapSpeed", setup.dynamicCameraSwapSpeed());
         object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
+        object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
+        object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
+        object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
+        object.addProperty("targetSwapMinScreenSeparation", setup.targetSwapMinScreenSeparation());
+        object.addProperty("targetSwapInputDecay", setup.targetSwapInputDecay());
+        object.addProperty("targetSwapCooldownTicks", setup.targetSwapCooldownTicks());
+        object.addProperty("targetSwapSmoothTicks", setup.targetSwapSmoothTicks());
+        object.addProperty("targetSwapLookYawResponsiveness", setup.targetSwapLookYawResponsiveness());
+        object.addProperty("targetSwapLookPitchResponsiveness", setup.targetSwapLookPitchResponsiveness());
+        object.addProperty("targetSwapLookMaxYawStepPerTick", setup.targetSwapLookMaxYawStepPerTick());
+        object.addProperty("targetSwapLookMaxPitchStepPerTick", setup.targetSwapLookMaxPitchStepPerTick());
+        object.addProperty("targetSwapTargetPointResponsiveness", setup.targetSwapTargetPointResponsiveness());
+        object.addProperty("targetSwapPlayerLookFollow", setup.targetSwapPlayerLookFollow());
         object.addProperty("useCustomSwappedShoulderValues", setup.useCustomSwappedShoulderValues());
         object.add("leftShoulder", presetToJson(setup.leftShoulder()));
         object.add("rightShoulder", presetToJson(setup.rightShoulder()));
@@ -424,14 +592,27 @@ public final class FocusClientConfig extends Config {
 
         PerspectivePreset left = readPreset(leftElement.getAsJsonObject());
         PerspectivePreset right = readPreset(rightElement.getAsJsonObject());
-        CameraMode cameraMode = readOptionalCameraMode(object, "cameraMode", cameraMode());
-        double cameraFloatiness = readOptionalDouble(object, "cameraFloatiness", cameraFloatiness());
-        double cameraDrag = readOptionalDouble(object, "cameraDrag", cameraDrag());
-        double cameraSwapSpeed = readOptionalDouble(object, "cameraSwapSpeed", cameraSwapSpeed());
-        double cameraSwapSmoothness = readOptionalDouble(object, "cameraSwapSmoothness", cameraSwapSmoothness());
-        double dynamicCameraSwapSpeed = readOptionalDouble(object, "dynamicCameraSwapSpeed", dynamicCameraSwapSpeed());
-        double dynamicCameraSwapSmoothness = readOptionalDouble(object, "dynamicCameraSwapSmoothness", dynamicCameraSwapSmoothness());
-        boolean useCustom = readOptionalBoolean(object, "useCustomSwappedShoulderValues", useCustomSwappedShoulderValues());
+        CameraMode cameraMode = readRequiredCameraMode(object, "cameraMode");
+        double cameraFloatiness = readRequiredDouble(object, "cameraFloatiness");
+        double cameraDrag = readRequiredDouble(object, "cameraDrag");
+        double cameraSwapSpeed = readRequiredDouble(object, "cameraSwapSpeed");
+        double cameraSwapSmoothness = readRequiredDouble(object, "cameraSwapSmoothness");
+        double dynamicCameraSwapSpeed = readRequiredDouble(object, "dynamicCameraSwapSpeed");
+        double dynamicCameraSwapSmoothness = readRequiredDouble(object, "dynamicCameraSwapSmoothness");
+        double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
+        double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
+        double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
+        double targetSwapMinScreenSeparation = readRequiredDouble(object, "targetSwapMinScreenSeparation");
+        double targetSwapInputDecay = readRequiredDouble(object, "targetSwapInputDecay");
+        double targetSwapCooldownTicks = readRequiredDouble(object, "targetSwapCooldownTicks");
+        double targetSwapSmoothTicks = readRequiredDouble(object, "targetSwapSmoothTicks");
+        double targetSwapLookYawResponsiveness = readRequiredDouble(object, "targetSwapLookYawResponsiveness");
+        double targetSwapLookPitchResponsiveness = readRequiredDouble(object, "targetSwapLookPitchResponsiveness");
+        double targetSwapLookMaxYawStepPerTick = readRequiredDouble(object, "targetSwapLookMaxYawStepPerTick");
+        double targetSwapLookMaxPitchStepPerTick = readRequiredDouble(object, "targetSwapLookMaxPitchStepPerTick");
+        double targetSwapTargetPointResponsiveness = readRequiredDouble(object, "targetSwapTargetPointResponsiveness");
+        double targetSwapPlayerLookFollow = readRequiredDouble(object, "targetSwapPlayerLookFollow");
+        boolean useCustom = readRequiredBoolean(object, "useCustomSwappedShoulderValues");
         return new CameraSetupPreset(
                 cameraMode,
                 cameraFloatiness,
@@ -440,6 +621,19 @@ public final class FocusClientConfig extends Config {
                 cameraSwapSmoothness,
                 dynamicCameraSwapSpeed,
                 dynamicCameraSwapSmoothness,
+                targetSwapMouseDeadzone,
+                targetSwapMouseActivation,
+                targetSwapDirectionThreshold,
+                targetSwapMinScreenSeparation,
+                targetSwapInputDecay,
+                targetSwapCooldownTicks,
+                targetSwapSmoothTicks,
+                targetSwapLookYawResponsiveness,
+                targetSwapLookPitchResponsiveness,
+                targetSwapLookMaxYawStepPerTick,
+                targetSwapLookMaxPitchStepPerTick,
+                targetSwapTargetPointResponsiveness,
+                targetSwapPlayerLookFollow,
                 left,
                 right,
                 useCustom);
@@ -653,6 +847,18 @@ public final class FocusClientConfig extends Config {
         }
     }
 
+    private static CameraMode readRequiredCameraMode(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset is missing string enum field: " + key);
+        }
+        try {
+            return CameraMode.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid camera mode: " + element.getAsString(), e);
+        }
+    }
+
     private static double roundForCamera(double value) {
         return BigDecimal.valueOf(value).setScale(CAMERA_VALUE_SCALE, RoundingMode.HALF_UP).doubleValue();
     }
@@ -671,6 +877,19 @@ public final class FocusClientConfig extends Config {
             double cameraSwapSmoothness,
             double dynamicCameraSwapSpeed,
             double dynamicCameraSwapSmoothness,
+            double targetSwapMouseDeadzone,
+            double targetSwapMouseActivation,
+            double targetSwapDirectionThreshold,
+            double targetSwapMinScreenSeparation,
+            double targetSwapInputDecay,
+            double targetSwapCooldownTicks,
+            double targetSwapSmoothTicks,
+            double targetSwapLookYawResponsiveness,
+            double targetSwapLookPitchResponsiveness,
+            double targetSwapLookMaxYawStepPerTick,
+            double targetSwapLookMaxPitchStepPerTick,
+            double targetSwapTargetPointResponsiveness,
+            double targetSwapPlayerLookFollow,
             PerspectivePreset leftShoulder,
             PerspectivePreset rightShoulder,
             boolean useCustomSwappedShoulderValues) {
