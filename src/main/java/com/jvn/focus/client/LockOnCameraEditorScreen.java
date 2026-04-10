@@ -47,6 +47,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Component statusMessage = Component.empty();
     private long statusMessageUntilMs;
     private FocusClientConfig.Shoulder editedShoulder = FocusClientConfig.Shoulder.LEFT;
+    private boolean previewStopped;
 
     private LockOnCameraEditorScreen(Screen parent, CameraType previousCameraType) {
         super(Component.translatable("screen.focus.camera_editor.title"));
@@ -166,8 +167,14 @@ public final class LockOnCameraEditorScreen extends Screen {
 
     @Override
     public void onClose() {
-        LockOnHandler.stopCameraEditorPreview(previousCameraType);
+        stopPreviewIfNeeded();
         Minecraft.getInstance().setScreen(parent);
+    }
+
+    @Override
+    public void removed() {
+        stopPreviewIfNeeded();
+        super.removed();
     }
 
     @Override
@@ -287,6 +294,14 @@ public final class LockOnCameraEditorScreen extends Screen {
 
     private void showStatus(String translationKey) {
         showStatus(translationKey, new Object[0]);
+    }
+
+    private void stopPreviewIfNeeded() {
+        if (previewStopped) {
+            return;
+        }
+        previewStopped = true;
+        LockOnHandler.stopCameraEditorPreview(previousCameraType);
     }
 
     private void showStatus(String translationKey, Object... args) {
