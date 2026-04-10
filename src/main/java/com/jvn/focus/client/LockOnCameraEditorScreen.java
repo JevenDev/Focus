@@ -11,6 +11,7 @@ import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
@@ -21,8 +22,10 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int HEADER_HEIGHT = 18;
     private static final int HIDE_SHOW_BUTTON_WIDTH = 72;
     private static final int ACTION_BUTTON_HEIGHT = 18;
-    private static final int VALUE_PRECISION = 2;
+    private static final int CONTROL_ROW_COUNT = 8;
+    private static final int VALUE_PRECISION = 1;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
+    private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
 
     private final Screen parent;
     private final CameraType previousCameraType;
@@ -30,6 +33,8 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Slider ySlider;
     private Slider zSlider;
     private Slider rotationSlider;
+    private Button savePresetButton;
+    private Button importPresetButton;
     private Button resetButton;
     private Button doneButton;
     private Button toggleUiButton;
@@ -37,6 +42,8 @@ public final class LockOnCameraEditorScreen extends Screen {
     private int controlsX;
     private int controlsTop;
     private int sliderWidth;
+    private Component statusMessage = Component.empty();
+    private long statusMessageUntilMs;
 
     private LockOnCameraEditorScreen(Screen parent, CameraType previousCameraType) {
         super(Component.translatable("screen.focus.camera_editor.title"));
@@ -62,7 +69,7 @@ public final class LockOnCameraEditorScreen extends Screen {
 
         sliderWidth = Math.min(CONTROL_WIDTH, Math.max(170, this.width - 20));
         controlsX = CONTROL_LEFT_MARGIN;
-        controlsTop = Math.max(18, this.height - (ROW_HEIGHT * 7) - CONTROLS_BOTTOM_MARGIN);
+        controlsTop = Math.max(18, this.height - (ROW_HEIGHT * CONTROL_ROW_COUNT) - CONTROLS_BOTTOM_MARGIN);
 
         xSlider = addRenderableWidget(new Slider(
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 0, sliderWidth,
@@ -104,15 +111,26 @@ public final class LockOnCameraEditorScreen extends Screen {
                     FocusClientConfig.saveConfig();
                 }));
 
-        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
+        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
+        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
         int buttonWidth = (sliderWidth - 8) / 2;
+        savePresetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.save_preset"), button -> {
+            if (this.minecraft == null) {
+                return;
+            }
+            String preset = FocusClientConfig.serializePreset(FocusClientConfig.currentPreset());
+            this.minecraft.keyboardHandler.setClipboard(preset);
+            showStatus("screen.focus.camera_editor.preset_saved");
+        }).bounds(controlsX, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
+
+        importPresetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.import_preset"), button ->
+                importPresetFromClipboard()).bounds(controlsX + buttonWidth + 8, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
+
         resetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.reset_defaults"), button -> {
             FocusClientConfig.resetCameraOffsetsToDefaults();
             FocusClientConfig.saveConfig();
-            xSlider.refreshFromConfig();
-            ySlider.refreshFromConfig();
-            zSlider.refreshFromConfig();
-            rotationSlider.refreshFromConfig();
+            refreshSlidersFromConfig();
+            showStatus("screen.focus.camera_editor.preset_reset_defaults");
         }).bounds(controlsX, buttonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
 
         doneButton = addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
@@ -144,6 +162,9 @@ public final class LockOnCameraEditorScreen extends Screen {
             guiGraphics.drawString(this.font, this.title, controlsX, controlsTop - 20, 0xFFFFFF, true);
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint"),
                     controlsX, controlsTop - 8, 0xD0D0D0, true);
+            if (isStatusVisible()) {
+                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, 0xC8FACC, true);
+            }
         } else {
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint_minimized"),
                     controlsX + HIDE_SHOW_BUTTON_WIDTH + 6, this.height - CONTROLS_BOTTOM_MARGIN - ACTION_BUTTON_HEIGHT + 6, 0xD0D0D0, true);
@@ -190,6 +211,14 @@ public final class LockOnCameraEditorScreen extends Screen {
             rotationSlider.visible = controlsVisible;
             rotationSlider.active = controlsVisible;
         }
+        if (savePresetButton != null) {
+            savePresetButton.visible = controlsVisible;
+            savePresetButton.active = controlsVisible;
+        }
+        if (importPresetButton != null) {
+            importPresetButton.visible = controlsVisible;
+            importPresetButton.active = controlsVisible;
+        }
         if (resetButton != null) {
             resetButton.visible = controlsVisible;
             resetButton.active = controlsVisible;
@@ -198,6 +227,44 @@ public final class LockOnCameraEditorScreen extends Screen {
             doneButton.visible = controlsVisible;
             doneButton.active = controlsVisible;
         }
+    }
+
+    private void importPresetFromClipboard() {
+        if (this.minecraft == null) {
+            return;
+        }
+
+        String clipboard = this.minecraft.keyboardHandler.getClipboard();
+        if (clipboard == null || clipboard.isBlank()) {
+            showStatus("screen.focus.camera_editor.preset_import_empty");
+            return;
+        }
+
+        try {
+            FocusClientConfig.PerspectivePreset preset = FocusClientConfig.deserializePreset(clipboard);
+            FocusClientConfig.applyPreset(preset);
+            FocusClientConfig.saveConfig();
+            refreshSlidersFromConfig();
+            showStatus("screen.focus.camera_editor.preset_imported");
+        } catch (IllegalArgumentException e) {
+            showStatus("screen.focus.camera_editor.preset_import_failed");
+        }
+    }
+
+    private void refreshSlidersFromConfig() {
+        xSlider.refreshFromConfig();
+        ySlider.refreshFromConfig();
+        zSlider.refreshFromConfig();
+        rotationSlider.refreshFromConfig();
+    }
+
+    private void showStatus(String translationKey) {
+        statusMessage = Component.translatable(translationKey);
+        statusMessageUntilMs = Util.getMillis() + STATUS_MESSAGE_DURATION_MS;
+    }
+
+    private boolean isStatusVisible() {
+        return Util.getMillis() <= statusMessageUntilMs && !statusMessage.getString().isEmpty();
     }
 
     private static final class Slider extends AbstractSliderButton {
