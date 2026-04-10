@@ -87,6 +87,6 @@ public final class LockOnDebugHudOverlay {
     }
 
     private static String format(double value) {
-        return String.format(java.util.Locale.ROOT, "%.2f", value);
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 }
