@@ -1,0 +1,9 @@
+{
+  "key.categories.focus": "Focus",
+  "key.focus.lock_on": "Lock On",
+  "message.focus.lock_on.enabled": "Locked on: %s",
+  "message.focus.lock_on.disabled": "Lock-on disabled",
+  "message.focus.lock_on.no_target": "No valid target",
+  "message.focus.lock_on.lost": "Target lost",
+  "message.focus.lock_on.obstructed": "Target lost (out of sight)"
+}
