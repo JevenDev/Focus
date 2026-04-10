@@ -4,7 +4,6 @@ import com.jvn.focus.Focus;
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.math.Axis;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
@@ -28,8 +27,6 @@ public final class LockOnIndicatorHudOverlay {
     private static final int SOURCE_TEXTURE_SIZE = 32;
     private static final double MIN_DEPTH = 0.01D;
     private static final float TARGET_HEIGHT_FACTOR = 0.75F;
-    private static final float ORBIT_SPEED_DEGREES_PER_TICK = 6.0F;
-    private static final int MARKER_COUNT = 4;
 
     private LockOnIndicatorHudOverlay() {}
 
@@ -57,43 +54,35 @@ public final class LockOnIndicatorHudOverlay {
         }
 
         FocusClientConfig.LockOnIndicatorStyle style = FocusClientConfig.lockOnIndicatorStyle();
-        float animationTicks = minecraft.level.getGameTime() + partialTick;
-        renderOrbitingTriangles(guiGraphics, projectedPoint, style, animationTicks);
+        if (style.usesOotTriangleOrbit()) {
+            float animationTicks = minecraft.level.getGameTime() + partialTick;
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            LockOnIndicatorAnimationUtil.renderOotTriangleOrbit(
+                    guiGraphics,
+                    projectedPoint.x,
+                    projectedPoint.y,
+                    style.texture(),
+                    style.drawSize(),
+                    animationTicks,
+                    SOURCE_TEXTURE_SIZE);
+            RenderSystem.disableBlend();
+            return;
+        }
+        drawCenteredIndicator(guiGraphics, projectedPoint, style);
     }
 
-    private static void renderOrbitingTriangles(
+    private static void drawCenteredIndicator(
             GuiGraphics guiGraphics,
             ScreenPoint center,
-            FocusClientConfig.LockOnIndicatorStyle style,
-            float animationTicks) {
+            FocusClientConfig.LockOnIndicatorStyle style) {
+        ResourceLocation texture = style.texture();
         int drawSize = style.drawSize();
-        float halfSize = drawSize * 0.5F;
-        float orbitRadius = style.orbitRadius();
-        float baseAngle = animationTicks * ORBIT_SPEED_DEGREES_PER_TICK;
-
-        for (int markerIndex = 0; markerIndex < MARKER_COUNT; markerIndex++) {
-            float markerAngleDegrees = baseAngle + markerIndex * (360.0F / MARKER_COUNT) - 90.0F;
-            double markerAngleRadians = Math.toRadians(markerAngleDegrees);
-            float markerX = center.x + (float) (Math.cos(markerAngleRadians) * orbitRadius) - halfSize;
-            float markerY = center.y + (float) (Math.sin(markerAngleRadians) * orbitRadius) - halfSize;
-            drawTriangle(guiGraphics, style.texture(), drawSize, markerX, markerY, markerAngleDegrees + 90.0F);
-        }
-    }
-
-    private static void drawTriangle(
-            GuiGraphics guiGraphics,
-            ResourceLocation texture,
-            int drawSize,
-            float x,
-            float y,
-            float rotationDegrees) {
         float halfSize = drawSize * 0.5F;
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(x + halfSize, y + halfSize, 0.0F);
-        guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(rotationDegrees));
-        guiGraphics.pose().translate(-halfSize, -halfSize, 0.0F);
+        guiGraphics.pose().translate(center.x - halfSize, center.y - halfSize, 0.0F);
         guiGraphics.blit(
                 texture,
                 0,
