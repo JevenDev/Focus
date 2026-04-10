@@ -15,8 +15,10 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApiJava;
 import me.fzzyhmstrs.fzzy_config.api.RegisterType;
 import me.fzzyhmstrs.fzzy_config.config.ConfigAction;
 import me.fzzyhmstrs.fzzy_config.config.Config;
+import me.fzzyhmstrs.fzzy_config.util.EnumTranslatable;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedCondition;
+import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedEnum;
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedDouble;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -69,6 +71,16 @@ public final class FocusClientConfig extends Config {
         }
     }
 
+    public enum CameraMode implements EnumTranslatable {
+        STATIC,
+        DYNAMIC;
+
+        @Override
+        public String prefix() {
+            return "focus.lock_on_client.camera_mode";
+        }
+    }
+
     public ValidatedBoolean autoSwitchToThirdPerson = new ValidatedBoolean(true);
     public ValidatedBoolean allowFirstPersonWhileTargeting = new ValidatedBoolean(true);
     public ValidatedCondition<Boolean> allowFrontFacingThirdPersonWhileTargeting =
@@ -78,6 +90,7 @@ public final class FocusClientConfig extends Config {
                     () -> false);
     public ValidatedBoolean showLockOnDebugText = new ValidatedBoolean(false);
     public ValidatedBoolean useCustomSwappedShoulderValues = new ValidatedBoolean(false);
+    public ValidatedEnum<CameraMode> cameraMode = new ValidatedEnum<>(CameraMode.STATIC, ValidatedEnum.WidgetType.CYCLING);
     public ValidatedDouble cameraFloatiness = new ValidatedDouble(
             DEFAULT_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS, MIN_CAMERA_FLOATINESS);
     public ValidatedDouble cameraDrag = new ValidatedDouble(
@@ -120,6 +133,10 @@ public final class FocusClientConfig extends Config {
 
     public static boolean useCustomSwappedShoulderValues() {
         return config().useCustomSwappedShoulderValues.get();
+    }
+
+    public static CameraMode cameraMode() {
+        return config().cameraMode.get();
     }
 
     public static double cameraFloatiness() {
