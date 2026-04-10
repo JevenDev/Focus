@@ -81,7 +81,8 @@ public final class LockOnHandler {
 
         if (lockedTarget != null) {
             CameraType cameraType = minecraft.options.getCameraType();
-            if (cameraType.isFirstPerson() || cameraType == CameraType.THIRD_PERSON_FRONT) {
+            if (!FocusClientConfig.allowFirstPersonWhileTargeting()
+                    && (cameraType.isFirstPerson() || cameraType == CameraType.THIRD_PERSON_FRONT)) {
                 minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
             }
         }
@@ -132,7 +133,9 @@ public final class LockOnHandler {
 
         lockedTarget = nextTarget;
         previousCameraType = minecraft.options.getCameraType();
-        minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        if (FocusClientConfig.autoSwitchToThirdPerson()) {
+            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        }
         initializeSmoothing(player, getTargetAimPoint(nextTarget, 1.0F));
         player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
     }
