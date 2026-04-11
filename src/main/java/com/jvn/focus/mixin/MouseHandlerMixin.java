@@ -19,5 +19,10 @@ public abstract class MouseHandlerMixin {
     @Inject(method = "turnPlayer", at = @At("HEAD"))
     private void focus$captureMouseMovementForTargetSwap(CallbackInfo ci) {
         LockOnHandler.onRawMouseInput(this.accumulatedDX, this.accumulatedDY);
+        if (LockOnHandler.getLockedTarget() != null) {
+            // Keep raw delta capture for directional swaps, but block vanilla camera turning while locked on.
+            this.accumulatedDX = 0.0D;
+            this.accumulatedDY = 0.0D;
+        }
     }
 }
