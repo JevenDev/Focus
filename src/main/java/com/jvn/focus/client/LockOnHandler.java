@@ -1,13 +1,22 @@
 package com.jvn.focus.client;
 
 import com.jvn.focus.Focus;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
@@ -99,7 +108,7 @@ public final class LockOnHandler {
             swapShoulder(player, true);
         }
 
-        if (lockedTarget != null && (!lockedTarget.isAlive() || isLockOnHiddenFromPlayer(player, lockedTarget))) {
+        if (lockedTarget != null && (!lockedTarget.isAlive() || isLockOnHiddenFromPlayer(player, lockedTarget) || !Targeting.isTargetAllowed(lockedTarget))) {
             lockedTarget = null;
             restoreCamera(minecraft);
             player.displayClientMessage(Component.translatable("message.focus.lock_on.lost"), true);
@@ -740,6 +749,7 @@ public final class LockOnHandler {
         private static LivingEntity findTarget(LocalPlayer player) {
             Vec3 eyePosition = player.getEyePosition();
             Vec3 lookDirection = player.getLookAngle().normalize();
+            TargetFilterSettings targetFilterSettings = readTargetFilterSettings();
             LivingEntity bestTarget = null;
             double bestAlignment = LOCK_ON_FOV_THRESHOLD;
             double bestDistanceSqr = Double.MAX_VALUE;
@@ -747,7 +757,7 @@ public final class LockOnHandler {
             for (LivingEntity entity : player.level().getEntitiesOfClass(
                     LivingEntity.class,
                     player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
-                    candidate -> candidate != player && candidate.isAlive())) {
+                    candidate -> candidate != player && candidate.isAlive() && isTargetAllowed(candidate, targetFilterSettings))) {
                 if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
                     continue;
                 }
@@ -799,6 +809,7 @@ public final class LockOnHandler {
 
             double directionThreshold = FocusClientConfig.targetSwapDirectionThreshold();
             double minScreenSeparation = FocusClientConfig.targetSwapMinScreenSeparation();
+            TargetFilterSettings targetFilterSettings = readTargetFilterSettings();
             LivingEntity bestTarget = null;
             float bestScreenDistance = Float.MAX_VALUE;
             float bestAlignment = (float) directionThreshold;
@@ -807,7 +818,10 @@ public final class LockOnHandler {
             for (LivingEntity entity : player.level().getEntitiesOfClass(
                     LivingEntity.class,
                     player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
-                    candidate -> candidate != player && candidate.isAlive() && candidate != currentTarget)) {
+                    candidate -> candidate != player
+                            && candidate.isAlive()
+                            && candidate != currentTarget
+                            && isTargetAllowed(candidate, targetFilterSettings))) {
                 if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
                     continue;
                 }
@@ -894,6 +908,95 @@ public final class LockOnHandler {
 
         private static boolean isLockOnHiddenFromPlayer(LocalPlayer player, LivingEntity target) {
             return target.isInvisible() || target.isInvisibleTo(player);
+        }
+
+        private static boolean isTargetAllowed(LivingEntity target) {
+            return isTargetAllowed(target, readTargetFilterSettings());
+        }
+
+        private static boolean isTargetAllowed(LivingEntity target, TargetFilterSettings targetFilterSettings) {
+            if (!targetFilterSettings.enabled()) {
+                return true;
+            }
+
+            boolean matchesAnyFilter = matchesAnyFilter(target, targetFilterSettings);
+            if (targetFilterSettings.mode() == FocusClientConfig.TargetFilterMode.EXCLUSIVE) {
+                return matchesAnyFilter;
+            }
+            return !matchesAnyFilter;
+        }
+
+        private static boolean matchesAnyFilter(LivingEntity target, TargetFilterSettings targetFilterSettings) {
+            if (targetFilterSettings.filterPlayers() && target instanceof Player) {
+                return true;
+            }
+            if (targetFilterSettings.filterHostileMobs() && target instanceof Enemy) {
+                return true;
+            }
+            if (targetFilterSettings.filterNeutralMobs() && target instanceof NeutralMob && !(target instanceof Enemy)) {
+                return true;
+            }
+            if (targetFilterSettings.filterPassiveMobs() && isPassiveMob(target)) {
+                return true;
+            }
+            if (!targetFilterSettings.entityTypeIds().isEmpty()) {
+                ResourceLocation entityTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
+                if (entityTypeId != null && targetFilterSettings.entityTypeIds().contains(entityTypeId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static boolean isPassiveMob(LivingEntity target) {
+            return target instanceof Mob && !(target instanceof Enemy) && !(target instanceof NeutralMob);
+        }
+
+        private static TargetFilterSettings readTargetFilterSettings() {
+            if (!FocusClientConfig.enableTargetFilters()) {
+                return new TargetFilterSettings(
+                        false,
+                        FocusClientConfig.TargetFilterMode.EXCLUDE,
+                        false,
+                        false,
+                        false,
+                        false,
+                        Set.of());
+            }
+
+            return new TargetFilterSettings(
+                    true,
+                    FocusClientConfig.targetFilterMode(),
+                    FocusClientConfig.filterPlayers(),
+                    FocusClientConfig.filterPassiveMobs(),
+                    FocusClientConfig.filterNeutralMobs(),
+                    FocusClientConfig.filterHostileMobs(),
+                    parseEntityTypeIds(FocusClientConfig.targetFilterEntityIds()));
+        }
+
+        private static Set<ResourceLocation> parseEntityTypeIds(List<String> configuredEntityTypeIds) {
+            if (configuredEntityTypeIds.isEmpty()) {
+                return Set.of();
+            }
+
+            Set<ResourceLocation> parsedEntityTypeIds = new HashSet<>();
+            for (String configuredEntityTypeId : configuredEntityTypeIds) {
+                ResourceLocation parsedId = ResourceLocation.tryParse(configuredEntityTypeId);
+                if (parsedId != null) {
+                    parsedEntityTypeIds.add(parsedId);
+                }
+            }
+            return parsedEntityTypeIds;
+        }
+
+        private record TargetFilterSettings(
+                boolean enabled,
+                FocusClientConfig.TargetFilterMode mode,
+                boolean filterPlayers,
+                boolean filterPassiveMobs,
+                boolean filterNeutralMobs,
+                boolean filterHostileMobs,
+                Set<ResourceLocation> entityTypeIds) {
         }
     }
 
