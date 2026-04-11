@@ -108,7 +108,17 @@ public final class LockOnHandler {
             swapShoulder(player, true);
         }
 
-        if (lockedTarget != null && (!lockedTarget.isAlive() || isLockOnHiddenFromPlayer(player, lockedTarget) || !Targeting.isTargetAllowed(lockedTarget))) {
+        if (lockedTarget != null && !lockedTarget.isAlive()) {
+            LivingEntity replacementTarget = Targeting.findClosestTarget(player, lockedTarget);
+            if (replacementTarget != null) {
+                resetTargetSwapInput();
+                setLockedTarget(player, replacementTarget, true);
+            } else {
+                lockedTarget = null;
+                clearLockState(false, null);
+                player.displayClientMessage(Component.translatable("message.focus.lock_on.lost"), true);
+            }
+        } else if (lockedTarget != null && (isLockOnHiddenFromPlayer(player, lockedTarget) || !Targeting.isTargetAllowed(lockedTarget))) {
             lockedTarget = null;
             restoreCamera(minecraft);
             player.displayClientMessage(Component.translatable("message.focus.lock_on.lost"), true);
@@ -208,16 +218,12 @@ public final class LockOnHandler {
         if (FocusClientConfig.autoSwitchToThirdPerson()) {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
-        initializeSmoothing(player, getTargetAimPoint(nextTarget, 1.0F));
+        setLockedTarget(player, nextTarget, false);
         staticSwapSourceShoulder = activeShoulder;
         staticSwapBlend = 1.0D;
         dynamicAutoTargetBlend = 0.0D;
         dynamicAutoCurrentBlend = 0.0D;
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
         resetTargetSwapInput();
-        targetSwapSmoothingTicks = 0;
-        targetSwapSmoothingDurationTicks = 0;
         player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
     }
 
@@ -298,10 +304,14 @@ public final class LockOnHandler {
     }
 
     private static void restoreCamera(Minecraft minecraft) {
-        if (previousCameraType != null) {
+        clearLockState(true, minecraft);
+    }
+
+    private static void clearLockState(boolean restorePreviousCameraType, Minecraft minecraft) {
+        if (restorePreviousCameraType && minecraft != null && previousCameraType != null) {
             minecraft.options.setCameraType(previousCameraType);
-            previousCameraType = null;
         }
+        previousCameraType = null;
         smoothingInitialized = false;
         smoothedBodyYawOffset = 0.0F;
         staticSwapSourceShoulder = activeShoulder;
@@ -313,6 +323,22 @@ public final class LockOnHandler {
         resetTargetSwapInput();
         targetSwapSmoothingTicks = 0;
         targetSwapSmoothingDurationTicks = 0;
+    }
+
+    private static void setLockedTarget(LocalPlayer player, LivingEntity nextTarget, boolean applySwapSmoothing) {
+        lockedTarget = nextTarget;
+        if (!smoothingInitialized) {
+            initializeSmoothing(player, getTargetAimPoint(nextTarget, 1.0F));
+        }
+        if (applySwapSmoothing) {
+            targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
+            targetSwapSmoothingTicks = targetSwapSmoothingDurationTicks;
+        } else {
+            targetSwapSmoothingTicks = 0;
+            targetSwapSmoothingDurationTicks = 0;
+        }
+        previousDynamicTargetOffset = Vec3.ZERO;
+        dynamicSwapReferenceInitialized = false;
     }
 
     private static LivingEntity findTarget(LocalPlayer player) {
@@ -632,16 +658,9 @@ public final class LockOnHandler {
         }
 
         resetTargetSwapInput();
-        lockedTarget = swappedTarget;
         targetSwapCooldownTicks = Math.max(TARGET_SWAP_MIN_COOLDOWN_TICKS, FocusClientConfig.targetSwapCooldownTicks());
         targetSwapReadyForNewFlick = false;
-        targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
-        targetSwapSmoothingTicks = targetSwapSmoothingDurationTicks;
-        if (!smoothingInitialized) {
-            initializeSmoothing(player, getTargetAimPoint(swappedTarget, 1.0F));
-        }
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
+        setLockedTarget(player, swappedTarget, true);
     }
 
     private static void dampenTargetSwapInput(double factor) {
@@ -771,6 +790,32 @@ public final class LockOnHandler {
                 if (alignment > bestAlignment + 1.0E-4D
                         || (Math.abs(alignment - bestAlignment) <= 1.0E-4D && distanceSqr < bestDistanceSqr)) {
                     bestAlignment = alignment;
+                    bestDistanceSqr = distanceSqr;
+                    bestTarget = entity;
+                }
+            }
+
+            return bestTarget;
+        }
+
+        private static LivingEntity findClosestTarget(LocalPlayer player, LivingEntity excludedTarget) {
+            TargetFilterSettings targetFilterSettings = readTargetFilterSettings();
+            LivingEntity bestTarget = null;
+            double bestDistanceSqr = Double.MAX_VALUE;
+
+            for (LivingEntity entity : player.level().getEntitiesOfClass(
+                    LivingEntity.class,
+                    player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
+                    candidate -> candidate != player
+                            && candidate.isAlive()
+                            && candidate != excludedTarget
+                            && isTargetAllowed(candidate, targetFilterSettings))) {
+                if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
+                    continue;
+                }
+
+                double distanceSqr = player.distanceToSqr(entity);
+                if (distanceSqr < bestDistanceSqr) {
                     bestDistanceSqr = distanceSqr;
                     bestTarget = entity;
                 }
