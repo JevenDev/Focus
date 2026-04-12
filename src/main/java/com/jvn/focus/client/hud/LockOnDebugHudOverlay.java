@@ -86,6 +86,8 @@ public final class LockOnDebugHudOverlay {
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_smoothness", format(FocusClientConfig.cameraSwapSmoothness())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_speed", format(FocusClientConfig.dynamicCameraSwapSpeed())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_smoothness", format(FocusClientConfig.dynamicCameraSwapSmoothness())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_step_size", formatPrecise(FocusClientConfig.cameraStepSize())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_offsets", onOff(FocusClientConfig.dynamicallyAdjustOffsets())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_player_follow", format(FocusClientConfig.targetSwapPlayerLookFollow())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_blend", format(LockOnHandler.getTargetSwapBlendToNormal())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_camera_pos_factor", format(LockOnHandler.getTargetSwapCameraPositionFactor())), rightY);
@@ -154,5 +156,9 @@ public final class LockOnDebugHudOverlay {
 
     private static String format(double value) {
         return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    private static String formatPrecise(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 }

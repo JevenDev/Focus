@@ -45,6 +45,8 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 1.0D;
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.01D;
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
+    public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
+    public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_DEADZONE = 12.0D;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION = 21.0D;
     public static final double DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD = 0.56D;
@@ -84,6 +86,8 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SPEED = 1.0D;
     public static final double MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 1.0D;
+    public static final double MIN_CAMERA_STEP_SIZE = 0.001D;
+    public static final double MAX_CAMERA_STEP_SIZE = 1.0D;
     public static final double MIN_TARGET_SWAP_MOUSE_DEADZONE = 0.0D;
     public static final double MAX_TARGET_SWAP_MOUSE_DEADZONE = 60.0D;
     public static final double MIN_TARGET_SWAP_MOUSE_ACTIVATION = 0.0D;
@@ -110,14 +114,14 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final double MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS = 30.0D;
     public static final double MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 0.0D;
     public static final double MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 1.0D;
-    public static final double CAMERA_SLIDER_INCREMENT = 0.1D;
+    public static final double CAMERA_SLIDER_INCREMENT = DEFAULT_CAMERA_STEP_SIZE;
     public static final double ROTATION_SLIDER_INCREMENT = 1.0D;
     public static final int MAX_CAMERA_PROFILE_NAME_LENGTH = 40;
     private static final String GENERAL_CATEGORY = "general";
     private static final String CAMERA_CATEGORY = "camera";
     private static final String TARGET_SWAP_CATEGORY = "target_swap";
     private static final String TARGET_FILTER_CATEGORY = "target_filters";
-    private static final int CAMERA_VALUE_SCALE = 1;
+    private static final int CAMERA_VALUE_SCALE = 3;
     private static final Path CAMERA_PRESET_PATH = FMLPaths.CONFIGDIR.get().resolve(Focus.MOD_ID + "_lock_on_camera.json");
 
     @Entry(category = GENERAL_CATEGORY, name = "focus.lock_on_client.autoSwitchToThirdPerson")
@@ -148,6 +152,10 @@ public final class FocusClientConfig extends MidnightConfig {
     public static double dynamicCameraSwapSpeed = DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED;
     // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double dynamicCameraSwapSmoothness = DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraStepSize", min = MIN_CAMERA_STEP_SIZE, max = MAX_CAMERA_STEP_SIZE, isSlider = true, precision = 1000)
+    public static double cameraStepSize = DEFAULT_CAMERA_STEP_SIZE;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicallyAdjustOffsets")
+    public static boolean dynamicallyAdjustOffsets = DEFAULT_DYNAMICALLY_ADJUST_OFFSETS;
     // Profile selection is handled in the dedicated camera editor.
     public static String selectedCameraProfile = "";
 
@@ -362,6 +370,14 @@ public final class FocusClientConfig extends MidnightConfig {
                 value -> FocusClientConfig.dynamicCameraSwapSmoothness = value,
                 MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS,
                 MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
+        public final DoubleValue cameraStepSize = new DoubleValue(
+                () -> FocusClientConfig.cameraStepSize,
+                value -> FocusClientConfig.cameraStepSize = value,
+                MIN_CAMERA_STEP_SIZE,
+                MAX_CAMERA_STEP_SIZE);
+        public final BooleanValue dynamicallyAdjustOffsets = new BooleanValue(
+                () -> FocusClientConfig.dynamicallyAdjustOffsets,
+                value -> FocusClientConfig.dynamicallyAdjustOffsets = value);
         public final CameraPresetToolsSection presetTools = new CameraPresetToolsSection();
     }
 
@@ -695,6 +711,14 @@ public final class FocusClientConfig extends MidnightConfig {
         return config().camera.dynamicCameraSwapSmoothness.get();
     }
 
+    public static double cameraStepSize() {
+        return config().camera.cameraStepSize.get();
+    }
+
+    public static boolean dynamicallyAdjustOffsets() {
+        return config().camera.dynamicallyAdjustOffsets.get();
+    }
+
     public static double targetSwapMouseDeadzone() {
         return config().targetSwap.targetSwapMouseDeadzone.get();
     }
@@ -859,11 +883,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraLeft() {
-        adjustCameraLeft(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraLeft(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraLeft(Shoulder shoulder) {
-        adjustCameraLeft(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraLeft(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraLeft(Shoulder shoulder, double step) {
@@ -871,11 +895,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraRight() {
-        adjustCameraRight(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraRight(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraRight(Shoulder shoulder) {
-        adjustCameraRight(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraRight(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraRight(Shoulder shoulder, double step) {
@@ -883,11 +907,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraUp() {
-        adjustCameraUp(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraUp(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraUp(Shoulder shoulder) {
-        adjustCameraUp(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraUp(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraUp(Shoulder shoulder, double step) {
@@ -895,11 +919,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraDown() {
-        adjustCameraDown(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraDown(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraDown(Shoulder shoulder) {
-        adjustCameraDown(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraDown(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraDown(Shoulder shoulder, double step) {
@@ -907,11 +931,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraIn() {
-        adjustCameraIn(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraIn(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraIn(Shoulder shoulder) {
-        adjustCameraIn(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraIn(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraIn(Shoulder shoulder, double step) {
@@ -919,11 +943,11 @@ public final class FocusClientConfig extends MidnightConfig {
     }
 
     public static void adjustCameraOut() {
-        adjustCameraOut(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+        adjustCameraOut(Shoulder.LEFT, cameraStepSize());
     }
 
     public static void adjustCameraOut(Shoulder shoulder) {
-        adjustCameraOut(shoulder, CAMERA_SLIDER_INCREMENT);
+        adjustCameraOut(shoulder, cameraStepSize());
     }
 
     public static void adjustCameraOut(Shoulder shoulder, double step) {
@@ -973,6 +997,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 cameraSwapSmoothness(),
                 dynamicCameraSwapSpeed(),
                 dynamicCameraSwapSmoothness(),
+                cameraStepSize(),
+                dynamicallyAdjustOffsets(),
                 config().targetSwap.targetSwapMouseDeadzone.get(),
                 config().targetSwap.targetSwapMouseActivation.get(),
                 config().targetSwap.targetSwapDirectionThreshold.get(),
@@ -1011,6 +1037,8 @@ public final class FocusClientConfig extends MidnightConfig {
         config().camera.cameraSwapSmoothness.validateAndSet(setup.cameraSwapSmoothness());
         config().camera.dynamicCameraSwapSpeed.validateAndSet(setup.dynamicCameraSwapSpeed());
         config().camera.dynamicCameraSwapSmoothness.validateAndSet(setup.dynamicCameraSwapSmoothness());
+        config().camera.cameraStepSize.validateAndSet(setup.cameraStepSize());
+        config().camera.dynamicallyAdjustOffsets.validateAndSet(setup.dynamicallyAdjustOffsets());
         config().targetSwap.targetSwapMouseDeadzone.validateAndSet(setup.targetSwapMouseDeadzone());
         config().targetSwap.targetSwapMouseActivation.validateAndSet(setup.targetSwapMouseActivation());
         config().targetSwap.targetSwapDirectionThreshold.validateAndSet(setup.targetSwapDirectionThreshold());
@@ -1385,6 +1413,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 clamp(cameraSwapSmoothness, MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS),
                 clamp(dynamicCameraSwapSpeed, MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED),
                 clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
+                DEFAULT_CAMERA_STEP_SIZE,
+                DEFAULT_DYNAMICALLY_ADJUST_OFFSETS,
                 DEFAULT_TARGET_SWAP_MOUSE_DEADZONE,
                 DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION,
                 DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD,
@@ -1506,7 +1536,7 @@ public final class FocusClientConfig extends MidnightConfig {
         try {
             Files.createDirectories(CAMERA_PRESET_PATH.getParent());
             JsonObject object = new JsonObject();
-            object.addProperty("format", "focus_camera_presets_v3");
+            object.addProperty("format", "focus_camera_presets_v4");
             object.add("leftShoulder", presetToJson(leftShoulderPreset));
             object.add("rightShoulder", presetToJson(rightShoulderPreset));
             JsonArray profiles = new JsonArray();
@@ -1537,6 +1567,8 @@ public final class FocusClientConfig extends MidnightConfig {
         object.addProperty("cameraSwapSmoothness", setup.cameraSwapSmoothness());
         object.addProperty("dynamicCameraSwapSpeed", setup.dynamicCameraSwapSpeed());
         object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
+        object.addProperty("cameraStepSize", setup.cameraStepSize());
+        object.addProperty("dynamicallyAdjustOffsets", setup.dynamicallyAdjustOffsets());
         object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
         object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
         object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
@@ -1588,6 +1620,11 @@ public final class FocusClientConfig extends MidnightConfig {
         double cameraSwapSmoothness = readRequiredDouble(object, "cameraSwapSmoothness");
         double dynamicCameraSwapSpeed = readRequiredDouble(object, "dynamicCameraSwapSpeed");
         double dynamicCameraSwapSmoothness = readRequiredDouble(object, "dynamicCameraSwapSmoothness");
+        double cameraStepSize = clamp(
+                readOptionalDouble(object, "cameraStepSize", DEFAULT_CAMERA_STEP_SIZE),
+                MIN_CAMERA_STEP_SIZE,
+                MAX_CAMERA_STEP_SIZE);
+        boolean dynamicallyAdjustOffsets = readOptionalBoolean(object, "dynamicallyAdjustOffsets", DEFAULT_DYNAMICALLY_ADJUST_OFFSETS);
         double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
         double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
         double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
@@ -1622,6 +1659,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 cameraSwapSmoothness,
                 dynamicCameraSwapSpeed,
                 dynamicCameraSwapSmoothness,
+                cameraStepSize,
+                dynamicallyAdjustOffsets,
                 targetSwapMouseDeadzone,
                 targetSwapMouseActivation,
                 targetSwapDirectionThreshold,
@@ -1825,6 +1864,8 @@ public final class FocusClientConfig extends MidnightConfig {
             double cameraSwapSmoothness,
             double dynamicCameraSwapSpeed,
             double dynamicCameraSwapSmoothness,
+            double cameraStepSize,
+            boolean dynamicallyAdjustOffsets,
             double targetSwapMouseDeadzone,
             double targetSwapMouseActivation,
             double targetSwapDirectionThreshold,

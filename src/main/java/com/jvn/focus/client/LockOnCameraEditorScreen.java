@@ -32,7 +32,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int PRESETS_PANEL_START_ROW = 3;
     private static final int HEADER_TITLE_GAP_TO_FIRST_ROW = 23;
     private static final int HEADER_HINT_GAP_TO_FIRST_ROW = 13;
-    private static final int VALUE_PRECISION = 1;
+    private static final int VALUE_PRECISION = 3;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
     private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
     private static final double KEY_ADJUST_STEP_MULTIPLIER = 5.0D;
@@ -295,7 +295,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     }
 
     private boolean handleEditorCameraAdjustmentKey(int keyCode, int modifiers) {
-        double step = FocusClientConfig.CAMERA_SLIDER_INCREMENT;
+        double step = FocusClientConfig.cameraStepSize();
         if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
             step *= KEY_ADJUST_STEP_MULTIPLIER;
         }

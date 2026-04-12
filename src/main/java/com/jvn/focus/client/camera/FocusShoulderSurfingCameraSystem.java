@@ -1,5 +1,6 @@
 package com.jvn.focus.client.camera;
 
+import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler.CameraLockData;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -70,7 +71,9 @@ public final class FocusShoulderSurfingCameraSystem {
         CameraBasis orbitBasis = basisFromRotation(smoothedOrbitYaw, smoothedOrbitPitch);
 
         Vec3 desiredOffset = new Vec3(lockData.offsetX(), lockData.offsetY(), lockData.offsetZ());
-        desiredOffset = applyDynamicOffsetCollision(level, entity, pivotPoint, orbitBasis, desiredOffset);
+        if (FocusClientConfig.dynamicallyAdjustOffsets()) {
+            desiredOffset = applyDynamicOffsetCollision(level, entity, pivotPoint, orbitBasis, desiredOffset);
+        }
 
         if (snapNow) {
             smoothedOffset = desiredOffset;
