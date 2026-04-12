@@ -120,6 +120,7 @@ public final class FocusClientConfig extends Config {
     private static PerspectivePreset leftShoulderPreset = defaultLeftPreset();
     private static PerspectivePreset rightShoulderPreset = defaultLeftPreset().mirroredForOppositeShoulder();
     private static final Map<String, CameraSetupPreset> CAMERA_SETUP_PROFILES = new LinkedHashMap<>();
+    private static final Map<String, CameraSetupPreset> BUILT_IN_CAMERA_SETUP_PROFILES = createBuiltInCameraSetupProfiles();
 
     public enum Shoulder {
         LEFT("focus.shoulder.left"),
@@ -333,8 +334,12 @@ public final class FocusClientConfig extends Config {
             }
             INSTANCE.targetFilters.targetFilterEntityIds.validateAndSet(
                     sanitizeTargetFilterEntityIds(INSTANCE.targetFilters.targetFilterEntityIds.get()));
-            INSTANCE.camera.presetTools.selectedCameraProfile.validateAndSet(
-                    sanitizeCameraProfileName(INSTANCE.camera.presetTools.selectedCameraProfile.get()));
+            String selectedProfile = sanitizeCameraProfileName(INSTANCE.camera.presetTools.selectedCameraProfile.get());
+            INSTANCE.camera.presetTools.selectedCameraProfile.validateAndSet(selectedProfile);
+            if (findExistingProfileName(selectedProfile) == null && !CAMERA_SETUP_PROFILES.isEmpty()) {
+                INSTANCE.camera.presetTools.selectedCameraProfile.validateAndSet(
+                        CAMERA_SETUP_PROFILES.keySet().iterator().next());
+            }
         }
     }
 
@@ -944,11 +949,109 @@ public final class FocusClientConfig extends Config {
                 DEFAULT_CAMERA_ROTATION);
     }
 
+    private static Map<String, CameraSetupPreset> createBuiltInCameraSetupProfiles() {
+        Map<String, CameraSetupPreset> profiles = new LinkedHashMap<>();
+        profiles.put("Close Combat", createBuiltInCameraSetupPreset(
+                new PerspectivePreset(-1.2D, 0.5D, 1.0D, -2.0D),
+                CameraMode.DYNAMIC,
+                0.32D,
+                0.88D,
+                0.16D,
+                0.9D,
+                0.12D,
+                0.12D));
+        profiles.put("Wide Awareness", createBuiltInCameraSetupPreset(
+                new PerspectivePreset(-2.9D, 0.6D, 2.8D, 2.0D),
+                CameraMode.DYNAMIC,
+                0.22D,
+                0.95D,
+                0.1D,
+                1.0D,
+                0.08D,
+                0.12D));
+        profiles.put("Centered Duel", createBuiltInCameraSetupPreset(
+                new PerspectivePreset(-0.8D, 0.35D, 1.7D, 0.0D),
+                CameraMode.STATIC,
+                0.18D,
+                0.95D,
+                0.1D,
+                1.0D,
+                0.01D,
+                0.0D));
+        profiles.put("High Angle", createBuiltInCameraSetupPreset(
+                new PerspectivePreset(-1.9D, 1.0D, 2.4D, -1.0D),
+                CameraMode.STATIC,
+                0.2D,
+                0.95D,
+                0.1D,
+                1.0D,
+                0.01D,
+                0.0D));
+        return profiles;
+    }
+
+    private static CameraSetupPreset createBuiltInCameraSetupPreset(
+            PerspectivePreset leftShoulder,
+            CameraMode cameraMode,
+            double cameraFloatiness,
+            double cameraDrag,
+            double cameraSwapSpeed,
+            double cameraSwapSmoothness,
+            double dynamicCameraSwapSpeed,
+            double dynamicCameraSwapSmoothness) {
+        PerspectivePreset sanitizedLeftShoulder = sanitizePreset(leftShoulder);
+        return new CameraSetupPreset(
+                true,
+                true,
+                false,
+                false,
+                LockOnIndicatorStyle.OOT_16X,
+                cameraMode,
+                clamp(cameraFloatiness, MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS),
+                clamp(cameraDrag, MIN_CAMERA_DRAG, MAX_CAMERA_DRAG),
+                clamp(cameraSwapSpeed, MIN_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED),
+                clamp(cameraSwapSmoothness, MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS),
+                clamp(dynamicCameraSwapSpeed, MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED),
+                clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
+                DEFAULT_TARGET_SWAP_MOUSE_DEADZONE,
+                DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION,
+                DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD,
+                DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION,
+                DEFAULT_TARGET_SWAP_INPUT_DECAY,
+                DEFAULT_TARGET_SWAP_COOLDOWN_TICKS,
+                DEFAULT_TARGET_SWAP_SMOOTH_TICKS,
+                DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW,
+                DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH,
+                DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK,
+                DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK,
+                DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS,
+                DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW,
+                DEFAULT_TARGET_FILTERS_ENABLED,
+                TargetFilterMode.EXCLUDE,
+                DEFAULT_FILTER_PLAYERS,
+                DEFAULT_FILTER_PASSIVE_MOBS,
+                DEFAULT_FILTER_NEUTRAL_MOBS,
+                DEFAULT_FILTER_HOSTILE_MOBS,
+                DEFAULT_TARGET_FILTER_ENTITY_IDS,
+                sanitizedLeftShoulder,
+                sanitizedLeftShoulder.mirroredForOppositeShoulder(),
+                false);
+    }
+
+    private static void seedBuiltInCameraSetupProfiles() {
+        for (Map.Entry<String, CameraSetupPreset> entry : BUILT_IN_CAMERA_SETUP_PROFILES.entrySet()) {
+            if (findExistingProfileName(entry.getKey()) == null) {
+                CAMERA_SETUP_PROFILES.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
     private static void loadCameraPresets() {
         CAMERA_SETUP_PROFILES.clear();
         if (!Files.isRegularFile(CAMERA_PRESET_PATH)) {
             leftShoulderPreset = defaultLeftPreset();
             rightShoulderPreset = leftShoulderPreset.mirroredForOppositeShoulder();
+            seedBuiltInCameraSetupProfiles();
             return;
         }
 
@@ -1017,11 +1120,13 @@ public final class FocusClientConfig extends Config {
                     }
                 }
             }
+            seedBuiltInCameraSetupProfiles();
         } catch (Exception e) {
             Focus.LOGGER.warn("Failed to load camera preset file {}, using defaults", CAMERA_PRESET_PATH, e);
             leftShoulderPreset = defaultLeftPreset();
             rightShoulderPreset = leftShoulderPreset.mirroredForOppositeShoulder();
             CAMERA_SETUP_PROFILES.clear();
+            seedBuiltInCameraSetupProfiles();
         }
     }
 
