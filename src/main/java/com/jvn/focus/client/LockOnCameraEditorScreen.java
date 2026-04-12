@@ -1,5 +1,6 @@
 package com.jvn.focus.client;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
@@ -9,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.Util;
@@ -21,8 +23,15 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int ROW_HEIGHT = 19;
     private static final int HEADER_HEIGHT = 18;
     private static final int HIDE_SHOW_BUTTON_WIDTH = 72;
+    private static final int PRESETS_TOGGLE_BUTTON_WIDTH = 96;
     private static final int ACTION_BUTTON_HEIGHT = 18;
-    private static final int CONTROL_ROW_COUNT = 11;
+    private static final int CONTROL_GAP = ROW_HEIGHT - ACTION_BUTTON_HEIGHT;
+    private static final int CONTROL_ROW_COUNT = 10;
+    private static final int STATUS_ROW_INDEX = 8;
+    private static final int PRESETS_PANEL_DEFAULT_WIDTH = 238;
+    private static final int PRESETS_PANEL_START_ROW = 3;
+    private static final int HEADER_TITLE_GAP_TO_FIRST_ROW = 23;
+    private static final int HEADER_HINT_GAP_TO_FIRST_ROW = 13;
     private static final int VALUE_PRECISION = 1;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
     private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
@@ -35,15 +44,25 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Slider rotationSlider;
     private Button swapShoulderButton;
     private Button customSwapValuesButton;
+    private Button togglePresetsPanelButton;
+    private EditBox profileNameInput;
+    private Button saveProfileButton;
+    private Button loadProfileButton;
+    private Button deleteProfileButton;
+    private Button cycleProfileButton;
     private Button savePresetButton;
     private Button importPresetButton;
     private Button resetButton;
     private Button doneButton;
     private Button toggleUiButton;
     private boolean controlsVisible = true;
+    private boolean presetsPanelExpanded;
     private int controlsX;
     private int controlsTop;
     private int sliderWidth;
+    private int presetsPanelX;
+    private int presetsPanelTop;
+    private int presetsPanelWidth;
     private Component statusMessage = Component.empty();
     private long statusMessageUntilMs;
     private FocusClientConfig.Shoulder editedShoulder = FocusClientConfig.Shoulder.LEFT;
@@ -75,6 +94,9 @@ public final class LockOnCameraEditorScreen extends Screen {
         sliderWidth = Math.min(CONTROL_WIDTH, Math.max(170, this.width - 20));
         controlsX = CONTROL_LEFT_MARGIN;
         controlsTop = Math.max(18, this.height - (ROW_HEIGHT * CONTROL_ROW_COUNT) - CONTROLS_BOTTOM_MARGIN);
+        presetsPanelWidth = Math.min(PRESETS_PANEL_DEFAULT_WIDTH, Math.max(188, this.width - sliderWidth - CONTROL_LEFT_MARGIN - 28));
+        presetsPanelX = this.width - presetsPanelWidth - CONTROL_LEFT_MARGIN;
+        presetsPanelTop = controlsTop + 50;
 
         xSlider = addRenderableWidget(new Slider(
                 controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 0, sliderWidth,
@@ -118,14 +140,55 @@ public final class LockOnCameraEditorScreen extends Screen {
 
         int swapButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
         int customValuesY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
-        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
-        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7;
-        int buttonWidth = (sliderWidth - 8) / 2;
+        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
+        int leftDualButtonWidth = (sliderWidth - CONTROL_GAP) / 2;
+        int rightDualButtonWidth = sliderWidth - leftDualButtonWidth - CONTROL_GAP;
+
         swapShoulderButton = addRenderableWidget(Button.builder(Component.empty(), button -> swapEditedShoulder(true))
                 .bounds(controlsX, swapButtonY, sliderWidth, ACTION_BUTTON_HEIGHT)
                 .build());
         customSwapValuesButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleCustomSwapValues())
                 .bounds(controlsX, customValuesY, sliderWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+        togglePresetsPanelButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+                    presetsPanelExpanded = !presetsPanelExpanded;
+                    applyControlVisibility();
+                }).bounds(this.width - CONTROL_LEFT_MARGIN - PRESETS_TOGGLE_BUTTON_WIDTH, controlsTop - 20, PRESETS_TOGGLE_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT)
+                .build());
+
+        int profileNameY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 0);
+        int profileCycleY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 1);
+        int profileActionY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 2);
+        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 3);
+        int panelTripleButtonWidth = (presetsPanelWidth - (CONTROL_GAP * 2)) / 3;
+        int panelThirdButtonWidth = presetsPanelWidth - (panelTripleButtonWidth * 2) - (CONTROL_GAP * 2);
+        int panelLeftDualButtonWidth = (presetsPanelWidth - CONTROL_GAP) / 2;
+        int panelRightDualButtonWidth = presetsPanelWidth - panelLeftDualButtonWidth - CONTROL_GAP;
+
+        profileNameInput = addRenderableWidget(new EditBox(
+                this.font,
+                presetsPanelX,
+                profileNameY,
+                presetsPanelWidth,
+                ACTION_BUTTON_HEIGHT,
+                Component.translatable("screen.focus.camera_editor.profile_name")));
+        profileNameInput.setMaxLength(FocusClientConfig.MAX_CAMERA_PROFILE_NAME_LENGTH);
+        profileNameInput.setResponder(value -> refreshProfileControls());
+
+        saveProfileButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.save_profile"), button ->
+                        saveCurrentProfile())
+                .bounds(presetsPanelX, profileActionY, panelTripleButtonWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+        loadProfileButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.load_profile"), button ->
+                        loadSelectedProfile())
+                .bounds(presetsPanelX + panelTripleButtonWidth + CONTROL_GAP, profileActionY, panelTripleButtonWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+        deleteProfileButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.delete_profile"), button ->
+                        deleteSelectedProfile())
+                .bounds(presetsPanelX + (panelTripleButtonWidth * 2) + (CONTROL_GAP * 2), profileActionY, panelThirdButtonWidth, ACTION_BUTTON_HEIGHT)
+                .build());
+        cycleProfileButton = addRenderableWidget(Button.builder(Component.empty(), button -> cycleSavedProfile())
+                .bounds(presetsPanelX, profileCycleY, presetsPanelWidth, ACTION_BUTTON_HEIGHT)
                 .build());
 
         savePresetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.save_preset"), button -> {
@@ -135,27 +198,29 @@ public final class LockOnCameraEditorScreen extends Screen {
             String preset = FocusClientConfig.serializeCameraSetup(FocusClientConfig.currentCameraSetupPreset());
             this.minecraft.keyboardHandler.setClipboard(preset);
             showStatus("screen.focus.camera_editor.preset_saved");
-        }).bounds(controlsX, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
+        }).bounds(presetsPanelX, presetButtonY, panelLeftDualButtonWidth, ACTION_BUTTON_HEIGHT).build());
 
         importPresetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.import_preset"), button ->
-                importPresetFromClipboard()).bounds(controlsX + buttonWidth + 8, presetButtonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
+                importPresetFromClipboard()).bounds(presetsPanelX + panelLeftDualButtonWidth + CONTROL_GAP, presetButtonY, panelRightDualButtonWidth, ACTION_BUTTON_HEIGHT).build());
 
         resetButton = addRenderableWidget(Button.builder(Component.translatable("screen.focus.camera_editor.reset_defaults"), button -> {
             FocusClientConfig.resetCameraOffsetsToDefaults(editedShoulder);
             FocusClientConfig.saveConfig();
             refreshSlidersFromConfig();
             showStatus("screen.focus.camera_editor.preset_reset_defaults");
-        }).bounds(controlsX, buttonY, buttonWidth, ACTION_BUTTON_HEIGHT).build());
+        }).bounds(controlsX, buttonY, leftDualButtonWidth, ACTION_BUTTON_HEIGHT).build());
 
         doneButton = addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(controlsX + buttonWidth + 8, buttonY, buttonWidth, ACTION_BUTTON_HEIGHT)
+                .bounds(controlsX + leftDualButtonWidth + CONTROL_GAP, buttonY, rightDualButtonWidth, ACTION_BUTTON_HEIGHT)
                 .build());
 
         toggleUiButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
-        }).bounds(controlsX, buttonY + ROW_HEIGHT, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
+        }).bounds(controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
 
+        initializeProfileName();
+        presetsPanelExpanded = false;
         refreshShoulderButtons();
         applyControlVisibility();
     }
@@ -180,11 +245,18 @@ public final class LockOnCameraEditorScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (controlsVisible) {
-            guiGraphics.drawString(this.font, this.title, controlsX, controlsTop - 20, 0xFFFFFF, true);
+            int firstLeftRowY = controlsTop + HEADER_HEIGHT;
+            guiGraphics.drawString(this.font, this.title, controlsX, firstLeftRowY - HEADER_TITLE_GAP_TO_FIRST_ROW, 0xFFFFFF, true);
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint"),
-                    controlsX, controlsTop - 8, 0xD0D0D0, true);
+                    controlsX, firstLeftRowY - HEADER_HINT_GAP_TO_FIRST_ROW, 0xD0D0D0, true);
+            if (presetsPanelExpanded) {
+                guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.presets_panel_title"),
+                        presetsPanelX, presetsPanelTop + 2, 0xFFFFFF, true);
+                guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.presets_panel_hint"),
+                        presetsPanelX, presetsPanelTop + 12, 0xCFCFCF, true);
+            }
             if (isStatusVisible()) {
-                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 10, 0xC8FACC, true);
+                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * STATUS_ROW_INDEX, 0xC8FACC, true);
             }
         } else {
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint_minimized"),
@@ -201,6 +273,9 @@ public final class LockOnCameraEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (profileNameInput != null && profileNameInput.isFocused()) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
         if (keyCode == GLFW.GLFW_KEY_H) {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
@@ -218,6 +293,14 @@ public final class LockOnCameraEditorScreen extends Screen {
             toggleUiButton.setMessage(controlsVisible
                     ? Component.translatable("screen.focus.camera_editor.hide_ui")
                     : Component.translatable("screen.focus.camera_editor.show_ui"));
+        }
+        if (togglePresetsPanelButton != null) {
+            togglePresetsPanelButton.visible = controlsVisible;
+            togglePresetsPanelButton.active = controlsVisible;
+            togglePresetsPanelButton.setMessage(Component.translatable(
+                    presetsPanelExpanded
+                            ? "screen.focus.camera_editor.presets_panel_collapse"
+                            : "screen.focus.camera_editor.presets_panel_expand"));
         }
 
         if (xSlider != null) {
@@ -244,13 +327,18 @@ public final class LockOnCameraEditorScreen extends Screen {
             customSwapValuesButton.visible = controlsVisible;
             customSwapValuesButton.active = controlsVisible;
         }
+        if (profileNameInput != null && !controlsVisible) {
+            profileNameInput.setFocused(false);
+        }
+        applyPresetsPanelVisibility();
+
         if (savePresetButton != null) {
-            savePresetButton.visible = controlsVisible;
-            savePresetButton.active = controlsVisible;
+            savePresetButton.visible = controlsVisible && presetsPanelExpanded;
+            savePresetButton.active = controlsVisible && presetsPanelExpanded;
         }
         if (importPresetButton != null) {
-            importPresetButton.visible = controlsVisible;
-            importPresetButton.active = controlsVisible;
+            importPresetButton.visible = controlsVisible && presetsPanelExpanded;
+            importPresetButton.active = controlsVisible && presetsPanelExpanded;
         }
         if (resetButton != null) {
             resetButton.visible = controlsVisible;
@@ -259,6 +347,37 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (doneButton != null) {
             doneButton.visible = controlsVisible;
             doneButton.active = controlsVisible;
+        }
+
+        refreshProfileControls();
+    }
+
+    private void applyPresetsPanelVisibility() {
+        boolean panelVisible = controlsVisible && presetsPanelExpanded;
+        if (profileNameInput != null) {
+            profileNameInput.visible = panelVisible;
+            profileNameInput.setEditable(panelVisible);
+            if (!panelVisible) {
+                profileNameInput.setFocused(false);
+            }
+        }
+        if (saveProfileButton != null) {
+            saveProfileButton.visible = panelVisible;
+        }
+        if (loadProfileButton != null) {
+            loadProfileButton.visible = panelVisible;
+        }
+        if (deleteProfileButton != null) {
+            deleteProfileButton.visible = panelVisible;
+        }
+        if (cycleProfileButton != null) {
+            cycleProfileButton.visible = panelVisible;
+        }
+        if (savePresetButton != null) {
+            savePresetButton.visible = panelVisible;
+        }
+        if (importPresetButton != null) {
+            importPresetButton.visible = panelVisible;
         }
     }
 
@@ -283,6 +402,170 @@ public final class LockOnCameraEditorScreen extends Screen {
         } catch (IllegalArgumentException e) {
             showStatus("screen.focus.camera_editor.preset_import_failed");
         }
+    }
+
+    private void initializeProfileName() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        String selected = FocusClientConfig.resolveCameraProfileName(FocusClientConfig.selectedCameraProfileName());
+        if (!selected.isEmpty()) {
+            profileNameInput.setValue(selected);
+        } else {
+            List<String> profiles = FocusClientConfig.cameraProfileNames();
+            if (!profiles.isEmpty()) {
+                profileNameInput.setValue(profiles.get(0));
+            }
+        }
+        refreshProfileControls();
+    }
+
+    private void refreshProfileControls() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        String typedName = FocusClientConfig.sanitizeCameraProfileName(profileNameInput.getValue());
+        String resolvedName = FocusClientConfig.resolveCameraProfileName(typedName);
+        List<String> profiles = FocusClientConfig.cameraProfileNames();
+        boolean hasProfiles = !profiles.isEmpty();
+
+        if (cycleProfileButton != null) {
+            if (hasProfiles) {
+                String displayName = resolvedName.isEmpty() ? profiles.get(0) : resolvedName;
+                cycleProfileButton.setMessage(Component.translatable("screen.focus.camera_editor.profile_cycle", displayName));
+                cycleProfileButton.active = controlsVisible && presetsPanelExpanded;
+            } else {
+                cycleProfileButton.setMessage(Component.translatable("screen.focus.camera_editor.profile_cycle_none"));
+                cycleProfileButton.active = false;
+            }
+        }
+
+        boolean hasTypedName = !typedName.isEmpty();
+        if (saveProfileButton != null) {
+            saveProfileButton.active = controlsVisible && presetsPanelExpanded && hasTypedName;
+        }
+        boolean hasResolvedProfile = !resolvedName.isEmpty();
+        if (loadProfileButton != null) {
+            loadProfileButton.active = controlsVisible && presetsPanelExpanded && hasResolvedProfile;
+        }
+        if (deleteProfileButton != null) {
+            deleteProfileButton.active = controlsVisible && presetsPanelExpanded && hasResolvedProfile;
+        }
+        if (savePresetButton != null) {
+            savePresetButton.active = controlsVisible && presetsPanelExpanded;
+        }
+        if (importPresetButton != null) {
+            importPresetButton.active = controlsVisible && presetsPanelExpanded;
+        }
+    }
+
+    private void cycleSavedProfile() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        List<String> profiles = FocusClientConfig.cameraProfileNames();
+        if (profiles.isEmpty()) {
+            showStatus("screen.focus.camera_editor.profile_no_profiles");
+            return;
+        }
+
+        String current = FocusClientConfig.resolveCameraProfileName(profileNameInput.getValue());
+        int currentIndex = profiles.indexOf(current);
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % profiles.size();
+        String nextProfile = profiles.get(nextIndex);
+        profileNameInput.setValue(nextProfile);
+        FocusClientConfig.setSelectedCameraProfileName(nextProfile);
+        FocusClientConfig.saveConfig();
+        refreshProfileControls();
+    }
+
+    private void saveCurrentProfile() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        String sanitizedName = FocusClientConfig.sanitizeCameraProfileName(profileNameInput.getValue());
+        if (sanitizedName.isEmpty()) {
+            showStatus("screen.focus.camera_editor.profile_name_required");
+            return;
+        }
+        FocusClientConfig.setSelectedCameraProfileName(sanitizedName);
+
+        String existingName = FocusClientConfig.resolveCameraProfileName(sanitizedName);
+        if (!FocusClientConfig.saveCurrentSetupAsProfile(sanitizedName)) {
+            showStatus("screen.focus.camera_editor.profile_name_required");
+            return;
+        }
+
+        String resolvedName = FocusClientConfig.resolveCameraProfileName(sanitizedName);
+        profileNameInput.setValue(resolvedName.isEmpty() ? sanitizedName : resolvedName);
+        FocusClientConfig.saveConfig();
+        refreshProfileControls();
+
+        if (existingName.isEmpty()) {
+            showStatus("screen.focus.camera_editor.profile_saved", profileNameInput.getValue());
+        } else {
+            showStatus("screen.focus.camera_editor.profile_overwritten", profileNameInput.getValue());
+        }
+    }
+
+    private void loadSelectedProfile() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        String resolvedName = FocusClientConfig.resolveCameraProfileName(profileNameInput.getValue());
+        if (resolvedName.isEmpty()) {
+            showStatus("screen.focus.camera_editor.profile_not_found");
+            return;
+        }
+        FocusClientConfig.setSelectedCameraProfileName(resolvedName);
+
+        if (!FocusClientConfig.loadCameraProfile(resolvedName)) {
+            showStatus("screen.focus.camera_editor.profile_not_found");
+            return;
+        }
+
+        FocusClientConfig.saveConfig();
+        refreshSlidersFromConfig();
+        refreshShoulderButtons();
+        profileNameInput.setValue(resolvedName);
+        refreshProfileControls();
+        showStatus("screen.focus.camera_editor.profile_loaded", resolvedName);
+    }
+
+    private void deleteSelectedProfile() {
+        if (profileNameInput == null) {
+            return;
+        }
+
+        String resolvedName = FocusClientConfig.resolveCameraProfileName(profileNameInput.getValue());
+        if (resolvedName.isEmpty()) {
+            showStatus("screen.focus.camera_editor.profile_not_found");
+            return;
+        }
+        FocusClientConfig.setSelectedCameraProfileName(resolvedName);
+
+        List<String> profilesBeforeDelete = FocusClientConfig.cameraProfileNames();
+        int removedIndex = profilesBeforeDelete.indexOf(resolvedName);
+        if (!FocusClientConfig.deleteCameraProfile(resolvedName)) {
+            showStatus("screen.focus.camera_editor.profile_not_found");
+            return;
+        }
+
+        List<String> profilesAfterDelete = FocusClientConfig.cameraProfileNames();
+        if (profilesAfterDelete.isEmpty()) {
+            profileNameInput.setValue("");
+        } else {
+            profileNameInput.setValue(profilesAfterDelete.get(Math.min(removedIndex, profilesAfterDelete.size() - 1)));
+        }
+
+        FocusClientConfig.saveConfig();
+        refreshProfileControls();
+        showStatus("screen.focus.camera_editor.profile_deleted", resolvedName);
     }
 
     private void refreshSlidersFromConfig() {
@@ -353,7 +636,7 @@ public final class LockOnCameraEditorScreen extends Screen {
         private final DoubleConsumer setter;
 
         private Slider(int x, int y, int width, String labelKey, double min, double max, DoubleSupplier getter, DoubleConsumer setter) {
-            super(x, y, width, 16, Component.empty(), 0.0D);
+            super(x, y, width, ACTION_BUTTON_HEIGHT, Component.empty(), 0.0D);
             this.labelKey = labelKey;
             this.min = min;
             this.max = max;
