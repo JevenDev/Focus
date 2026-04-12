@@ -12,8 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import me.fzzyhmstrs.fzzy_config.api.ConfigApiJava;
@@ -26,6 +28,7 @@ import me.fzzyhmstrs.fzzy_config.util.EnumTranslatable;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedCondition;
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedEnum;
+import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedString;
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedDouble;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -109,12 +112,14 @@ public final class FocusClientConfig extends Config {
     public static final double MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW = 1.0D;
     public static final double CAMERA_SLIDER_INCREMENT = 0.1D;
     public static final double ROTATION_SLIDER_INCREMENT = 1.0D;
+    public static final int MAX_CAMERA_PROFILE_NAME_LENGTH = 40;
     private static final int CAMERA_VALUE_SCALE = 1;
     private static final Path CAMERA_PRESET_PATH = FMLPaths.CONFIGDIR.get().resolve(Focus.MOD_ID + "_lock_on_camera.json");
 
     private static FocusClientConfig INSTANCE;
     private static PerspectivePreset leftShoulderPreset = defaultLeftPreset();
     private static PerspectivePreset rightShoulderPreset = defaultLeftPreset().mirroredForOppositeShoulder();
+    private static final Map<String, CameraSetupPreset> CAMERA_SETUP_PROFILES = new LinkedHashMap<>();
 
     public enum Shoulder {
         LEFT("focus.shoulder.left"),
@@ -235,10 +240,35 @@ public final class FocusClientConfig extends Config {
                 DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED, MIN_DYNAMIC_CAMERA_SWAP_SPEED);
         public ValidatedDouble dynamicCameraSwapSmoothness = new ValidatedDouble(
                 DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
+        public CameraPresetToolsSection presetTools = new CameraPresetToolsSection();
+    }
+
+    public static class CameraPresetToolsSection extends ConfigSection {
         public ConfigAction openCameraPositionEditor = new ConfigAction.Builder()
                 .title(() -> Component.translatable("focus.lock_on_client.camera.openCameraPositionEditor"))
                 .desc(Component.translatable("focus.lock_on_client.camera.openCameraPositionEditor.desc"))
                 .build(LockOnCameraEditorScreen::openFromCurrentScreen);
+        public ValidatedString selectedCameraProfile = new ValidatedString("");
+        public ConfigAction cycleCameraProfile = new ConfigAction.Builder()
+                .title(() -> Component.translatable("focus.lock_on_client.camera.cycleCameraProfile"))
+                .desc(Component.translatable("focus.lock_on_client.camera.cycleCameraProfile.desc"))
+                .active(() -> !cameraProfileNames().isEmpty())
+                .build(FocusClientConfig::cycleSelectedCameraProfile);
+        public ConfigAction saveSelectedCameraProfile = new ConfigAction.Builder()
+                .title(() -> Component.translatable("focus.lock_on_client.camera.saveSelectedCameraProfile"))
+                .desc(Component.translatable("focus.lock_on_client.camera.saveSelectedCameraProfile.desc"))
+                .active(() -> !selectedCameraProfileName().isEmpty())
+                .build(FocusClientConfig::saveSelectedCameraProfileFromConfigScreen);
+        public ConfigAction loadSelectedCameraProfile = new ConfigAction.Builder()
+                .title(() -> Component.translatable("focus.lock_on_client.camera.loadSelectedCameraProfile"))
+                .desc(Component.translatable("focus.lock_on_client.camera.loadSelectedCameraProfile.desc"))
+                .active(() -> !resolveCameraProfileName(selectedCameraProfileName()).isEmpty())
+                .build(FocusClientConfig::loadSelectedCameraProfileFromConfigScreen);
+        public ConfigAction deleteSelectedCameraProfile = new ConfigAction.Builder()
+                .title(() -> Component.translatable("focus.lock_on_client.camera.deleteSelectedCameraProfile"))
+                .desc(Component.translatable("focus.lock_on_client.camera.deleteSelectedCameraProfile.desc"))
+                .active(() -> !resolveCameraProfileName(selectedCameraProfileName()).isEmpty())
+                .build(FocusClientConfig::deleteSelectedCameraProfileFromConfigScreen);
     }
 
     public static class TargetSwapSection extends ConfigSection {
@@ -303,6 +333,8 @@ public final class FocusClientConfig extends Config {
             }
             INSTANCE.targetFilters.targetFilterEntityIds.validateAndSet(
                     sanitizeTargetFilterEntityIds(INSTANCE.targetFilters.targetFilterEntityIds.get()));
+            INSTANCE.camera.presetTools.selectedCameraProfile.validateAndSet(
+                    sanitizeCameraProfileName(INSTANCE.camera.presetTools.selectedCameraProfile.get()));
         }
     }
 
@@ -438,6 +470,14 @@ public final class FocusClientConfig extends Config {
         return sanitizeTargetFilterEntityIds(config().targetFilters.targetFilterEntityIds.get());
     }
 
+    public static String selectedCameraProfileName() {
+        return sanitizeCameraProfileName(config().camera.presetTools.selectedCameraProfile.get());
+    }
+
+    public static void setSelectedCameraProfileName(String profileName) {
+        config().camera.presetTools.selectedCameraProfile.validateAndSet(sanitizeCameraProfileName(profileName));
+    }
+
     public static void setUseCustomSwappedShoulderValues(boolean useCustomSwappedShoulderValues, Shoulder sourceShoulder) {
         config().camera.useCustomSwappedShoulderValues.validateAndSet(useCustomSwappedShoulderValues);
         if (!useCustomSwappedShoulderValues) {
@@ -544,6 +584,11 @@ public final class FocusClientConfig extends Config {
 
     public static CameraSetupPreset currentCameraSetupPreset() {
         return new CameraSetupPreset(
+                autoSwitchToThirdPerson(),
+                allowFirstPersonWhileTargeting(),
+                allowFrontFacingThirdPersonWhileTargeting(),
+                showLockOnDebugText(),
+                lockOnIndicatorStyle(),
                 cameraMode(),
                 cameraFloatiness(),
                 cameraDrag(),
@@ -577,6 +622,11 @@ public final class FocusClientConfig extends Config {
     }
 
     public static void applyCameraSetupPreset(CameraSetupPreset setup) {
+        config().general.autoSwitchToThirdPerson.validateAndSet(setup.autoSwitchToThirdPerson());
+        config().general.allowFirstPersonWhileTargeting.validateAndSet(setup.allowFirstPersonWhileTargeting());
+        config().general.allowFrontFacingThirdPersonWhileTargeting.validateAndSet(setup.allowFrontFacingThirdPersonWhileTargeting());
+        config().general.showLockOnDebugText.validateAndSet(setup.showLockOnDebugText());
+        config().general.lockOnIndicatorStyle.validateAndSet(setup.lockOnIndicatorStyle());
         config().camera.cameraMode.validateAndSet(setup.cameraMode());
         config().camera.cameraFloatiness.validateAndSet(setup.cameraFloatiness());
         config().camera.cameraDrag.validateAndSet(setup.cameraDrag());
@@ -615,47 +665,77 @@ public final class FocusClientConfig extends Config {
         }
     }
 
+    public static List<String> cameraProfileNames() {
+        config();
+        return List.copyOf(CAMERA_SETUP_PROFILES.keySet());
+    }
+
+    public static String resolveCameraProfileName(String profileName) {
+        config();
+        String sanitized = sanitizeCameraProfileName(profileName);
+        if (sanitized.isEmpty()) {
+            return "";
+        }
+        String existing = findExistingProfileName(sanitized);
+        return existing == null ? "" : existing;
+    }
+
+    public static boolean saveCurrentSetupAsProfile(String profileName) {
+        config();
+        String sanitized = sanitizeCameraProfileName(profileName);
+        if (sanitized.isEmpty()) {
+            return false;
+        }
+
+        String existing = findExistingProfileName(sanitized);
+        if (existing != null && !existing.equals(sanitized)) {
+            CAMERA_SETUP_PROFILES.remove(existing);
+        }
+        CAMERA_SETUP_PROFILES.put(sanitized, currentCameraSetupPreset());
+        setSelectedCameraProfileName(sanitized);
+        saveCameraPresets();
+        return true;
+    }
+
+    public static boolean loadCameraProfile(String profileName) {
+        config();
+        String existing = findExistingProfileName(sanitizeCameraProfileName(profileName));
+        if (existing == null) {
+            return false;
+        }
+
+        CameraSetupPreset preset = CAMERA_SETUP_PROFILES.get(existing);
+        if (preset == null) {
+            return false;
+        }
+
+        applyCameraSetupPreset(preset);
+        setSelectedCameraProfileName(existing);
+        return true;
+    }
+
+    public static boolean deleteCameraProfile(String profileName) {
+        config();
+        String existing = findExistingProfileName(sanitizeCameraProfileName(profileName));
+        if (existing == null) {
+            return false;
+        }
+
+        CAMERA_SETUP_PROFILES.remove(existing);
+        if (existing.equalsIgnoreCase(selectedCameraProfileName())) {
+            String nextName = CAMERA_SETUP_PROFILES.keySet().stream().findFirst().orElse("");
+            setSelectedCameraProfileName(nextName);
+        }
+        saveCameraPresets();
+        return true;
+    }
+
     public static String serializePreset(PerspectivePreset preset) {
         return presetToJson(sanitizePreset(preset)).toString();
     }
 
     public static String serializeCameraSetup(CameraSetupPreset setup) {
-        JsonObject object = new JsonObject();
-        object.addProperty("cameraMode", setup.cameraMode().name());
-        object.addProperty("cameraFloatiness", setup.cameraFloatiness());
-        object.addProperty("cameraDrag", setup.cameraDrag());
-        object.addProperty("cameraSwapSpeed", setup.cameraSwapSpeed());
-        object.addProperty("cameraSwapSmoothness", setup.cameraSwapSmoothness());
-        object.addProperty("dynamicCameraSwapSpeed", setup.dynamicCameraSwapSpeed());
-        object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
-        object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
-        object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
-        object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
-        object.addProperty("targetSwapMinScreenSeparation", setup.targetSwapMinScreenSeparation());
-        object.addProperty("targetSwapInputDecay", setup.targetSwapInputDecay());
-        object.addProperty("targetSwapCooldownTicks", setup.targetSwapCooldownTicks());
-        object.addProperty("targetSwapSmoothTicks", setup.targetSwapSmoothTicks());
-        object.addProperty("targetSwapLookYawResponsiveness", setup.targetSwapLookYawResponsiveness());
-        object.addProperty("targetSwapLookPitchResponsiveness", setup.targetSwapLookPitchResponsiveness());
-        object.addProperty("targetSwapLookMaxYawStepPerTick", setup.targetSwapLookMaxYawStepPerTick());
-        object.addProperty("targetSwapLookMaxPitchStepPerTick", setup.targetSwapLookMaxPitchStepPerTick());
-        object.addProperty("targetSwapTargetPointResponsiveness", setup.targetSwapTargetPointResponsiveness());
-        object.addProperty("targetSwapPlayerLookFollow", setup.targetSwapPlayerLookFollow());
-        object.addProperty("enableTargetFilters", setup.enableTargetFilters());
-        object.addProperty("targetFilterMode", setup.targetFilterMode().name());
-        object.addProperty("filterPlayers", setup.filterPlayers());
-        object.addProperty("filterPassiveMobs", setup.filterPassiveMobs());
-        object.addProperty("filterNeutralMobs", setup.filterNeutralMobs());
-        object.addProperty("filterHostileMobs", setup.filterHostileMobs());
-        JsonArray targetFilterEntityIds = new JsonArray();
-        for (String id : setup.targetFilterEntityIds()) {
-            targetFilterEntityIds.add(id);
-        }
-        object.add("targetFilterEntityIds", targetFilterEntityIds);
-        object.addProperty("useCustomSwappedShoulderValues", setup.useCustomSwappedShoulderValues());
-        object.add("leftShoulder", presetToJson(setup.leftShoulder()));
-        object.add("rightShoulder", presetToJson(setup.rightShoulder()));
-        return object.toString();
+        return cameraSetupToJson(setup).toString();
     }
 
     public static PerspectivePreset deserializePreset(String serialized) {
@@ -685,79 +765,58 @@ public final class FocusClientConfig extends Config {
             throw new IllegalArgumentException("Camera setup must be a JSON object.");
         }
 
-        JsonObject object = element.getAsJsonObject();
-        JsonElement leftElement = object.get("leftShoulder");
-        JsonElement rightElement = object.get("rightShoulder");
-        if (leftElement == null || !leftElement.isJsonObject() || rightElement == null || !rightElement.isJsonObject()) {
-            throw new IllegalArgumentException("Camera setup must contain leftShoulder and rightShoulder objects.");
-        }
-
-        PerspectivePreset left = readPreset(leftElement.getAsJsonObject());
-        PerspectivePreset right = readPreset(rightElement.getAsJsonObject());
-        CameraMode cameraMode = readRequiredCameraMode(object, "cameraMode");
-        double cameraFloatiness = readRequiredDouble(object, "cameraFloatiness");
-        double cameraDrag = readRequiredDouble(object, "cameraDrag");
-        double cameraSwapSpeed = readRequiredDouble(object, "cameraSwapSpeed");
-        double cameraSwapSmoothness = readRequiredDouble(object, "cameraSwapSmoothness");
-        double dynamicCameraSwapSpeed = readRequiredDouble(object, "dynamicCameraSwapSpeed");
-        double dynamicCameraSwapSmoothness = readRequiredDouble(object, "dynamicCameraSwapSmoothness");
-        double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
-        double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
-        double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
-        double targetSwapMinScreenSeparation = readRequiredDouble(object, "targetSwapMinScreenSeparation");
-        double targetSwapInputDecay = readRequiredDouble(object, "targetSwapInputDecay");
-        double targetSwapCooldownTicks = readRequiredDouble(object, "targetSwapCooldownTicks");
-        double targetSwapSmoothTicks = readRequiredDouble(object, "targetSwapSmoothTicks");
-        double targetSwapLookYawResponsiveness = readRequiredDouble(object, "targetSwapLookYawResponsiveness");
-        double targetSwapLookPitchResponsiveness = readRequiredDouble(object, "targetSwapLookPitchResponsiveness");
-        double targetSwapLookMaxYawStepPerTick = readRequiredDouble(object, "targetSwapLookMaxYawStepPerTick");
-        double targetSwapLookMaxPitchStepPerTick = readRequiredDouble(object, "targetSwapLookMaxPitchStepPerTick");
-        double targetSwapTargetPointResponsiveness = readRequiredDouble(object, "targetSwapTargetPointResponsiveness");
-        double targetSwapPlayerLookFollow = readRequiredDouble(object, "targetSwapPlayerLookFollow");
-        boolean enableTargetFilters = readOptionalBoolean(object, "enableTargetFilters", DEFAULT_TARGET_FILTERS_ENABLED);
-        TargetFilterMode targetFilterMode = readOptionalTargetFilterMode(object, "targetFilterMode", TargetFilterMode.EXCLUDE);
-        boolean filterPlayers = readOptionalBoolean(object, "filterPlayers", DEFAULT_FILTER_PLAYERS);
-        boolean filterPassiveMobs = readOptionalBoolean(object, "filterPassiveMobs", DEFAULT_FILTER_PASSIVE_MOBS);
-        boolean filterNeutralMobs = readOptionalBoolean(object, "filterNeutralMobs", DEFAULT_FILTER_NEUTRAL_MOBS);
-        boolean filterHostileMobs = readOptionalBoolean(object, "filterHostileMobs", DEFAULT_FILTER_HOSTILE_MOBS);
-        List<String> targetFilterEntityIds = readOptionalStringList(object, "targetFilterEntityIds", DEFAULT_TARGET_FILTER_ENTITY_IDS);
-        boolean useCustom = readRequiredBoolean(object, "useCustomSwappedShoulderValues");
-        return new CameraSetupPreset(
-                cameraMode,
-                cameraFloatiness,
-                cameraDrag,
-                cameraSwapSpeed,
-                cameraSwapSmoothness,
-                dynamicCameraSwapSpeed,
-                dynamicCameraSwapSmoothness,
-                targetSwapMouseDeadzone,
-                targetSwapMouseActivation,
-                targetSwapDirectionThreshold,
-                targetSwapMinScreenSeparation,
-                targetSwapInputDecay,
-                targetSwapCooldownTicks,
-                targetSwapSmoothTicks,
-                targetSwapLookYawResponsiveness,
-                targetSwapLookPitchResponsiveness,
-                targetSwapLookMaxYawStepPerTick,
-                targetSwapLookMaxPitchStepPerTick,
-                targetSwapTargetPointResponsiveness,
-                targetSwapPlayerLookFollow,
-                enableTargetFilters,
-                targetFilterMode,
-                filterPlayers,
-                filterPassiveMobs,
-                filterNeutralMobs,
-                filterHostileMobs,
-                targetFilterEntityIds,
-                left,
-                right,
-                useCustom);
+        return readCameraSetup(element.getAsJsonObject());
     }
 
     public static void saveConfig() {
         config().save();
         saveCameraPresets();
+    }
+
+    private static void cycleSelectedCameraProfile() {
+        config();
+        List<String> profiles = cameraProfileNames();
+        if (profiles.isEmpty()) {
+            setSelectedCameraProfileName("");
+            saveConfig();
+            return;
+        }
+
+        String current = resolveCameraProfileName(selectedCameraProfileName());
+        int currentIndex = profiles.indexOf(current);
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % profiles.size();
+        setSelectedCameraProfileName(profiles.get(nextIndex));
+        saveConfig();
+    }
+
+    private static void saveSelectedCameraProfileFromConfigScreen() {
+        if (saveCurrentSetupAsProfile(selectedCameraProfileName())) {
+            saveConfig();
+        }
+    }
+
+    private static void loadSelectedCameraProfileFromConfigScreen() {
+        if (loadCameraProfile(selectedCameraProfileName())) {
+            saveConfig();
+        }
+    }
+
+    private static void deleteSelectedCameraProfileFromConfigScreen() {
+        if (deleteCameraProfile(selectedCameraProfileName())) {
+            saveConfig();
+        }
+    }
+
+    public static String sanitizeCameraProfileName(String profileName) {
+        if (profileName == null) {
+            return "";
+        }
+
+        String sanitized = profileName.trim().replaceAll("\\s+", " ");
+        if (sanitized.length() > MAX_CAMERA_PROFILE_NAME_LENGTH) {
+            sanitized = sanitized.substring(0, MAX_CAMERA_PROFILE_NAME_LENGTH);
+        }
+        return sanitized;
     }
 
     private static FocusClientConfig config() {
@@ -791,6 +850,19 @@ public final class FocusClientConfig extends Config {
             }
         }
         return List.copyOf(sanitizedIds);
+    }
+
+    private static String findExistingProfileName(String requestedName) {
+        if (requestedName == null || requestedName.isEmpty()) {
+            return null;
+        }
+
+        for (String existingName : CAMERA_SETUP_PROFILES.keySet()) {
+            if (existingName.equalsIgnoreCase(requestedName)) {
+                return existingName;
+            }
+        }
+        return null;
     }
 
     private static void syncMirroredShoulderIfNeeded(Shoulder sourceShoulder) {
@@ -873,6 +945,7 @@ public final class FocusClientConfig extends Config {
     }
 
     private static void loadCameraPresets() {
+        CAMERA_SETUP_PROFILES.clear();
         if (!Files.isRegularFile(CAMERA_PRESET_PATH)) {
             leftShoulderPreset = defaultLeftPreset();
             rightShoulderPreset = leftShoulderPreset.mirroredForOppositeShoulder();
@@ -895,10 +968,60 @@ public final class FocusClientConfig extends Config {
 
             leftShoulderPreset = readPreset(leftElement.getAsJsonObject());
             rightShoulderPreset = readPreset(rightElement.getAsJsonObject());
+
+            JsonElement profilesElement = object.get("profiles");
+            if (profilesElement != null) {
+                if (!profilesElement.isJsonArray()) {
+                    throw new IllegalArgumentException("Camera preset file profiles field must be an array.");
+                }
+
+                for (JsonElement profileElement : profilesElement.getAsJsonArray()) {
+                    if (!profileElement.isJsonObject()) {
+                        Focus.LOGGER.warn("Skipping invalid camera profile entry; expected JSON object.");
+                        continue;
+                    }
+
+                    JsonObject profileObject = profileElement.getAsJsonObject();
+                    JsonElement nameElement = profileObject.get("name");
+                    if (nameElement == null || !nameElement.isJsonPrimitive() || !nameElement.getAsJsonPrimitive().isString()) {
+                        Focus.LOGGER.warn("Skipping camera profile entry without a valid name.");
+                        continue;
+                    }
+
+                    String profileName = sanitizeCameraProfileName(nameElement.getAsString());
+                    if (profileName.isEmpty()) {
+                        Focus.LOGGER.warn("Skipping camera profile entry with empty name.");
+                        continue;
+                    }
+
+                    JsonElement setupElement = profileObject.get("setup");
+                    JsonObject setupObject;
+                    if (setupElement != null) {
+                        if (!setupElement.isJsonObject()) {
+                            Focus.LOGGER.warn("Skipping camera profile '{}' with non-object setup.", profileName);
+                            continue;
+                        }
+                        setupObject = setupElement.getAsJsonObject();
+                    } else {
+                        setupObject = profileObject;
+                    }
+
+                    try {
+                        String existing = findExistingProfileName(profileName);
+                        if (existing != null && !existing.equals(profileName)) {
+                            CAMERA_SETUP_PROFILES.remove(existing);
+                        }
+                        CAMERA_SETUP_PROFILES.put(profileName, readCameraSetup(setupObject));
+                    } catch (IllegalArgumentException e) {
+                        Focus.LOGGER.warn("Skipping invalid camera profile '{}'", profileName, e);
+                    }
+                }
+            }
         } catch (Exception e) {
             Focus.LOGGER.warn("Failed to load camera preset file {}, using defaults", CAMERA_PRESET_PATH, e);
             leftShoulderPreset = defaultLeftPreset();
             rightShoulderPreset = leftShoulderPreset.mirroredForOppositeShoulder();
+            CAMERA_SETUP_PROFILES.clear();
         }
     }
 
@@ -906,13 +1029,145 @@ public final class FocusClientConfig extends Config {
         try {
             Files.createDirectories(CAMERA_PRESET_PATH.getParent());
             JsonObject object = new JsonObject();
-            object.addProperty("format", "focus_camera_presets_v1");
+            object.addProperty("format", "focus_camera_presets_v3");
             object.add("leftShoulder", presetToJson(leftShoulderPreset));
             object.add("rightShoulder", presetToJson(rightShoulderPreset));
+            JsonArray profiles = new JsonArray();
+            for (Map.Entry<String, CameraSetupPreset> entry : CAMERA_SETUP_PROFILES.entrySet()) {
+                JsonObject profileObject = new JsonObject();
+                profileObject.addProperty("name", entry.getKey());
+                profileObject.add("setup", cameraSetupToJson(entry.getValue()));
+                profiles.add(profileObject);
+            }
+            object.add("profiles", profiles);
             Files.writeString(CAMERA_PRESET_PATH, object.toString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             Focus.LOGGER.warn("Failed to save camera preset file {}", CAMERA_PRESET_PATH, e);
         }
+    }
+
+    private static JsonObject cameraSetupToJson(CameraSetupPreset setup) {
+        JsonObject object = new JsonObject();
+        object.addProperty("autoSwitchToThirdPerson", setup.autoSwitchToThirdPerson());
+        object.addProperty("allowFirstPersonWhileTargeting", setup.allowFirstPersonWhileTargeting());
+        object.addProperty("allowFrontFacingThirdPersonWhileTargeting", setup.allowFrontFacingThirdPersonWhileTargeting());
+        object.addProperty("showLockOnDebugText", setup.showLockOnDebugText());
+        object.addProperty("lockOnIndicatorStyle", setup.lockOnIndicatorStyle().name());
+        object.addProperty("cameraMode", setup.cameraMode().name());
+        object.addProperty("cameraFloatiness", setup.cameraFloatiness());
+        object.addProperty("cameraDrag", setup.cameraDrag());
+        object.addProperty("cameraSwapSpeed", setup.cameraSwapSpeed());
+        object.addProperty("cameraSwapSmoothness", setup.cameraSwapSmoothness());
+        object.addProperty("dynamicCameraSwapSpeed", setup.dynamicCameraSwapSpeed());
+        object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
+        object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
+        object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
+        object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
+        object.addProperty("targetSwapMinScreenSeparation", setup.targetSwapMinScreenSeparation());
+        object.addProperty("targetSwapInputDecay", setup.targetSwapInputDecay());
+        object.addProperty("targetSwapCooldownTicks", setup.targetSwapCooldownTicks());
+        object.addProperty("targetSwapSmoothTicks", setup.targetSwapSmoothTicks());
+        object.addProperty("targetSwapLookYawResponsiveness", setup.targetSwapLookYawResponsiveness());
+        object.addProperty("targetSwapLookPitchResponsiveness", setup.targetSwapLookPitchResponsiveness());
+        object.addProperty("targetSwapLookMaxYawStepPerTick", setup.targetSwapLookMaxYawStepPerTick());
+        object.addProperty("targetSwapLookMaxPitchStepPerTick", setup.targetSwapLookMaxPitchStepPerTick());
+        object.addProperty("targetSwapTargetPointResponsiveness", setup.targetSwapTargetPointResponsiveness());
+        object.addProperty("targetSwapPlayerLookFollow", setup.targetSwapPlayerLookFollow());
+        object.addProperty("enableTargetFilters", setup.enableTargetFilters());
+        object.addProperty("targetFilterMode", setup.targetFilterMode().name());
+        object.addProperty("filterPlayers", setup.filterPlayers());
+        object.addProperty("filterPassiveMobs", setup.filterPassiveMobs());
+        object.addProperty("filterNeutralMobs", setup.filterNeutralMobs());
+        object.addProperty("filterHostileMobs", setup.filterHostileMobs());
+        JsonArray targetFilterEntityIds = new JsonArray();
+        for (String id : setup.targetFilterEntityIds()) {
+            targetFilterEntityIds.add(id);
+        }
+        object.add("targetFilterEntityIds", targetFilterEntityIds);
+        object.addProperty("useCustomSwappedShoulderValues", setup.useCustomSwappedShoulderValues());
+        object.add("leftShoulder", presetToJson(setup.leftShoulder()));
+        object.add("rightShoulder", presetToJson(setup.rightShoulder()));
+        return object;
+    }
+
+    private static CameraSetupPreset readCameraSetup(JsonObject object) {
+        JsonElement leftElement = object.get("leftShoulder");
+        JsonElement rightElement = object.get("rightShoulder");
+        if (leftElement == null || !leftElement.isJsonObject() || rightElement == null || !rightElement.isJsonObject()) {
+            throw new IllegalArgumentException("Camera setup must contain leftShoulder and rightShoulder objects.");
+        }
+
+        PerspectivePreset left = readPreset(leftElement.getAsJsonObject());
+        PerspectivePreset right = readPreset(rightElement.getAsJsonObject());
+        boolean autoSwitchToThirdPerson = readRequiredBoolean(object, "autoSwitchToThirdPerson");
+        boolean allowFirstPersonWhileTargeting = readRequiredBoolean(object, "allowFirstPersonWhileTargeting");
+        boolean allowFrontFacingThirdPersonWhileTargeting = readRequiredBoolean(object, "allowFrontFacingThirdPersonWhileTargeting");
+        boolean showLockOnDebugText = readRequiredBoolean(object, "showLockOnDebugText");
+        LockOnIndicatorStyle lockOnIndicatorStyle = readRequiredLockOnIndicatorStyle(object, "lockOnIndicatorStyle");
+        CameraMode cameraMode = readRequiredCameraMode(object, "cameraMode");
+        double cameraFloatiness = readRequiredDouble(object, "cameraFloatiness");
+        double cameraDrag = readRequiredDouble(object, "cameraDrag");
+        double cameraSwapSpeed = readRequiredDouble(object, "cameraSwapSpeed");
+        double cameraSwapSmoothness = readRequiredDouble(object, "cameraSwapSmoothness");
+        double dynamicCameraSwapSpeed = readRequiredDouble(object, "dynamicCameraSwapSpeed");
+        double dynamicCameraSwapSmoothness = readRequiredDouble(object, "dynamicCameraSwapSmoothness");
+        double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
+        double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
+        double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
+        double targetSwapMinScreenSeparation = readRequiredDouble(object, "targetSwapMinScreenSeparation");
+        double targetSwapInputDecay = readRequiredDouble(object, "targetSwapInputDecay");
+        double targetSwapCooldownTicks = readRequiredDouble(object, "targetSwapCooldownTicks");
+        double targetSwapSmoothTicks = readRequiredDouble(object, "targetSwapSmoothTicks");
+        double targetSwapLookYawResponsiveness = readRequiredDouble(object, "targetSwapLookYawResponsiveness");
+        double targetSwapLookPitchResponsiveness = readRequiredDouble(object, "targetSwapLookPitchResponsiveness");
+        double targetSwapLookMaxYawStepPerTick = readRequiredDouble(object, "targetSwapLookMaxYawStepPerTick");
+        double targetSwapLookMaxPitchStepPerTick = readRequiredDouble(object, "targetSwapLookMaxPitchStepPerTick");
+        double targetSwapTargetPointResponsiveness = readRequiredDouble(object, "targetSwapTargetPointResponsiveness");
+        double targetSwapPlayerLookFollow = readRequiredDouble(object, "targetSwapPlayerLookFollow");
+        boolean enableTargetFilters = readRequiredBoolean(object, "enableTargetFilters");
+        TargetFilterMode targetFilterMode = readRequiredTargetFilterMode(object, "targetFilterMode");
+        boolean filterPlayers = readRequiredBoolean(object, "filterPlayers");
+        boolean filterPassiveMobs = readRequiredBoolean(object, "filterPassiveMobs");
+        boolean filterNeutralMobs = readRequiredBoolean(object, "filterNeutralMobs");
+        boolean filterHostileMobs = readRequiredBoolean(object, "filterHostileMobs");
+        List<String> targetFilterEntityIds = readRequiredStringList(object, "targetFilterEntityIds");
+        boolean useCustom = readRequiredBoolean(object, "useCustomSwappedShoulderValues");
+        return new CameraSetupPreset(
+                autoSwitchToThirdPerson,
+                allowFirstPersonWhileTargeting,
+                allowFrontFacingThirdPersonWhileTargeting,
+                showLockOnDebugText,
+                lockOnIndicatorStyle,
+                cameraMode,
+                cameraFloatiness,
+                cameraDrag,
+                cameraSwapSpeed,
+                cameraSwapSmoothness,
+                dynamicCameraSwapSpeed,
+                dynamicCameraSwapSmoothness,
+                targetSwapMouseDeadzone,
+                targetSwapMouseActivation,
+                targetSwapDirectionThreshold,
+                targetSwapMinScreenSeparation,
+                targetSwapInputDecay,
+                targetSwapCooldownTicks,
+                targetSwapSmoothTicks,
+                targetSwapLookYawResponsiveness,
+                targetSwapLookPitchResponsiveness,
+                targetSwapLookMaxYawStepPerTick,
+                targetSwapLookMaxPitchStepPerTick,
+                targetSwapTargetPointResponsiveness,
+                targetSwapPlayerLookFollow,
+                enableTargetFilters,
+                targetFilterMode,
+                filterPlayers,
+                filterPassiveMobs,
+                filterNeutralMobs,
+                filterHostileMobs,
+                targetFilterEntityIds,
+                left,
+                right,
+                useCustom);
     }
 
     private static JsonObject presetToJson(PerspectivePreset preset) {
@@ -946,6 +1201,22 @@ public final class FocusClientConfig extends Config {
             throw new IllegalArgumentException("Preset is missing boolean field: " + key);
         }
         return element.getAsBoolean();
+    }
+
+    private static List<String> readRequiredStringList(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || !element.isJsonArray()) {
+            throw new IllegalArgumentException("Preset is missing array field: " + key);
+        }
+
+        List<String> values = new ArrayList<>();
+        for (JsonElement listElement : element.getAsJsonArray()) {
+            if (!listElement.isJsonPrimitive() || !listElement.getAsJsonPrimitive().isString()) {
+                throw new IllegalArgumentException("Preset has non-string list entry: " + key);
+            }
+            values.add(listElement.getAsString());
+        }
+        return sanitizeTargetFilterEntityIds(values);
     }
 
     private static double readOptionalDouble(JsonObject object, String key, double fallback) {
@@ -1030,6 +1301,30 @@ public final class FocusClientConfig extends Config {
         }
     }
 
+    private static LockOnIndicatorStyle readRequiredLockOnIndicatorStyle(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset is missing string enum field: " + key);
+        }
+        try {
+            return LockOnIndicatorStyle.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid lock-on indicator style: " + element.getAsString(), e);
+        }
+    }
+
+    private static TargetFilterMode readRequiredTargetFilterMode(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset is missing string enum field: " + key);
+        }
+        try {
+            return TargetFilterMode.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid target filter mode: " + element.getAsString(), e);
+        }
+    }
+
     private static double roundForCamera(double value) {
         return BigDecimal.valueOf(value).setScale(CAMERA_VALUE_SCALE, RoundingMode.HALF_UP).doubleValue();
     }
@@ -1041,6 +1336,11 @@ public final class FocusClientConfig extends Config {
     }
 
     public record CameraSetupPreset(
+            boolean autoSwitchToThirdPerson,
+            boolean allowFirstPersonWhileTargeting,
+            boolean allowFrontFacingThirdPersonWhileTargeting,
+            boolean showLockOnDebugText,
+            LockOnIndicatorStyle lockOnIndicatorStyle,
             CameraMode cameraMode,
             double cameraFloatiness,
             double cameraDrag,
