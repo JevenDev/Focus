@@ -35,6 +35,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int VALUE_PRECISION = 1;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
     private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
+    private static final double KEY_ADJUST_STEP_MULTIPLIER = 5.0D;
 
     private final Screen parent;
     private final CameraType previousCameraType;
@@ -249,6 +250,8 @@ public final class LockOnCameraEditorScreen extends Screen {
             guiGraphics.drawString(this.font, this.title, controlsX, firstLeftRowY - HEADER_TITLE_GAP_TO_FIRST_ROW, 0xFFFFFF, true);
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint"),
                     controlsX, firstLeftRowY - HEADER_HINT_GAP_TO_FIRST_ROW, 0xD0D0D0, true);
+            guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.adjust_hint"),
+                    controlsX, firstLeftRowY - (HEADER_HINT_GAP_TO_FIRST_ROW - 10), 0xB0B0B0, true);
             if (presetsPanelExpanded) {
                 guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.presets_panel_title"),
                         presetsPanelX, presetsPanelTop + 2, 0xFFFFFF, true);
@@ -276,6 +279,9 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (profileNameInput != null && profileNameInput.isFocused()) {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
+        if (handleEditorCameraAdjustmentKey(keyCode, modifiers)) {
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_H) {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
@@ -286,6 +292,48 @@ public final class LockOnCameraEditorScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean handleEditorCameraAdjustmentKey(int keyCode, int modifiers) {
+        double step = FocusClientConfig.CAMERA_SLIDER_INCREMENT;
+        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+            step *= KEY_ADJUST_STEP_MULTIPLIER;
+        }
+
+        boolean changed = switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT -> {
+                FocusClientConfig.adjustCameraLeft(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_RIGHT -> {
+                FocusClientConfig.adjustCameraRight(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_UP -> {
+                FocusClientConfig.adjustCameraIn(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_DOWN -> {
+                FocusClientConfig.adjustCameraOut(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_PAGE_UP -> {
+                FocusClientConfig.adjustCameraUp(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN -> {
+                FocusClientConfig.adjustCameraDown(editedShoulder, step);
+                yield true;
+            }
+            default -> false;
+        };
+        if (!changed) {
+            return false;
+        }
+
+        FocusClientConfig.saveConfig();
+        refreshSlidersFromConfig();
+        return true;
     }
 
     private void applyControlVisibility() {
