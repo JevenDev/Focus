@@ -29,8 +29,8 @@ sourceSets.main.resources {
 repositories {
     mavenCentral()
     maven {
-        name = "FzzyMaven"
-        url = "https://maven.fzzyhmstrs.me/"
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
     }
     maven {
         name = "KotlinForForge"
@@ -126,7 +126,7 @@ configurations {
 }
 
 dependencies {
-    implementation "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_version}"
+    implementation "maven.modrinth:midnightlib:${project.midnightlib_version}"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
