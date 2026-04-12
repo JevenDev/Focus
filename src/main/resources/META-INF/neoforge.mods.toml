@@ -28,11 +28,8 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.focus]]
-modId="fzzy_config"
+modId="midnightlib"
 type="required"
-versionRange="[0.7.0,)"
+versionRange="[1.9.2,)"
 ordering="NONE"
 side="BOTH"
-
-[modproperties.fzzy_config]
-fzzy_config="focus"
