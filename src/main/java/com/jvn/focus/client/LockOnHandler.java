@@ -111,6 +111,7 @@ public final class LockOnHandler {
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
             swapShoulder(player, true);
         }
+        handleCameraAdjustmentInput(player);
 
         if (lockedTarget != null && !lockedTarget.isAlive()) {
             LivingEntity replacementTarget = Targeting.findClosestTarget(player, lockedTarget);
@@ -735,6 +736,52 @@ public final class LockOnHandler {
         pendingMouseDeltaY = 0.0D;
         targetSwapCooldownTicks = 0;
         targetSwapReadyForNewFlick = true;
+    }
+
+    private static void handleCameraAdjustmentInput(LocalPlayer player) {
+        if (lockedTarget == null && !cameraEditorPreviewActive) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof LockOnCameraEditorScreen) {
+            return;
+        }
+        if (minecraft.screen != null) {
+            return;
+        }
+
+        FocusClientConfig.Shoulder shoulder = activeShoulder;
+        boolean changed = false;
+        while (FocusKeyMappings.CAMERA_LEFT.consumeClick()) {
+            FocusClientConfig.adjustCameraLeft(shoulder);
+            changed = true;
+        }
+        while (FocusKeyMappings.CAMERA_RIGHT.consumeClick()) {
+            FocusClientConfig.adjustCameraRight(shoulder);
+            changed = true;
+        }
+        while (FocusKeyMappings.CAMERA_IN.consumeClick()) {
+            FocusClientConfig.adjustCameraIn(shoulder);
+            changed = true;
+        }
+        while (FocusKeyMappings.CAMERA_OUT.consumeClick()) {
+            FocusClientConfig.adjustCameraOut(shoulder);
+            changed = true;
+        }
+        while (FocusKeyMappings.CAMERA_UP.consumeClick()) {
+            FocusClientConfig.adjustCameraUp(shoulder);
+            changed = true;
+        }
+        while (FocusKeyMappings.CAMERA_DOWN.consumeClick()) {
+            FocusClientConfig.adjustCameraDown(shoulder);
+            changed = true;
+        }
+        if (changed) {
+            FocusClientConfig.saveConfig();
+            if (player != null && cameraEditorPreviewActive) {
+                player.displayClientMessage(Component.translatable("screen.focus.camera_editor.adjusted"), true);
+            }
+        }
     }
 
     private static double currentDetachedCameraDistance() {

@@ -142,13 +142,13 @@ public final class FocusClientConfig extends MidnightConfig {
     public static double cameraDrag = DEFAULT_CAMERA_DRAG;
     @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraSwapSpeed", min = MIN_CAMERA_SWAP_SPEED, max = MAX_CAMERA_SWAP_SPEED, isSlider = true, precision = 100)
     public static double cameraSwapSpeed = DEFAULT_CAMERA_SWAP_SPEED;
-    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraSwapSmoothness", min = MIN_CAMERA_SWAP_SMOOTHNESS, max = MAX_CAMERA_SWAP_SMOOTHNESS, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double cameraSwapSmoothness = DEFAULT_CAMERA_SWAP_SMOOTHNESS;
     @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicCameraSwapSpeed", min = MIN_DYNAMIC_CAMERA_SWAP_SPEED, max = MAX_DYNAMIC_CAMERA_SWAP_SPEED, isSlider = true, precision = 100)
     public static double dynamicCameraSwapSpeed = DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED;
-    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicCameraSwapSmoothness", min = MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, max = MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double dynamicCameraSwapSmoothness = DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS;
-    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.selectedCameraProfile", width = MAX_CAMERA_PROFILE_NAME_LENGTH)
+    // Profile selection is handled in the dedicated camera editor.
     public static String selectedCameraProfile = "";
 
     @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapMouseDeadzone", min = MIN_TARGET_SWAP_MOUSE_DEADZONE, max = MAX_TARGET_SWAP_MOUSE_DEADZONE, isSlider = true, precision = 100)
@@ -159,23 +159,23 @@ public final class FocusClientConfig extends MidnightConfig {
     public static double targetSwapDirectionThreshold = DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD;
     @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapMinScreenSeparation", min = MIN_TARGET_SWAP_MIN_SCREEN_SEPARATION, max = MAX_TARGET_SWAP_MIN_SCREEN_SEPARATION, isSlider = true, precision = 100)
     public static double targetSwapMinScreenSeparation = DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapInputDecay", min = MIN_TARGET_SWAP_INPUT_DECAY, max = MAX_TARGET_SWAP_INPUT_DECAY, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapInputDecay = DEFAULT_TARGET_SWAP_INPUT_DECAY;
     @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapCooldownTicks", min = MIN_TARGET_SWAP_COOLDOWN_TICKS, max = MAX_TARGET_SWAP_COOLDOWN_TICKS, isSlider = true, precision = 10)
     public static double targetSwapCooldownTicks = DEFAULT_TARGET_SWAP_COOLDOWN_TICKS;
     @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapSmoothTicks", min = MIN_TARGET_SWAP_SMOOTH_TICKS, max = MAX_TARGET_SWAP_SMOOTH_TICKS, isSlider = true, precision = 10)
     public static double targetSwapSmoothTicks = DEFAULT_TARGET_SWAP_SMOOTH_TICKS;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapLookYawResponsiveness", min = MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW, max = MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapLookYawResponsiveness = DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapLookPitchResponsiveness", min = MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH, max = MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapLookPitchResponsiveness = DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapLookMaxYawStepPerTick", min = MIN_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK, max = MAX_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapLookMaxYawStepPerTick = DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapLookMaxPitchStepPerTick", min = MIN_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK, max = MAX_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapLookMaxPitchStepPerTick = DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapTargetPointResponsiveness", min = MIN_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS, max = MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapTargetPointResponsiveness = DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS;
-    @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapPlayerLookFollow", min = MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW, max = MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW, isSlider = true, precision = 100)
+    // Kept for runtime/preset compatibility; intentionally hidden from main config UI.
     public static double targetSwapPlayerLookFollow = DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW;
 
     @Entry(category = TARGET_FILTER_CATEGORY, name = "focus.lock_on_client.enableTargetFilters")
@@ -585,30 +585,35 @@ public final class FocusClientConfig extends MidnightConfig {
 
     @Override
     public void onTabInit(String tabName, MidnightConfigListWidget list, MidnightConfigScreen screen) {
-        if (!CAMERA_CATEGORY.equals(tabName)) {
+        if (CAMERA_CATEGORY.equals(tabName)) {
+            addSectionAction(list, "focus.lock_on_client.section.camera_setup", "Edit", true, LockOnCameraEditorScreen::openFromCurrentScreen);
+            addSectionAction(list, "focus.lock_on_client.section.camera_reset", "Reset", true, () -> {
+                resetCameraOffsetsToDefaults(Shoulder.LEFT);
+                saveConfig();
+                screen.updateList();
+            });
             return;
         }
 
-        addCameraAction(list, "focus.lock_on_client.openCameraPositionEditor", "Open", true, LockOnCameraEditorScreen::openFromCurrentScreen);
-        addCameraAction(list, "focus.lock_on_client.cycleCameraProfile", "Cycle", !cameraProfileNames().isEmpty(), () -> {
-            cycleSelectedCameraProfile();
-            screen.updateList();
-        });
-        addCameraAction(list, "focus.lock_on_client.saveSelectedCameraProfile", "Save", !selectedCameraProfileName().isEmpty(), () -> {
-            saveSelectedCameraProfileFromConfigScreen();
-            screen.updateList();
-        });
-        addCameraAction(list, "focus.lock_on_client.loadSelectedCameraProfile", "Load", !resolveCameraProfileName(selectedCameraProfileName()).isEmpty(), () -> {
-            loadSelectedCameraProfileFromConfigScreen();
-            screen.updateList();
-        });
-        addCameraAction(list, "focus.lock_on_client.deleteSelectedCameraProfile", "Delete", !resolveCameraProfileName(selectedCameraProfileName()).isEmpty(), () -> {
-            deleteSelectedCameraProfileFromConfigScreen();
-            screen.updateList();
-        });
+        if (TARGET_SWAP_CATEGORY.equals(tabName)) {
+            addSectionAction(list, "focus.lock_on_client.section.target_swap_reset", "Reset", true, () -> {
+                resetTargetSwapToDefaults();
+                saveConfig();
+                screen.updateList();
+            });
+            return;
+        }
+
+        if (TARGET_FILTER_CATEGORY.equals(tabName)) {
+            addSectionAction(list, "focus.lock_on_client.section.target_filters_clear_ids", "Clear", !targetFilterEntityIds().isEmpty(), () -> {
+                clearTargetFilterEntityIdsFromConfigScreen();
+                saveConfig();
+                screen.updateList();
+            });
+        }
     }
 
-    private void addCameraAction(MidnightConfigListWidget list, String labelKey, String buttonText, boolean active, Runnable action) {
+    private void addSectionAction(MidnightConfigListWidget list, String labelKey, String buttonText, boolean active, Runnable action) {
         int buttonX = Minecraft.getInstance().getWindow().getGuiScaledWidth() - 185;
         Button button = Button.builder(Component.literal(buttonText), pressed -> action.run())
                 .bounds(buttonX, 0, 150, 20)
@@ -616,6 +621,26 @@ public final class FocusClientConfig extends MidnightConfig {
         button.active = active;
         // MidnightLib 1.9.2 requires non-null EntryInfo in ButtonEntry#render.
         list.addButton(List.of(button), Component.translatable(labelKey), new EntryInfo(null, Focus.MOD_ID));
+    }
+
+    private static void resetTargetSwapToDefaults() {
+        config().targetSwap.targetSwapMouseDeadzone.validateAndSet(DEFAULT_TARGET_SWAP_MOUSE_DEADZONE);
+        config().targetSwap.targetSwapMouseActivation.validateAndSet(DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION);
+        config().targetSwap.targetSwapDirectionThreshold.validateAndSet(DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD);
+        config().targetSwap.targetSwapMinScreenSeparation.validateAndSet(DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION);
+        config().targetSwap.targetSwapInputDecay.validateAndSet(DEFAULT_TARGET_SWAP_INPUT_DECAY);
+        config().targetSwap.targetSwapCooldownTicks.validateAndSet(DEFAULT_TARGET_SWAP_COOLDOWN_TICKS);
+        config().targetSwap.targetSwapSmoothTicks.validateAndSet(DEFAULT_TARGET_SWAP_SMOOTH_TICKS);
+        config().targetSwap.targetSwapLookYawResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW);
+        config().targetSwap.targetSwapLookPitchResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH);
+        config().targetSwap.targetSwapLookMaxYawStepPerTick.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK);
+        config().targetSwap.targetSwapLookMaxPitchStepPerTick.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK);
+        config().targetSwap.targetSwapTargetPointResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS);
+        config().targetSwap.targetSwapPlayerLookFollow.validateAndSet(DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW);
+    }
+
+    private static void clearTargetFilterEntityIdsFromConfigScreen() {
+        config().targetFilters.targetFilterEntityIds.validateAndSet(List.of());
     }
 
     public static boolean autoSwitchToThirdPerson() {
@@ -831,6 +856,78 @@ public final class FocusClientConfig extends MidnightConfig {
     public static void setCameraRotation(Shoulder shoulder, double value) {
         setRawCameraRotation(shoulder, value);
         syncMirroredShoulderIfNeeded(shoulder);
+    }
+
+    public static void adjustCameraLeft() {
+        adjustCameraLeft(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraLeft(Shoulder shoulder) {
+        adjustCameraLeft(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraLeft(Shoulder shoulder, double step) {
+        setCameraOffsetX(shoulder, cameraOffsetX(shoulder) + Math.abs(step));
+    }
+
+    public static void adjustCameraRight() {
+        adjustCameraRight(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraRight(Shoulder shoulder) {
+        adjustCameraRight(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraRight(Shoulder shoulder, double step) {
+        setCameraOffsetX(shoulder, cameraOffsetX(shoulder) - Math.abs(step));
+    }
+
+    public static void adjustCameraUp() {
+        adjustCameraUp(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraUp(Shoulder shoulder) {
+        adjustCameraUp(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraUp(Shoulder shoulder, double step) {
+        setCameraOffsetY(shoulder, cameraOffsetY(shoulder) + Math.abs(step));
+    }
+
+    public static void adjustCameraDown() {
+        adjustCameraDown(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraDown(Shoulder shoulder) {
+        adjustCameraDown(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraDown(Shoulder shoulder, double step) {
+        setCameraOffsetY(shoulder, cameraOffsetY(shoulder) - Math.abs(step));
+    }
+
+    public static void adjustCameraIn() {
+        adjustCameraIn(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraIn(Shoulder shoulder) {
+        adjustCameraIn(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraIn(Shoulder shoulder, double step) {
+        setCameraOffsetZ(shoulder, cameraOffsetZ(shoulder) - Math.abs(step));
+    }
+
+    public static void adjustCameraOut() {
+        adjustCameraOut(Shoulder.LEFT, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraOut(Shoulder shoulder) {
+        adjustCameraOut(shoulder, CAMERA_SLIDER_INCREMENT);
+    }
+
+    public static void adjustCameraOut(Shoulder shoulder, double step) {
+        setCameraOffsetZ(shoulder, cameraOffsetZ(shoulder) + Math.abs(step));
     }
 
     public static void resetCameraOffsetsToDefaults() {
