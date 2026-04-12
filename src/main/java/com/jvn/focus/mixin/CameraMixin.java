@@ -37,6 +37,8 @@ public abstract class CameraMixin {
     private static float focus$smoothedCameraPitch;
     @Unique
     private static boolean focus$hasSmoothedCameraRotation;
+    @Unique
+    private static boolean focus$wasLockCameraActive;
 
     @Shadow
     private float yRot;
@@ -63,6 +65,7 @@ public abstract class CameraMixin {
         if (!(entity instanceof LocalPlayer player) || !detachedBackCamera) {
             focus$hasSmoothedCameraPosition = false;
             focus$hasSmoothedCameraRotation = false;
+            focus$wasLockCameraActive = false;
             return;
         }
 
@@ -70,12 +73,38 @@ public abstract class CameraMixin {
         if (lockData == null) {
             focus$hasSmoothedCameraPosition = false;
             focus$hasSmoothedCameraRotation = false;
+            focus$wasLockCameraActive = false;
             return;
         }
 
         Vec3 pivotPoint = player.getEyePosition(partialTick);
         Vec3 desiredPosition = computeDesiredCameraPosition(pivotPoint, lockData);
         desiredPosition = clipCameraToWorld(level, entity, pivotPoint, desiredPosition);
+        boolean snapCameraNow = !focus$wasLockCameraActive || LockOnHandler.isInitialLockCameraSnapActive();
+        if (snapCameraNow) {
+            Vec3 firstLookVector = lockData.targetPoint().subtract(desiredPosition);
+            if (firstLookVector.lengthSqr() < 1.0E-6D) {
+                focus$smoothedCameraPosition = desiredPosition;
+                focus$hasSmoothedCameraPosition = true;
+                focus$hasSmoothedCameraRotation = false;
+                this.setPosition(desiredPosition);
+                focus$wasLockCameraActive = true;
+                return;
+            }
+
+            double firstHorizontal = Math.sqrt(firstLookVector.x * firstLookVector.x + firstLookVector.z * firstLookVector.z);
+            float firstLockYaw = (float) (Mth.atan2(firstLookVector.z, firstLookVector.x) * (180.0D / Math.PI)) - 90.0F;
+            float firstLockPitch = (float) -(Mth.atan2(firstLookVector.y, firstHorizontal) * (180.0D / Math.PI));
+            focus$smoothedCameraPosition = desiredPosition;
+            focus$hasSmoothedCameraPosition = true;
+            focus$smoothedCameraYaw = firstLockYaw;
+            focus$smoothedCameraPitch = firstLockPitch;
+            focus$hasSmoothedCameraRotation = true;
+            this.setPosition(desiredPosition);
+            this.setRotation(firstLockYaw, Mth.clamp(firstLockPitch, -90.0F, 90.0F), this.getRoll());
+            focus$wasLockCameraActive = true;
+            return;
+        }
 
         if (!focus$hasSmoothedCameraPosition) {
             focus$smoothedCameraPosition = this.getPosition();
@@ -118,6 +147,7 @@ public abstract class CameraMixin {
         this.setPosition(lockPosition);
         this.setRotation(focus$smoothedCameraYaw, Mth.clamp(focus$smoothedCameraPitch, -90.0F, 90.0F), this.getRoll());
         focus$smoothedCameraPosition = lockPosition;
+        focus$wasLockCameraActive = true;
     }
 
     @Unique
