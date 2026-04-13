@@ -2,7 +2,7 @@ package com.jvn.focus.mixin;
 
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
-import com.jvn.focus.client.LockOnHandler.CameraLockData;
+import com.jvn.focus.client.camera.FocusCameraPose;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem.CameraPose;
 import net.minecraft.client.Camera;
@@ -50,7 +50,7 @@ public abstract class CameraMixin {
             return;
         }
 
-        CameraLockData lockData = LockOnHandler.getActiveCameraData(player, partialTick);
+        FocusCameraPose lockData = LockOnHandler.getActiveCameraData(player, partialTick);
         if (lockData == null) {
             focus$cameraSystem.reset();
             return;

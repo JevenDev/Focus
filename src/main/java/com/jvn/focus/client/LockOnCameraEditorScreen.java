@@ -26,8 +26,8 @@ public final class LockOnCameraEditorScreen extends Screen {
     private static final int PRESETS_TOGGLE_BUTTON_WIDTH = 96;
     private static final int ACTION_BUTTON_HEIGHT = 18;
     private static final int CONTROL_GAP = ROW_HEIGHT - ACTION_BUTTON_HEIGHT;
-    private static final int CONTROL_ROW_COUNT = 10;
-    private static final int STATUS_ROW_INDEX = 8;
+    private static final int CONTROL_ROW_COUNT = 12;
+    private static final int STATUS_ROW_INDEX = 10;
     private static final int PRESETS_PANEL_DEFAULT_WIDTH = 238;
     private static final int PRESETS_PANEL_START_ROW = 3;
     private static final int HEADER_TITLE_GAP_TO_FIRST_ROW = 23;
@@ -56,6 +56,8 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Button resetButton;
     private Button doneButton;
     private Button toggleUiButton;
+    private Button cameraOwnershipButton;
+    private Button followRotationsButton;
     private boolean controlsVisible = true;
     private boolean presetsPanelExpanded;
     private int controlsX;
@@ -142,6 +144,8 @@ public final class LockOnCameraEditorScreen extends Screen {
         int swapButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
         int customValuesY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
         int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
+        int ownershipModeY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 8;
+        int followRotationsY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 9;
         int leftDualButtonWidth = (sliderWidth - CONTROL_GAP) / 2;
         int rightDualButtonWidth = sliderWidth - leftDualButtonWidth - CONTROL_GAP;
 
@@ -219,6 +223,20 @@ public final class LockOnCameraEditorScreen extends Screen {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
         }).bounds(controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
+        cameraOwnershipButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            FocusClientConfig.cycleCameraOwnershipMode();
+            FocusClientConfig.saveConfig();
+            refreshAdvancedCameraButtons();
+            showStatus("screen.focus.camera_editor.camera_ownership_changed", Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName()));
+        }).bounds(controlsX, ownershipModeY, sliderWidth, ACTION_BUTTON_HEIGHT).build());
+        followRotationsButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            FocusClientConfig.setFollowPlayerRotations(!FocusClientConfig.followPlayerRotations());
+            FocusClientConfig.saveConfig();
+            refreshAdvancedCameraButtons();
+            showStatus(FocusClientConfig.followPlayerRotations()
+                    ? "screen.focus.camera_editor.follow_rotations_enabled"
+                    : "screen.focus.camera_editor.follow_rotations_disabled");
+        }).bounds(controlsX, followRotationsY, sliderWidth, ACTION_BUTTON_HEIGHT).build());
 
         initializeProfileName();
         presetsPanelExpanded = false;
@@ -395,6 +413,14 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (doneButton != null) {
             doneButton.visible = controlsVisible;
             doneButton.active = controlsVisible;
+        }
+        if (cameraOwnershipButton != null) {
+            cameraOwnershipButton.visible = controlsVisible;
+            cameraOwnershipButton.active = controlsVisible;
+        }
+        if (followRotationsButton != null) {
+            followRotationsButton.visible = controlsVisible;
+            followRotationsButton.active = controlsVisible;
         }
 
         refreshProfileControls();
@@ -652,6 +678,20 @@ public final class LockOnCameraEditorScreen extends Screen {
             customSwapValuesButton.setMessage(Component.translatable(
                     "screen.focus.camera_editor.custom_swap_values",
                     FocusClientConfig.useCustomSwappedShoulderValues() ? "x" : " "));
+        }
+        refreshAdvancedCameraButtons();
+    }
+
+    private void refreshAdvancedCameraButtons() {
+        if (cameraOwnershipButton != null) {
+            cameraOwnershipButton.setMessage(Component.translatable(
+                    "screen.focus.camera_editor.camera_ownership_mode",
+                    Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName())));
+        }
+        if (followRotationsButton != null) {
+            followRotationsButton.setMessage(Component.translatable(
+                    "screen.focus.camera_editor.follow_rotations",
+                    FocusClientConfig.followPlayerRotations() ? "x" : " "));
         }
     }
 

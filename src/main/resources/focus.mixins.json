@@ -5,7 +5,12 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "AbstractSelectionListMixin",
     "CameraMixin",
+    "EditBoxAccessor",
+    "EntryInfoAccessor",
+    "GameRendererMixin",
+    "MidnightConfigScreenMixin",
     "MinecraftMixin",
     "MouseHandlerMixin"
   ],

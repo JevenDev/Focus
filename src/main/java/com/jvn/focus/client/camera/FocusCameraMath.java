@@ -1,0 +1,63 @@
+package com.jvn.focus.client.camera;
+
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
+
+final class FocusCameraMath {
+    private FocusCameraMath() {}
+
+    static float computeTargetYaw(LocalPlayer player, Vec3 targetPoint, float partialTick) {
+        Vec3 to = targetPoint.subtract(player.getEyePosition(partialTick));
+        return (float) (Mth.atan2(to.z, to.x) * (180.0D / Math.PI)) - 90.0F;
+    }
+
+    static float computeTargetPitch(LocalPlayer player, Vec3 targetPoint, float partialTick) {
+        Vec3 to = targetPoint.subtract(player.getEyePosition(partialTick));
+        double horizontal = Math.sqrt(to.x * to.x + to.z * to.z);
+        return (float) -(Mth.atan2(to.y, horizontal) * (180.0D / Math.PI));
+    }
+
+    static float smoothAngle(float current, float target, float responsiveness, float maxStepPerTick, float deltaTicks) {
+        float delta = Mth.wrapDegrees(target - current);
+        float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
+        float step = delta * alpha;
+        float maxStep = maxStepPerTick * deltaTicks;
+        return current + Mth.clamp(step, -maxStep, maxStep);
+    }
+
+    static float smoothValue(float current, float target, float responsiveness, float deltaTicks) {
+        float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
+        return Mth.lerp(alpha, current, target);
+    }
+
+    static Vec3 smoothVec(Vec3 current, Vec3 target, float responsiveness, float deltaTicks) {
+        float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
+        return current.lerp(target, alpha);
+    }
+
+    static float computeDesiredBodyYawOffset(LocalPlayer player, float bodyForwardDamping, float bodyMaxStrafeOffset) {
+        Vec2 move = player.input.getMoveVector();
+        float strafe = move.x;
+        float forward = move.y;
+        if (Math.abs(strafe) < 1.0E-3F && Math.abs(forward) < 1.0E-3F) {
+            return 0.0F;
+        }
+
+        float forwardFactor = 1.0F - Math.min(1.0F, Math.abs(forward) * bodyForwardDamping);
+        float desired = -strafe * bodyMaxStrafeOffset * forwardFactor;
+        return Mth.clamp(desired, -bodyMaxStrafeOffset, bodyMaxStrafeOffset);
+    }
+
+    static double smoothTowards(double current, double target, double speed, double minSpeed, double maxSpeed) {
+        return Mth.lerp(Mth.clamp(speed, minSpeed, maxSpeed), current, target);
+    }
+
+    static double applyBlendSmoothing(double blend, double smoothness, double minSmoothness, double maxSmoothness) {
+        double clampedBlend = Mth.clamp(blend, 0.0D, 1.0D);
+        double clampedSmoothness = Mth.clamp(smoothness, minSmoothness, maxSmoothness);
+        double easedBlend = clampedBlend * clampedBlend * (3.0D - 2.0D * clampedBlend);
+        return Mth.lerp(clampedSmoothness, clampedBlend, easedBlend);
+    }
+}
