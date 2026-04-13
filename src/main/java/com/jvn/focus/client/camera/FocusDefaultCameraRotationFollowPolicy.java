@@ -11,7 +11,6 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
     @Override
     public void applyPlayerRotation(FocusCameraTargetContext context, FocusCameraState state, float desiredYaw, float desiredPitch) {
         LocalPlayer player = context.player();
-        FocusCameraMode mode = FocusClientConfig.cameraOwnershipMode();
         boolean followRotations = FocusClientConfig.followPlayerRotations();
         float clampedPitch = Mth.clamp(desiredPitch, -90.0F, 90.0F);
         if (!followRotations) {
@@ -26,11 +25,7 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
 
         float targetSwapBlend = currentTargetSwapBlendToNormal(state);
         float swapFollowAlpha = Mth.lerp(targetSwapBlend, FocusClientConfig.targetSwapPlayerLookFollow(), 1.0F);
-        switch (mode) {
-            case COUPLED -> applyCoupledFollow(player, state, desiredYaw, clampedPitch, swapFollowAlpha);
-            case DELAYED_FOLLOW -> applyDelayedFollow(player, state, desiredYaw, clampedPitch, swapFollowAlpha);
-            case FREE_LOOK -> applyFreeLookFollow(player, state, desiredYaw, clampedPitch, swapFollowAlpha);
-        }
+        applyCoupledFollow(player, state, desiredYaw, clampedPitch, swapFollowAlpha);
     }
 
     private void applyCoupledFollow(LocalPlayer player, FocusCameraState state, float desiredYaw, float desiredPitch, float swapFollowAlpha) {
@@ -38,52 +33,6 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
         float pitch = Mth.lerp(swapFollowAlpha, player.getXRot(), desiredPitch);
         float headFollowAlpha = Mth.clamp(swapFollowAlpha + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F);
         float headYaw = Mth.rotLerp(headFollowAlpha, player.getYHeadRot(), desiredYaw);
-        applyPlayerRotation(player, state, yaw, pitch, headYaw);
-    }
-
-    private void applyDelayedFollow(LocalPlayer player, FocusCameraState state, float desiredYaw, float desiredPitch, float swapFollowAlpha) {
-        int configuredDelay = Math.max(0, FocusClientConfig.followPlayerRotationsDelay());
-        if (configuredDelay > 0 && state.playerFollowDelayTicks < configuredDelay) {
-            state.playerFollowDelayTicks++;
-            float headYaw = Mth.rotLerp(
-                    FocusClientConfig.cameraHeadFollowResponsiveness() * 0.5F,
-                    player.getYHeadRot(),
-                    desiredYaw);
-            applyPlayerRotation(player, state, player.getYRot(), player.getXRot(), headYaw);
-            return;
-        }
-
-        float yaw = Mth.rotLerp(
-                FocusClientConfig.cameraBodyFollowResponsiveness() * swapFollowAlpha,
-                player.getYRot(),
-                desiredYaw);
-        float pitch = Mth.lerp(
-                FocusClientConfig.cameraHeadFollowResponsiveness() * swapFollowAlpha,
-                player.getXRot(),
-                desiredPitch);
-        float headYaw = Mth.rotLerp(
-                Mth.clamp(FocusClientConfig.cameraHeadFollowResponsiveness() + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F),
-                player.getYHeadRot(),
-                desiredYaw);
-        applyPlayerRotation(player, state, yaw, pitch, headYaw);
-    }
-
-    private void applyFreeLookFollow(LocalPlayer player, FocusCameraState state, float desiredYaw, float desiredPitch, float swapFollowAlpha) {
-        if (!FocusClientConfig.allowFreeLookWhileLockedOn()) {
-            applyCoupledFollow(player, state, desiredYaw, desiredPitch, swapFollowAlpha);
-            return;
-        }
-
-        float desiredBodyYaw = desiredYaw - state.freeLookYaw;
-        float yaw = Mth.rotLerp(
-                FocusClientConfig.cameraBodyFollowResponsiveness() * swapFollowAlpha,
-                player.getYRot(),
-                desiredBodyYaw);
-        float pitch = Mth.lerp(
-                FocusClientConfig.cameraHeadFollowResponsiveness() * swapFollowAlpha,
-                player.getXRot(),
-                desiredPitch - state.freeLookPitch);
-        float headYaw = Mth.rotLerp(FocusClientConfig.cameraHeadFollowResponsiveness(), player.getYHeadRot(), desiredYaw);
         applyPlayerRotation(player, state, yaw, pitch, headYaw);
     }
 

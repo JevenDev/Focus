@@ -386,7 +386,7 @@ public final class FocusClientConfig {
     }
 
     public static FocusCameraMode cameraOwnershipMode() {
-        return config().cameraOwnershipMode();
+        return DEFAULT_CAMERA_OWNERSHIP_MODE;
     }
 
     public static boolean followPlayerRotations() {
@@ -592,17 +592,6 @@ public final class FocusClientConfig {
     }
 
     // â”€â”€ Setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-    public static void cycleCameraOwnershipMode() {
-        FocusCameraMode mode = cameraOwnershipMode();
-        FocusCameraMode[] values = FocusCameraMode.values();
-        int nextIndex = (mode.ordinal() + 1) % values.length;
-        config().cameraOwnershipMode(values[nextIndex]);
-    }
-
-    public static void setCameraOwnershipMode(FocusCameraMode mode) {
-        config().cameraOwnershipMode(mode);
-    }
 
     public static void setFollowPlayerRotations(boolean value) {
         config().cameraFollowing.followPlayerRotations(value);
@@ -875,7 +864,6 @@ public final class FocusClientConfig {
         config().dynamicCameraSwapSmoothness(setup.dynamicCameraSwapSmoothness());
         config().cameraBehavior.cameraStepSize(setup.cameraStepSize());
         config().cameraBehavior.dynamicallyAdjustOffsets(setup.dynamicallyAdjustOffsets());
-        config().cameraOwnershipMode(setup.cameraOwnershipMode());
         config().cameraFollowing.followPlayerRotations(setup.followPlayerRotations());
         config().cameraFollowing.followPlayerRotationsDelay(setup.followPlayerRotationsDelay());
         config().cameraFollowing.cameraHeadFollowResponsiveness(setup.cameraHeadFollowResponsiveness());

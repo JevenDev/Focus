@@ -56,7 +56,6 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Button resetButton;
     private Button doneButton;
     private Button toggleUiButton;
-    private Button cameraOwnershipButton;
     private Button followRotationsButton;
     private boolean controlsVisible = true;
     private boolean presetsPanelExpanded;
@@ -144,8 +143,7 @@ public final class LockOnCameraEditorScreen extends Screen {
         int swapButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
         int customValuesY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
         int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
-        int ownershipModeY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 8;
-        int followRotationsY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 9;
+        int followRotationsY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 8;
         int leftDualButtonWidth = (sliderWidth - CONTROL_GAP) / 2;
         int rightDualButtonWidth = sliderWidth - leftDualButtonWidth - CONTROL_GAP;
 
@@ -223,12 +221,6 @@ public final class LockOnCameraEditorScreen extends Screen {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
         }).bounds(controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
-        cameraOwnershipButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            FocusClientConfig.cycleCameraOwnershipMode();
-            FocusClientConfig.saveConfig();
-            refreshAdvancedCameraButtons();
-            showStatus("screen.focus.camera_editor.camera_ownership_changed", Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName()));
-        }).bounds(controlsX, ownershipModeY, sliderWidth, ACTION_BUTTON_HEIGHT).build());
         followRotationsButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             FocusClientConfig.setFollowPlayerRotations(!FocusClientConfig.followPlayerRotations());
             FocusClientConfig.saveConfig();
@@ -413,10 +405,6 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (doneButton != null) {
             doneButton.visible = controlsVisible;
             doneButton.active = controlsVisible;
-        }
-        if (cameraOwnershipButton != null) {
-            cameraOwnershipButton.visible = controlsVisible;
-            cameraOwnershipButton.active = controlsVisible;
         }
         if (followRotationsButton != null) {
             followRotationsButton.visible = controlsVisible;
@@ -683,11 +671,6 @@ public final class LockOnCameraEditorScreen extends Screen {
     }
 
     private void refreshAdvancedCameraButtons() {
-        if (cameraOwnershipButton != null) {
-            cameraOwnershipButton.setMessage(Component.translatable(
-                    "screen.focus.camera_editor.camera_ownership_mode",
-                    Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName())));
-        }
         if (followRotationsButton != null) {
             followRotationsButton.setMessage(Component.translatable(
                     "screen.focus.camera_editor.follow_rotations",
