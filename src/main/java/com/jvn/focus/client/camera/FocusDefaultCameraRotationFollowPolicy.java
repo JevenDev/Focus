@@ -57,12 +57,6 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
     }
 
     private static float currentTargetSwapBlendToNormal(FocusCameraState state) {
-        if (state.targetSwapSmoothingTicks <= 0 || state.targetSwapSmoothingDurationTicks <= 0) {
-            return 1.0F;
-        }
-
-        float blendToNormal = 1.0F - (float) state.targetSwapSmoothingTicks / (float) state.targetSwapSmoothingDurationTicks;
-        blendToNormal = Mth.clamp(blendToNormal, 0.0F, 1.0F);
-        return blendToNormal * blendToNormal * (3.0F - 2.0F * blendToNormal);
+        return FocusCameraMath.targetSwapBlendToNormal(state);
     }
 }

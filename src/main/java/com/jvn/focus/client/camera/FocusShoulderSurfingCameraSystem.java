@@ -59,7 +59,7 @@ public final class FocusShoulderSurfingCameraSystem {
         double adjustedPositionAlpha = 1.0D - Math.pow(1.0D - positionLerpAlpha, deltaTicks);
         float adjustedRotationAlpha = 1.0F - (float) Math.pow(1.0F - rotationLerpAlpha, deltaTicks);
 
-        Rotation pivotRotation = rotationToTarget(pivotPoint, lockData.targetPoint(), fallbackYaw, fallbackPitch);
+        FocusCameraBasisUtil.Rotation pivotRotation = FocusCameraBasisUtil.rotationToTarget(pivotPoint, lockData.targetPoint(), fallbackYaw, fallbackPitch);
         float targetOrbitYaw = pivotRotation.yaw() + lockData.rotationDegrees();
         float targetOrbitPitch = pivotRotation.pitch();
         boolean snapNow = forceSnap || !wasActive || !hasOffsetState;
@@ -80,7 +80,7 @@ public final class FocusShoulderSurfingCameraSystem {
             smoothedOrbitYaw = Mth.rotLerp(orbitLerpAlpha, smoothedOrbitYaw, targetOrbitYaw);
             smoothedOrbitPitch = Mth.lerp(orbitLerpAlpha, smoothedOrbitPitch, targetOrbitPitch);
         }
-        CameraBasis orbitBasis = basisFromRotation(smoothedOrbitYaw, smoothedOrbitPitch);
+        FocusCameraBasisUtil.CameraBasis orbitBasis = FocusCameraBasisUtil.basisFromRotation(smoothedOrbitYaw, smoothedOrbitPitch);
 
         Vec3 desiredOffset = new Vec3(lockData.offsetX(), lockData.offsetY(), lockData.offsetZ());
         if (FocusClientConfig.dynamicallyAdjustOffsets()) {
@@ -115,7 +115,7 @@ public final class FocusShoulderSurfingCameraSystem {
         Vec3 renderOffset = smoothedOffset.lengthSqr() < CAMERA_EPSILON ? Vec3.ZERO : smoothedOffset.normalize().scale(resolvedDistance);
 
         Vec3 cameraPosition = pivotPoint.add(toWorldOffset(orbitBasis, renderOffset));
-        Rotation desiredRotation = rotationToTarget(cameraPosition, lockData.targetPoint(), pivotRotation.yaw(), pivotRotation.pitch());
+        FocusCameraBasisUtil.Rotation desiredRotation = FocusCameraBasisUtil.rotationToTarget(cameraPosition, lockData.targetPoint(), pivotRotation.yaw(), pivotRotation.pitch());
         if (snapNow || !hasSmoothedRotation) {
             smoothedYaw = desiredRotation.yaw();
             smoothedPitch = desiredRotation.pitch();
@@ -147,7 +147,7 @@ public final class FocusShoulderSurfingCameraSystem {
         return new CameraPose(cameraPosition, smoothedYaw, Mth.clamp(smoothedPitch, -90.0F, 90.0F));
     }
 
-    private static Vec3 applyDynamicOffsetCollision(BlockGetter level, Entity entity, Vec3 eyePosition, CameraBasis basis, Vec3 desiredOffset) {
+    private static Vec3 applyDynamicOffsetCollision(BlockGetter level, Entity entity, Vec3 eyePosition, FocusCameraBasisUtil.CameraBasis basis, Vec3 desiredOffset) {
         double offsetZAbs = Math.abs(desiredOffset.z());
         if (offsetZAbs < CAMERA_EPSILON) {
             return desiredOffset;
@@ -186,7 +186,7 @@ public final class FocusShoulderSurfingCameraSystem {
             BlockGetter level,
             Entity entity,
             Vec3 eyePosition,
-            CameraBasis basis,
+            FocusCameraBasisUtil.CameraBasis basis,
             float yaw,
             float pitch,
             Vec3 cameraOffset) {
@@ -217,52 +217,11 @@ public final class FocusShoulderSurfingCameraSystem {
         return distance;
     }
 
-    private static Vec3 toWorldOffset(CameraBasis basis, Vec3 localOffset) {
+    private static Vec3 toWorldOffset(FocusCameraBasisUtil.CameraBasis basis, Vec3 localOffset) {
         return basis.up().scale(localOffset.y())
                 .add(basis.right().scale(localOffset.x()))
                 .add(basis.look().scale(-localOffset.z()));
     }
-
-    private static CameraBasis basisFromRotation(float yaw, float pitch) {
-        Vec3 look = Vec3.directionFromRotation(pitch, yaw);
-        if (look.lengthSqr() < CAMERA_EPSILON) {
-            look = new Vec3(0.0D, 0.0D, 1.0D);
-        } else {
-            look = look.normalize();
-        }
-
-        Vec3 right = new Vec3(0.0D, 1.0D, 0.0D).cross(look);
-        if (right.lengthSqr() < CAMERA_EPSILON) {
-            right = new Vec3(1.0D, 0.0D, 0.0D);
-        } else {
-            right = right.normalize();
-        }
-
-        Vec3 up = look.cross(right);
-        if (up.lengthSqr() < CAMERA_EPSILON) {
-            up = new Vec3(0.0D, 1.0D, 0.0D);
-        } else {
-            up = up.normalize();
-        }
-
-        return new CameraBasis(look, right, up);
-    }
-
-    private static Rotation rotationToTarget(Vec3 from, Vec3 to, float fallbackYaw, float fallbackPitch) {
-        Vec3 lookVector = to.subtract(from);
-        if (lookVector.lengthSqr() < CAMERA_EPSILON) {
-            return new Rotation(fallbackYaw, fallbackPitch);
-        }
-
-        double horizontal = Math.sqrt(lookVector.x * lookVector.x + lookVector.z * lookVector.z);
-        float yaw = (float) (Mth.atan2(lookVector.z, lookVector.x) * (180.0D / Math.PI)) - 90.0F;
-        float pitch = (float) -(Mth.atan2(lookVector.y, horizontal) * (180.0D / Math.PI));
-        return new Rotation(yaw, pitch);
-    }
-
-    private record CameraBasis(Vec3 look, Vec3 right, Vec3 up) {}
-
-    private record Rotation(float yaw, float pitch) {}
 
     public record CameraPose(Vec3 position, float yaw, float pitch) {}
 }

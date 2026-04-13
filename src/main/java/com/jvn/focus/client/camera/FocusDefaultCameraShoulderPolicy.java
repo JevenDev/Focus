@@ -131,33 +131,8 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
                 FocusClientConfig.dynamicCameraSwapSmoothness(),
                 FocusClientConfig.MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS,
                 FocusClientConfig.MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
-        double presetOffsetX = Mth.lerp(swapBlend, basePreset.offsetX(), swappedPreset.offsetX());
-        double presetOffsetY = Mth.lerp(swapBlend, basePreset.offsetY(), swappedPreset.offsetY());
-        double presetOffsetZ = Mth.lerp(swapBlend, basePreset.offsetZ(), swappedPreset.offsetZ());
-        double presetRotation = Mth.lerp(swapBlend, basePreset.rotation(), swappedPreset.rotation());
 
-        double sourceSign = state.activeShoulder == FocusClientConfig.Shoulder.LEFT ? -1.0D : 1.0D;
-        double targetSign = -sourceSign;
-        double offsetXSign = Mth.lerp(swapBlend, sourceSign, targetSign);
-        double offsetX = clamp(
-                presetOffsetX + offsetXSign * DYNAMIC_EXTRA_OFFSET_X_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_X,
-                FocusClientConfig.MAX_CAMERA_OFFSET_X);
-        double offsetY = clamp(
-                presetOffsetY + DYNAMIC_EXTRA_OFFSET_Y_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_Y,
-                FocusClientConfig.MAX_CAMERA_OFFSET_Y);
-        double offsetZ = clamp(
-                presetOffsetZ + DYNAMIC_EXTRA_OFFSET_Z_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_Z,
-                FocusClientConfig.MAX_CAMERA_OFFSET_Z);
-
-        return new FocusCameraPose(
-                context.targetPoint(),
-                offsetX,
-                offsetY,
-                offsetZ,
-                (float) presetRotation);
+        return computeDynamicPoseFromBlend(context, state, basePreset, swappedPreset, nearFactor, swapBlend);
     }
 
     private void updateDynamicShoulderTargetBlend(
@@ -213,6 +188,16 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
             double nearFactor,
             FocusClientConfig.Shoulder displayedShoulder) {
         double blend = displayedShoulder == state.activeShoulder ? 0.0D : 1.0D;
+        return computeDynamicPoseFromBlend(context, state, basePreset, swappedPreset, nearFactor, blend);
+    }
+
+    private FocusCameraPose computeDynamicPoseFromBlend(
+            FocusCameraTargetContext context,
+            FocusCameraState state,
+            FocusClientConfig.PerspectivePreset basePreset,
+            FocusClientConfig.PerspectivePreset swappedPreset,
+            double nearFactor,
+            double blend) {
         double presetOffsetX = Mth.lerp(blend, basePreset.offsetX(), swappedPreset.offsetX());
         double presetOffsetY = Mth.lerp(blend, basePreset.offsetY(), swappedPreset.offsetY());
         double presetOffsetZ = Mth.lerp(blend, basePreset.offsetZ(), swappedPreset.offsetZ());
