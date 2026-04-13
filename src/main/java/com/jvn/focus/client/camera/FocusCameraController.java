@@ -22,6 +22,9 @@ public final class FocusCameraController {
     private static final float MAX_TARGET_ANGULAR_DEVIATION = 35.0F;
     private static final float ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES = 12.0F;
     private static final double ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE = 3.0D;
+    private static final double MIN_HORIZONTAL_DISTANCE_FOR_YAW = 0.3D;
+    private static final double CLOSE_RANGE_YAW_ATTENUATION_DISTANCE = 1.5D;
+    private static final float CLOSE_RANGE_YAW_MIN_FACTOR = 0.05F;
 
     private static final FocusCameraController INSTANCE = new FocusCameraController();
 
@@ -46,7 +49,11 @@ public final class FocusCameraController {
     public void onLockStarted(LocalPlayer player, LivingEntity target) {
         Vec3 targetPoint = getTargetAimPoint(target, 1.0F);
         initializeSmoothing(player, targetPoint);
-        state.smoothedLookYaw = FocusCameraMath.computeTargetYaw(player, targetPoint, 1.0F);
+        Vec3 toTarget = targetPoint.subtract(player.getEyePosition(1.0F));
+        double horizontalDist = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+        if (horizontalDist >= MIN_HORIZONTAL_DISTANCE_FOR_YAW) {
+            state.smoothedLookYaw = FocusCameraMath.computeTargetYaw(player, targetPoint, 1.0F);
+        }
         state.smoothedLookPitch = FocusCameraMath.computeTargetPitch(player, targetPoint, 1.0F);
         state.smoothedTargetPoint = targetPoint;
         applyRotationPolicy(player, target, 1.0F, 0.01F);
@@ -439,21 +446,52 @@ public final class FocusCameraController {
                 targetPointResponsiveness,
                 deltaTicks);
 
-        float targetYaw = FocusCameraMath.computeTargetYaw(player, state.smoothedTargetPoint, partialTick);
+        Vec3 toTarget = state.smoothedTargetPoint.subtract(player.getEyePosition(partialTick));
+        double horizontalDist = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+
+        float targetYaw;
+        if (horizontalDist < MIN_HORIZONTAL_DISTANCE_FOR_YAW) {
+            targetYaw = state.smoothedLookYaw;
+        } else {
+            targetYaw = FocusCameraMath.computeTargetYaw(player, state.smoothedTargetPoint, partialTick);
+        }
         float targetPitch = FocusCameraMath.computeTargetPitch(player, state.smoothedTargetPoint, partialTick);
 
         targetYaw += state.freeLookYaw;
         targetPitch = Mth.clamp(targetPitch + state.freeLookPitch, -90.0F, 90.0F);
 
+        // Proximity-based yaw attenuation: at close range, small movements cause huge yaw swings
+        // which creates a feedback loop with rotation-follow (player faces target -> movement curves
+        // -> position changes -> yaw changes -> orbiting). Attenuate yaw tracking speed to break it.
+        float proximityFactor = 1.0F;
+        if (horizontalDist < MIN_HORIZONTAL_DISTANCE_FOR_YAW) {
+            proximityFactor = 0.0F;
+        } else if (horizontalDist < CLOSE_RANGE_YAW_ATTENUATION_DISTANCE) {
+            proximityFactor = (float) ((horizontalDist - MIN_HORIZONTAL_DISTANCE_FOR_YAW)
+                    / (CLOSE_RANGE_YAW_ATTENUATION_DISTANCE - MIN_HORIZONTAL_DISTANCE_FOR_YAW));
+            proximityFactor = Mth.clamp(proximityFactor, CLOSE_RANGE_YAW_MIN_FACTOR, 1.0F);
+            proximityFactor = proximityFactor * proximityFactor;
+        }
+        lookYawResponsiveness *= proximityFactor;
+        lookYawMaxStep *= proximityFactor;
+        state.closeRangeProximityFactor = proximityFactor;
+
         // Adaptive look smoothing: speed up when angular deviation is large to keep target on screen
+        // Cap yaw scaling so it cannot undo proximity attenuation.
         float yawDeviation = Math.abs(Mth.wrapDegrees(targetYaw - state.smoothedLookYaw));
         float pitchDeviation = Math.abs(targetPitch - state.smoothedLookPitch);
         float angularDeviation = Math.max(yawDeviation, pitchDeviation);
         if (angularDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES) {
             float deviationScale = angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES;
-            lookYawResponsiveness *= deviationScale;
+            if (proximityFactor < 1.0F) {
+                float maxYawAdaptiveScale = 1.0F / Math.max(proximityFactor, CLOSE_RANGE_YAW_MIN_FACTOR);
+                lookYawResponsiveness *= Math.min(deviationScale, maxYawAdaptiveScale);
+                lookYawMaxStep *= Math.min(deviationScale, maxYawAdaptiveScale);
+            } else {
+                lookYawResponsiveness *= deviationScale;
+                lookYawMaxStep *= deviationScale;
+            }
             lookPitchResponsiveness *= deviationScale;
-            lookYawMaxStep *= deviationScale;
             lookPitchMaxStep *= deviationScale;
         }
 
@@ -462,12 +500,16 @@ public final class FocusCameraController {
         state.smoothedLookPitch = FocusCameraMath.smoothAngle(
                 state.smoothedLookPitch, targetPitch, lookPitchResponsiveness, lookPitchMaxStep, deltaTicks);
 
-        // Hard clamp: ensure target never drifts beyond maximum deviation from screen center
-        float finalYawDev = Mth.wrapDegrees(state.smoothedLookYaw - targetYaw);
-        float finalPitchDev = state.smoothedLookPitch - targetPitch;
-        if (Math.abs(finalYawDev) > MAX_TARGET_ANGULAR_DEVIATION) {
-            state.smoothedLookYaw = targetYaw + Math.signum(finalYawDev) * MAX_TARGET_ANGULAR_DEVIATION;
+        // Hard clamp: ensure target never drifts beyond maximum deviation from screen center.
+        // Skip yaw clamping at close range where proximity attenuation is active, since forcing yaw
+        // toward the target would re-introduce the orbital feedback loop.
+        if (proximityFactor >= 1.0F) {
+            float finalYawDev = Mth.wrapDegrees(state.smoothedLookYaw - targetYaw);
+            if (Math.abs(finalYawDev) > MAX_TARGET_ANGULAR_DEVIATION) {
+                state.smoothedLookYaw = targetYaw + Math.signum(finalYawDev) * MAX_TARGET_ANGULAR_DEVIATION;
+            }
         }
+        float finalPitchDev = state.smoothedLookPitch - targetPitch;
         if (Math.abs(finalPitchDev) > MAX_TARGET_ANGULAR_DEVIATION) {
             state.smoothedLookPitch = targetPitch + Math.signum(finalPitchDev) * MAX_TARGET_ANGULAR_DEVIATION;
         }
