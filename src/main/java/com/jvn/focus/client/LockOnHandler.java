@@ -79,9 +79,9 @@ public final class LockOnHandler {
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
             swapShoulder(player, true);
         }
-        handleOwnershipAndFreeLookInput(player);
+        handleOpenCameraEditorInput(minecraft);
         boolean freeLookActive = isFreeLookActive()
-                || (lockedTarget == null && isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown());
+                || (lockedTarget == null && isCameraEditorPreviewActive());
         CAMERA_CONTROLLER.setFreeLookInputActive(freeLookActive);
         handleCameraAdjustmentInput(player);
 
@@ -300,7 +300,7 @@ public final class LockOnHandler {
     }
 
     public static void onRawMouseInput(double deltaX, double deltaY) {
-        boolean previewFreeLook = lockedTarget == null && isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown();
+        boolean previewFreeLook = lockedTarget == null && isCameraEditorPreviewActive();
         if (lockedTarget == null && !previewFreeLook) {
             return;
         }
@@ -402,7 +402,7 @@ public final class LockOnHandler {
 
     public static boolean shouldSuppressVanillaMouseTurn() {
         return lockedTarget != null
-                || (isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown());
+                || isCameraEditorPreviewActive();
     }
 
     private static void tryDirectionalTargetSwap(LocalPlayer player) {
@@ -455,39 +455,21 @@ public final class LockOnHandler {
         targetSwapReadyForNewFlick = true;
     }
 
-    private static void handleOwnershipAndFreeLookInput(LocalPlayer player) {
-        while (FocusKeyMappings.FREE_LOOK_TOGGLE.consumeClick()) {
-            FocusClientConfig.setFreeLookToggled(!FocusClientConfig.freeLookToggled());
-            FocusClientConfig.saveConfig();
-            player.displayClientMessage(
-                    Component.translatable(
-                            FocusClientConfig.freeLookToggled()
-                                    ? "message.focus.free_look.enabled"
-                                    : "message.focus.free_look.disabled"),
-                    true);
-        }
-        while (FocusKeyMappings.CYCLE_CAMERA_OWNERSHIP_MODE.consumeClick()) {
-            FocusClientConfig.cycleCameraOwnershipMode();
-            FocusClientConfig.saveConfig();
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.focus.camera_ownership_mode",
-                            Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName())),
-                    true);
-        }
-        while (FocusKeyMappings.RECENTER_CAMERA.consumeClick()) {
-            CAMERA_CONTROLLER.smoothRecenterFreeLook();
+    private static void handleOpenCameraEditorInput(Minecraft minecraft) {
+        while (FocusKeyMappings.OPEN_CAMERA_EDITOR.consumeClick()) {
+            openCameraEditorScreen(minecraft);
         }
     }
 
+    private static void openCameraEditorScreen(Minecraft minecraft) {
+        if (minecraft.screen instanceof LockOnCameraEditorScreen) {
+            return;
+        }
+        LockOnCameraEditorScreen.openFromCurrentScreen();
+    }
+
     private static boolean isFreeLookActive() {
-        if (!FocusClientConfig.allowFreeLookWhileLockedOn()) {
-            return false;
-        }
-        if (FocusClientConfig.cameraOwnershipMode() != com.jvn.focus.client.camera.FocusCameraMode.FREE_LOOK) {
-            return false;
-        }
-        return FocusKeyMappings.FREE_LOOK.isDown() || FocusClientConfig.freeLookToggled();
+        return false;
     }
 
     private static void handleCameraAdjustmentInput(LocalPlayer player) {
