@@ -35,13 +35,13 @@ public final class FocusCameraOcclusionEvaluator {
     }
 
     public static Vec3 computeCameraPosition(Vec3 pivot, Vec3 targetPoint, FocusCameraPose pose) {
-        Rotation pivotRotation = rotationToTarget(pivot, targetPoint, 0.0F, 0.0F);
-        float orbitYaw = pivotRotation.yaw + pose.rotationDegrees();
-        float orbitPitch = pivotRotation.pitch;
-        Basis basis = basisFromRotation(orbitYaw, orbitPitch);
-        Vec3 worldOffset = basis.up.scale(pose.offsetY())
-                .add(basis.right.scale(pose.offsetX()))
-                .add(basis.look.scale(-pose.offsetZ()));
+        FocusCameraBasisUtil.Rotation pivotRotation = FocusCameraBasisUtil.rotationToTarget(pivot, targetPoint, 0.0F, 0.0F);
+        float orbitYaw = pivotRotation.yaw() + pose.rotationDegrees();
+        float orbitPitch = pivotRotation.pitch();
+        FocusCameraBasisUtil.CameraBasis basis = FocusCameraBasisUtil.basisFromRotation(orbitYaw, orbitPitch);
+        Vec3 worldOffset = basis.up().scale(pose.offsetY())
+                .add(basis.right().scale(pose.offsetX()))
+                .add(basis.look().scale(-pose.offsetZ()));
         return pivot.add(worldOffset);
     }
 
@@ -95,45 +95,4 @@ public final class FocusCameraOcclusionEvaluator {
         Vec3 closest = segmentStart.add(segment.scale(t));
         return point.distanceTo(closest);
     }
-
-    private static Rotation rotationToTarget(Vec3 from, Vec3 to, float fallbackYaw, float fallbackPitch) {
-        Vec3 lookVector = to.subtract(from);
-        if (lookVector.lengthSqr() < EPSILON) {
-            return new Rotation(fallbackYaw, fallbackPitch);
-        }
-
-        double horizontal = Math.sqrt(lookVector.x * lookVector.x + lookVector.z * lookVector.z);
-        float yaw = (float) (Mth.atan2(lookVector.z, lookVector.x) * (180.0D / Math.PI)) - 90.0F;
-        float pitch = (float) -(Mth.atan2(lookVector.y, horizontal) * (180.0D / Math.PI));
-        return new Rotation(yaw, pitch);
-    }
-
-    private static Basis basisFromRotation(float yaw, float pitch) {
-        Vec3 look = Vec3.directionFromRotation(pitch, yaw);
-        if (look.lengthSqr() < EPSILON) {
-            look = new Vec3(0.0D, 0.0D, 1.0D);
-        } else {
-            look = look.normalize();
-        }
-
-        Vec3 right = new Vec3(0.0D, 1.0D, 0.0D).cross(look);
-        if (right.lengthSqr() < EPSILON) {
-            right = new Vec3(1.0D, 0.0D, 0.0D);
-        } else {
-            right = right.normalize();
-        }
-
-        Vec3 up = look.cross(right);
-        if (up.lengthSqr() < EPSILON) {
-            up = new Vec3(0.0D, 1.0D, 0.0D);
-        } else {
-            up = up.normalize();
-        }
-
-        return new Basis(look, right, up);
-    }
-
-    private record Rotation(float yaw, float pitch) {}
-
-    private record Basis(Vec3 look, Vec3 right, Vec3 up) {}
 }

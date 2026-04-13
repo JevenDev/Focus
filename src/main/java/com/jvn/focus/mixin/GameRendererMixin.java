@@ -2,6 +2,7 @@ package com.jvn.focus.mixin;
 
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
+import com.jvn.focus.client.hud.FocusScreenProjectionUtil;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
@@ -57,7 +58,7 @@ public abstract class GameRendererMixin {
         //   entityInteractionRange: 3.0 survival / 6.0 creative
         double blockReach = minecraft.player.blockInteractionRange();
         double entityReach = minecraft.player.entityInteractionRange();
-        Vec3 lookDirection = vectorToVec3(camera.getLookVector()).normalize();
+        Vec3 lookDirection = FocusScreenProjectionUtil.vectorToVec3(camera.getLookVector()).normalize();
 
         if (targetProjected && lockedTarget != null && lockedTarget.isAlive()) {
             // Aim from the player's eye toward the target so the pick angle matches the attack
@@ -114,9 +115,5 @@ public abstract class GameRendererMixin {
                 minecraft.crosshairPickEntity = entity;
             }
         }
-    }
-
-    private static Vec3 vectorToVec3(org.joml.Vector3f vector) {
-        return new Vec3(vector.x(), vector.y(), vector.z());
     }
 }

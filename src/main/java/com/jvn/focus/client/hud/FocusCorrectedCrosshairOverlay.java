@@ -20,12 +20,9 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
-import org.joml.Vector3f;
 
-@SuppressWarnings("removal")
 @EventBusSubscriber(modid = Focus.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class FocusCorrectedCrosshairOverlay {
     private static final ResourceLocation CORRECTED_CROSSHAIR_LAYER =
@@ -37,7 +34,6 @@ public final class FocusCorrectedCrosshairOverlay {
             ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_background");
     private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE =
             ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
-    private static final double MIN_DEPTH = 0.01D;
     private static final double CAMERA_RAY_DISTANCE = 64.0D;
 
     private FocusCorrectedCrosshairOverlay() {}
@@ -90,7 +86,7 @@ public final class FocusCorrectedCrosshairOverlay {
             return;
         }
 
-        ScreenPoint projected = projectToScreen(minecraft, correctedPoint, partialTick, guiGraphics.guiWidth(), guiGraphics.guiHeight());
+        FocusScreenProjectionUtil.ScreenPoint projected = FocusScreenProjectionUtil.projectToScreen(minecraft, correctedPoint, partialTick, guiGraphics.guiWidth(), guiGraphics.guiHeight());
         if (projected == null) {
             return;
         }
@@ -110,7 +106,7 @@ public final class FocusCorrectedCrosshairOverlay {
 
         Camera camera = minecraft.gameRenderer.getMainCamera();
         Vec3 from = minecraft.player.getEyePosition(partialTick);
-        Vec3 look = vectorToVec3(camera.getLookVector()).normalize();
+        Vec3 look = FocusScreenProjectionUtil.vectorToVec3(camera.getLookVector()).normalize();
         Vec3 to = from.add(look.scale(CAMERA_RAY_DISTANCE));
         BlockHitResult hitResult = minecraft.level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, minecraft.player));
         if (hitResult.getType() == HitResult.Type.MISS) {
@@ -119,7 +115,7 @@ public final class FocusCorrectedCrosshairOverlay {
         return hitResult.getLocation();
     }
 
-    private static void renderVanillaStyleCrosshair(GuiGraphics guiGraphics, Minecraft minecraft, ScreenPoint point) {
+    private static void renderVanillaStyleCrosshair(GuiGraphics guiGraphics, Minecraft minecraft, FocusScreenProjectionUtil.ScreenPoint point) {
         RenderSystem.enableBlend();
         RenderSystem.blendFuncSeparate(
                 GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR,
@@ -127,8 +123,8 @@ public final class FocusCorrectedCrosshairOverlay {
                 GlStateManager.SourceFactor.ONE,
                 GlStateManager.DestFactor.ZERO);
 
-        int crosshairX = Mth.floor(point.x - 7.5F);
-        int crosshairY = Mth.floor(point.y - 7.5F);
+        int crosshairX = Mth.floor(point.x() - 7.5F);
+        int crosshairY = Mth.floor(point.y() - 7.5F);
         guiGraphics.blitSprite(CROSSHAIR_SPRITE, crosshairX, crosshairY, 15, 15);
 
         if (minecraft.options.attackIndicator().get() == AttackIndicatorStatus.CROSSHAIR) {
@@ -139,8 +135,8 @@ public final class FocusCorrectedCrosshairOverlay {
                 showFullIndicator &= livingTarget.isAlive();
             }
 
-            int centerX = Mth.floor(point.x);
-            int centerY = Mth.floor(point.y);
+            int centerX = Mth.floor(point.x());
+            int centerY = Mth.floor(point.y());
             int indicatorY = centerY - 7 + 16;
             int indicatorX = centerX - 8;
             if (showFullIndicator) {
@@ -164,48 +160,4 @@ public final class FocusCorrectedCrosshairOverlay {
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableBlend();
     }
-
-    private static ScreenPoint projectToScreen(Minecraft minecraft, Vec3 worldPos, float partialTick, int guiWidth, int guiHeight) {
-        Camera camera = minecraft.gameRenderer.getMainCamera();
-        Vec3 relativePos = worldPos.subtract(camera.getPosition());
-
-        Vector3f leftVector = camera.getLeftVector();
-        Vector3f upVector = camera.getUpVector();
-        Vector3f lookVector = camera.getLookVector();
-
-        double depth = dot(relativePos, lookVector);
-        if (depth <= MIN_DEPTH) {
-            return null;
-        }
-
-        double horizontal = -dot(relativePos, leftVector);
-        double vertical = dot(relativePos, upVector);
-        double configuredFov = minecraft.options.fov().get();
-        double fovDegrees = ClientHooks.getFieldOfView(minecraft.gameRenderer, camera, partialTick, configuredFov, true);
-        double tanHalfFov = Math.tan(Math.toRadians(fovDegrees * 0.5D));
-        if (tanHalfFov <= 0.0D) {
-            return null;
-        }
-
-        double aspectRatio = (double) guiWidth / (double) guiHeight;
-        double ndcX = horizontal / (depth * tanHalfFov * aspectRatio);
-        double ndcY = vertical / (depth * tanHalfFov);
-        if (Math.abs(ndcX) > 1.0D || Math.abs(ndcY) > 1.0D) {
-            return null;
-        }
-
-        float screenX = (float) ((ndcX + 1.0D) * 0.5D * guiWidth);
-        float screenY = (float) ((1.0D - ndcY) * 0.5D * guiHeight);
-        return new ScreenPoint(screenX, screenY);
-    }
-
-    private static Vec3 vectorToVec3(Vector3f vector) {
-        return new Vec3(vector.x(), vector.y(), vector.z());
-    }
-
-    private static double dot(Vec3 vector, Vector3f other) {
-        return vector.x * other.x() + vector.y * other.y() + vector.z * other.z();
-    }
-
-    private record ScreenPoint(float x, float y) {}
 }

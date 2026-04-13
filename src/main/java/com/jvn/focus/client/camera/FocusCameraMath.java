@@ -71,4 +71,14 @@ final class FocusCameraMath {
         double easedBlend = clampedBlend * clampedBlend * (3.0D - 2.0D * clampedBlend);
         return Mth.lerp(clampedSmoothness, clampedBlend, easedBlend);
     }
+
+    static float targetSwapBlendToNormal(FocusCameraState state) {
+        if (state.targetSwapSmoothingTicks <= 0 || state.targetSwapSmoothingDurationTicks <= 0) {
+            return 1.0F;
+        }
+
+        float blendToNormal = 1.0F - (float) state.targetSwapSmoothingTicks / (float) state.targetSwapSmoothingDurationTicks;
+        blendToNormal = Mth.clamp(blendToNormal, 0.0F, 1.0F);
+        return blendToNormal * blendToNormal * (3.0F - 2.0F * blendToNormal);
+    }
 }
