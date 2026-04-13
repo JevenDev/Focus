@@ -63,10 +63,11 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
     private FocusCameraPose buildStaticPose(Vec3 targetPoint, FocusCameraState state) {
         FocusClientConfig.PerspectivePreset sourcePreset = FocusClientConfig.currentPreset(state.staticSwapSourceShoulder);
         FocusClientConfig.PerspectivePreset targetPreset = FocusClientConfig.currentPreset(state.activeShoulder);
-        state.staticSwapBlend = FocusCameraMath.smoothTowards(
+        state.staticSwapBlend = FocusCameraMath.smoothTowardsTimeAdjusted(
                 state.staticSwapBlend,
                 1.0D,
                 FocusClientConfig.cameraSwapSpeed(),
+                state.lastRenderDeltaTicks,
                 FocusClientConfig.MIN_CAMERA_SWAP_SPEED,
                 FocusClientConfig.MAX_CAMERA_SWAP_SPEED);
         double swapBlend = FocusCameraMath.applyBlendSmoothing(
@@ -89,7 +90,11 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
     private FocusCameraPose buildDynamicPose(FocusCameraTargetContext context, FocusCameraState state) {
         LocalPlayer player = context.player();
         FocusClientConfig.PerspectivePreset basePreset = FocusClientConfig.currentPreset(state.activeShoulder);
-        FocusClientConfig.PerspectivePreset swappedPreset = basePreset.mirroredForOppositeShoulder();
+        // Use the actual opposite-shoulder preset when the user has configured custom values;
+        // otherwise mirror the active shoulder preset for symmetry.
+        FocusClientConfig.PerspectivePreset swappedPreset = FocusClientConfig.useCustomSwappedShoulderValues()
+                ? FocusClientConfig.currentPreset(state.activeShoulder.opposite())
+                : basePreset.mirroredForOppositeShoulder();
         double targetDistance = context.lockedTarget() != null ? player.distanceTo(context.lockedTarget()) : player.getEyePosition().distanceTo(context.targetPoint());
         double nearFactor = 1.0D - Mth.clamp(
                 (targetDistance - DYNAMIC_NEAR_DISTANCE) / (DYNAMIC_FAR_DISTANCE - DYNAMIC_NEAR_DISTANCE),
@@ -112,10 +117,11 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
             if (!FocusClientConfig.dynamicShoulderAutoSwapEnabled()) {
                 updateDynamicAutoTargetBlend(player, context.targetPoint(), state);
             }
-            state.dynamicAutoCurrentBlend = FocusCameraMath.smoothTowards(
+            state.dynamicAutoCurrentBlend = FocusCameraMath.smoothTowardsTimeAdjusted(
                     state.dynamicAutoCurrentBlend,
                     state.dynamicAutoTargetBlend,
                     FocusClientConfig.dynamicCameraSwapSpeed(),
+                    state.lastRenderDeltaTicks,
                     FocusClientConfig.MIN_DYNAMIC_CAMERA_SWAP_SPEED,
                     FocusClientConfig.MAX_DYNAMIC_CAMERA_SWAP_SPEED);
         }

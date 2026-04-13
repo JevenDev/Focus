@@ -38,6 +38,8 @@ public final class LockOnHandler {
     private static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
     private static final int TARGET_SWAP_MIN_COOLDOWN_TICKS = 8;
+    private static final int OCCLUDED_GRACE_TICKS = 15;
+    private static final int OUT_OF_RANGE_GRACE_TICKS = 10;
 
     private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
 
@@ -47,6 +49,10 @@ public final class LockOnHandler {
     private static double pendingMouseDeltaY;
     private static int targetSwapCooldownTicks;
     private static boolean targetSwapReadyForNewFlick = true;
+    private static int occlusionGraceTicks;
+    private static int outOfRangeGraceTicks;
+    private static CameraType lockOnPreferredCameraType;
+    private static CameraType lastEnforcedCameraType;
 
     private LockOnHandler() {}
 
@@ -57,6 +63,10 @@ public final class LockOnHandler {
         if (player == null || minecraft.level == null) {
             lockedTarget = null;
             previousCameraType = null;
+            lastEnforcedCameraType = null;
+            lockOnPreferredCameraType = null;
+            occlusionGraceTicks = 0;
+            outOfRangeGraceTicks = 0;
             CAMERA_CONTROLLER.resetForWorldUnload();
             resetTargetSwapInput();
             return;
@@ -79,9 +89,11 @@ public final class LockOnHandler {
             if (replacementTarget != null) {
                 resetTargetSwapInput();
                 setLockedTarget(player, replacementTarget, true);
+                occlusionGraceTicks = 0;
+                outOfRangeGraceTicks = 0;
             } else {
                 lockedTarget = null;
-                clearLockState(false, null);
+                restoreCamera(minecraft);
                 player.displayClientMessage(Component.translatable("message.focus.lock_on.lost"), true);
             }
         } else if (lockedTarget != null && (isLockOnHiddenFromPlayer(player, lockedTarget) || !Targeting.isTargetAllowed(lockedTarget))) {
@@ -90,13 +102,30 @@ public final class LockOnHandler {
             player.displayClientMessage(Component.translatable("message.focus.lock_on.lost"), true);
         } else if (lockedTarget != null) {
             boolean obstructed = !hasDirectSight(player, lockedTarget);
+            double distanceSqr = player.distanceToSqr(lockedTarget);
             double maxDistanceSqr = obstructed ? OCCLUDED_LOCK_DISTANCE_SQR : MAX_LOCK_DISTANCE_SQR;
-            if (player.distanceToSqr(lockedTarget) > maxDistanceSqr) {
+
+            if (distanceSqr > maxDistanceSqr) {
+                outOfRangeGraceTicks++;
+            } else {
+                outOfRangeGraceTicks = 0;
+            }
+            if (obstructed) {
+                occlusionGraceTicks++;
+            } else {
+                occlusionGraceTicks = 0;
+            }
+
+            if (outOfRangeGraceTicks > OUT_OF_RANGE_GRACE_TICKS) {
                 lockedTarget = null;
                 restoreCamera(minecraft);
                 player.displayClientMessage(
                         Component.translatable(obstructed ? "message.focus.lock_on.obstructed" : "message.focus.lock_on.lost"),
                         true);
+            } else if (occlusionGraceTicks > OCCLUDED_GRACE_TICKS) {
+                lockedTarget = null;
+                restoreCamera(minecraft);
+                player.displayClientMessage(Component.translatable("message.focus.lock_on.obstructed"), true);
             }
         }
         CAMERA_CONTROLLER.updatePlayerVisibility(player, lockedTarget, 1.0F);
@@ -118,6 +147,8 @@ public final class LockOnHandler {
 
         if (lockedTarget != null) {
             CameraType cameraType = minecraft.options.getCameraType();
+            // Detect user-initiated perspective changes (F5) and remember their preference
+            boolean userChangedPerspective = lastEnforcedCameraType != null && cameraType != lastEnforcedCameraType;
             boolean allowFirstPerson = FocusClientConfig.allowFirstPersonWhileTargeting();
             boolean allowFrontFacing = FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting();
             if (cameraType.isFirstPerson() && !allowFirstPerson) {
@@ -125,6 +156,11 @@ public final class LockOnHandler {
             } else if (cameraType == CameraType.THIRD_PERSON_FRONT && !allowFrontFacing) {
                 minecraft.options.setCameraType(allowFirstPerson ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_BACK);
             }
+            CameraType enforcedType = minecraft.options.getCameraType();
+            if (userChangedPerspective) {
+                lockOnPreferredCameraType = enforcedType;
+            }
+            lastEnforcedCameraType = enforcedType;
         } else if (isCameraEditorPreviewActive() && minecraft.options.getCameraType() != CameraType.THIRD_PERSON_BACK) {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
@@ -132,6 +168,10 @@ public final class LockOnHandler {
 
     @SubscribeEvent
     public static void onRenderFrame(RenderFrameEvent.Pre event) {
+        float deltaTicks = Math.max(0.01F, event.getPartialTick().getRealtimeDeltaTicks());
+        // Always store frame timing for FPS-independent smoothing, even when not locked on.
+        CAMERA_CONTROLLER.storeRenderDeltaTicks(deltaTicks);
+
         if (lockedTarget == null) {
             return;
         }
@@ -143,7 +183,6 @@ public final class LockOnHandler {
         }
 
         float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
-        float deltaTicks = Math.max(0.01F, event.getPartialTick().getRealtimeDeltaTicks());
         CAMERA_CONTROLLER.onRenderFrame(player, lockedTarget, partialTick, deltaTicks);
     }
 
@@ -171,8 +210,14 @@ public final class LockOnHandler {
         lockedTarget = nextTarget;
         previousCameraType = minecraft.options.getCameraType();
         if (FocusClientConfig.autoSwitchToThirdPerson()) {
-            minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            CameraType preferredLockPerspective = lockOnPreferredCameraType != null
+                    ? lockOnPreferredCameraType
+                    : CameraType.THIRD_PERSON_BACK;
+            minecraft.options.setCameraType(preferredLockPerspective);
         }
+        lastEnforcedCameraType = minecraft.options.getCameraType();
+        occlusionGraceTicks = 0;
+        outOfRangeGraceTicks = 0;
         CAMERA_CONTROLLER.onTargetSet(player, nextTarget, false);
         CAMERA_CONTROLLER.onLockStarted(player, nextTarget);
         resetTargetSwapInput();
@@ -184,10 +229,16 @@ public final class LockOnHandler {
     }
 
     private static void clearLockState(boolean restorePreviousCameraType, Minecraft minecraft) {
-        if (restorePreviousCameraType && minecraft != null && previousCameraType != null) {
+        if (restorePreviousCameraType && previousCameraType != null) {
+            if (minecraft == null) {
+                minecraft = Minecraft.getInstance();
+            }
             minecraft.options.setCameraType(previousCameraType);
         }
         previousCameraType = null;
+        lastEnforcedCameraType = null;
+        occlusionGraceTicks = 0;
+        outOfRangeGraceTicks = 0;
         CAMERA_CONTROLLER.onLockEnded();
         resetTargetSwapInput();
     }
@@ -290,6 +341,14 @@ public final class LockOnHandler {
         return CAMERA_CONTROLLER.getDisplayedShoulder(lockedTarget != null);
     }
 
+    public static double getDynamicAutoCurrentBlend() {
+        return CAMERA_CONTROLLER.getDynamicAutoCurrentBlend();
+    }
+
+    public static double getStaticSwapBlend() {
+        return CAMERA_CONTROLLER.getStaticSwapBlend();
+    }
+
     public static void setActiveShoulder(FocusClientConfig.Shoulder shoulder) {
         CAMERA_CONTROLLER.setActiveShoulder(shoulder);
     }
@@ -332,7 +391,8 @@ public final class LockOnHandler {
         }
 
         Vec2 mouseDirection = new Vec2((float) pendingMouseDeltaX, (float) -pendingMouseDeltaY);
-        LivingEntity swappedTarget = Targeting.findDirectionalTarget(player, lockedTarget, mouseDirection);
+        Vec3 cameraLookDir = CAMERA_CONTROLLER.getSmoothedLookDirection();
+        LivingEntity swappedTarget = Targeting.findDirectionalTarget(player, lockedTarget, mouseDirection, cameraLookDir);
         if (swappedTarget == null) {
             dampenTargetSwapInput(0.45D);
             return;
@@ -499,7 +559,7 @@ public final class LockOnHandler {
             return bestTarget;
         }
 
-        private static LivingEntity findDirectionalTarget(LocalPlayer player, LivingEntity currentTarget, Vec2 mouseDirection) {
+        private static LivingEntity findDirectionalTarget(LocalPlayer player, LivingEntity currentTarget, Vec2 mouseDirection, Vec3 cameraLookDirection) {
             if (currentTarget == null) {
                 return null;
             }
@@ -513,7 +573,10 @@ public final class LockOnHandler {
             float mouseDirX = mouseDirection.x / mouseMagnitude;
             float mouseDirY = mouseDirection.y / mouseMagnitude;
             Vec3 eyePosition = player.getEyePosition();
-            Vec3 lookDirection = player.getLookAngle().normalize();
+            // Use camera look direction for accurate screen-space projection during lock-on
+            Vec3 lookDirection = cameraLookDirection.lengthSqr() > 1.0E-6D
+                    ? cameraLookDirection.normalize()
+                    : player.getLookAngle().normalize();
             Vec3 right = lookDirection.cross(new Vec3(0.0D, 1.0D, 0.0D));
             if (right.lengthSqr() < 1.0E-6D) {
                 right = new Vec3(1.0D, 0.0D, 0.0D);

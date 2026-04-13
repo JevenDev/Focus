@@ -23,6 +23,8 @@ public final class FocusCameraState {
     int targetSwapSmoothingDurationTicks;
     int initialLockCameraSnapTicks;
     int playerFollowDelayTicks;
+    int occlusionGraceTicks;
+    int outOfRangeGraceTicks;
 
     float freeLookYaw;
     float freeLookPitch;
@@ -30,6 +32,8 @@ public final class FocusCameraState {
     boolean freeLookRecentering;
     float playerTransparencyAlpha = 1.0F;
     int dynamicManualShoulderOverrideTicks;
+    /** Stores the most recent render-frame delta (in game ticks) for FPS-independent smoothing. */
+    float lastRenderDeltaTicks = 1.0F;
 
     public void resetForWorldUnload() {
         cameraEditorPreviewActive = false;
@@ -52,6 +56,8 @@ public final class FocusCameraState {
         targetSwapSmoothingDurationTicks = 0;
         initialLockCameraSnapTicks = 0;
         playerFollowDelayTicks = 0;
+        occlusionGraceTicks = 0;
+        outOfRangeGraceTicks = 0;
         freeLookYaw = 0.0F;
         freeLookPitch = 0.0F;
         freeLookInputActive = false;
