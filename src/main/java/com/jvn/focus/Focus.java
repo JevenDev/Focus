@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import com.jvn.focus.client.FocusClientConfig;
 import com.mojang.logging.LogUtils;
 
-import eu.midnightdust.lib.config.MidnightConfig;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -21,18 +20,10 @@ public final class Focus {
 
     public Focus(IEventBus modEventBus, ModContainer modContainer) {
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            // Defer config init to FMLClientSetupEvent so it does not run in parallel with
-            // MidnightLib's own MidnightConfig.init() call (which happens in its mod constructor).
-            // Both would otherwise race on MidnightConfig's static shared `entries` map and
-            // trigger a ConcurrentModificationException.
             modEventBus.addListener(this::onClientSetup);
-            // Register the config screen factory eagerly so the Config button is enabled in the
-            // mod list.  MidnightLib's own FMLClientSetupEvent handler that does this races with
-            // ours and may run before configInstances contains our mod ID. By the time a player
-            // can actually click the button the deferred init() above will have completed.
             modContainer.registerExtensionPoint(
                     IConfigScreenFactory.class,
-                    (mc, parent) -> MidnightConfig.getScreen(parent, MOD_ID));
+                    (mc, parent) -> FocusClientConfig.createConfigScreen(parent));
         }
         LOGGER.debug("Initializing {}", MOD_ID);
     }
