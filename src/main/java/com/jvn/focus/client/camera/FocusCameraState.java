@@ -32,6 +32,12 @@ public final class FocusCameraState {
     boolean freeLookRecentering;
     float playerTransparencyAlpha = 1.0F;
     int dynamicManualShoulderOverrideTicks;
+    /** How close the player is to the target horizontally (0 = on top, 1 = far enough). */
+    float closeRangeProximityFactor = 1.0F;
+    /** True when the player entered close range while holding forward — locks their heading. */
+    boolean closeRangeHeadingLocked;
+    /** The locked movement yaw, preserved until forward input is released. */
+    float closeRangeLockedHeadingYaw;
     /** Stores the most recent render-frame delta (in game ticks) for FPS-independent smoothing. */
     float lastRenderDeltaTicks = 1.0F;
 
@@ -64,5 +70,8 @@ public final class FocusCameraState {
         freeLookRecentering = false;
         playerTransparencyAlpha = 1.0F;
         dynamicManualShoulderOverrideTicks = 0;
+        closeRangeProximityFactor = 1.0F;
+        closeRangeHeadingLocked = false;
+        closeRangeLockedHeadingYaw = 0.0F;
     }
 }
