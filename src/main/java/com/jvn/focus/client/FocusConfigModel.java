@@ -46,9 +46,9 @@ public class FocusConfigModel {
 
     // Hidden camera fields — persisted for preset compatibility, not shown in screen
     @ExcludeFromScreen
-    public double cameraSwapSmoothness = 1.0;
+    public double cameraSwapSmoothness = 0.9;
     @ExcludeFromScreen
-    public double dynamicCameraSwapSmoothness = 0.0;
+    public double dynamicCameraSwapSmoothness = 0.12;
     @ExcludeFromScreen
     public double dynamicShoulderScreenPlacementWeight = 0.3;
     @ExcludeFromScreen
@@ -106,10 +106,10 @@ public class FocusConfigModel {
 
     public static class CameraBehavior {
         @RangeConstraint(min = 0.01, max = 1.0)
-        public double cameraFloatiness = 0.25;
+        public double cameraFloatiness = 0.32;
 
         @RangeConstraint(min = 0.0, max = 0.95)
-        public double cameraDrag = 0.95;
+        public double cameraDrag = 0.88;
 
         @RangeConstraint(min = 0.001, max = 1.0)
         public double cameraStepSize = 0.025;
@@ -144,10 +144,10 @@ public class FocusConfigModel {
 
     public static class ShoulderSwap {
         @RangeConstraint(min = 0.01, max = 1.0)
-        public double cameraSwapSpeed = 0.1;
+        public double cameraSwapSpeed = 0.16;
 
         @RangeConstraint(min = 0.01, max = 1.0)
-        public double dynamicCameraSwapSpeed = 0.01;
+        public double dynamicCameraSwapSpeed = 0.12;
 
         public boolean dynamicShoulderAutoSwapEnabled = true;
 

@@ -29,16 +29,16 @@ import net.neoforged.fml.loading.FMLPaths;
 
 public final class FocusClientConfig {
 
-    public static final double DEFAULT_CAMERA_OFFSET_X = -2.0D;
-    public static final double DEFAULT_CAMERA_OFFSET_Y = 0.4D;
-    public static final double DEFAULT_CAMERA_OFFSET_Z = 1.5D;
-    public static final double DEFAULT_CAMERA_ROTATION = 0.0D;
-    public static final double DEFAULT_CAMERA_FLOATINESS = 0.25D;
-    public static final double DEFAULT_CAMERA_DRAG = 0.95D;
-    public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.1D;
-    public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 1.0D;
-    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.5D;
-    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
+    public static final double DEFAULT_CAMERA_OFFSET_X = -1.2D;
+    public static final double DEFAULT_CAMERA_OFFSET_Y = 0.5D;
+    public static final double DEFAULT_CAMERA_OFFSET_Z = 1.0D;
+    public static final double DEFAULT_CAMERA_ROTATION = -2.0D;
+    public static final double DEFAULT_CAMERA_FLOATINESS = 0.32D;
+    public static final double DEFAULT_CAMERA_DRAG = 0.88D;
+    public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.16D;
+    public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 0.9D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.12D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.12D;
     public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
     public static final FocusCameraMode DEFAULT_CAMERA_OWNERSHIP_MODE = FocusCameraMode.COUPLED;
