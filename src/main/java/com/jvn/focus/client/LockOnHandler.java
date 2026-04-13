@@ -1,10 +1,11 @@
 package com.jvn.focus.client;
 
 import com.jvn.focus.Focus;
+import com.jvn.focus.client.camera.FocusCameraController;
+import com.jvn.focus.client.camera.FocusCameraPose;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -17,11 +18,11 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.level.ClipContext;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -36,48 +37,15 @@ public final class LockOnHandler {
     private static final double OCCLUDED_LOCK_DISTANCE = 10.0D;
     private static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
-    private static final float LOOK_RESPONSIVENESS_YAW = 10.0F;
-    private static final float LOOK_RESPONSIVENESS_PITCH = 8.0F;
-    private static final float LOOK_MAX_YAW_STEP_PER_TICK = 12.0F;
-    private static final float LOOK_MAX_PITCH_STEP_PER_TICK = 9.0F;
-    private static final float BODY_MAX_STRAFE_OFFSET = 16.0F;
-    private static final float BODY_TURN_RESPONSIVENESS = 10.0F;
-    private static final float BODY_FORWARD_DAMPING = 0.65F;
-    private static final float TARGET_SWAP_HEAD_FOLLOW_BONUS = 0.25F;
     private static final int TARGET_SWAP_MIN_COOLDOWN_TICKS = 8;
-    private static final float TARGET_POINT_RESPONSIVENESS = 16.0F;
-    private static final double DYNAMIC_NEAR_DISTANCE = 2.0D;
-    private static final double DYNAMIC_FAR_DISTANCE = 12.0D;
-    private static final double DYNAMIC_EXTRA_OFFSET_Z_NEAR = 1.2D;
-    private static final double DYNAMIC_EXTRA_OFFSET_Y_NEAR = 0.35D;
-    private static final double DYNAMIC_EXTRA_OFFSET_X_NEAR = 0.4D;
-    private static final double DYNAMIC_INITIAL_SHOULDER_SWITCH_THRESHOLD = 0.45D;
-    private static final double DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS = Math.toRadians(2.0D);
-    private static final int INITIAL_LOCK_CAMERA_SNAP_TICKS = 4;
-    private static final float TARGET_SWAP_CAMERA_POSITION_FACTOR_MIN = 0.22F;
-    private static final float TARGET_SWAP_CAMERA_ROTATION_FACTOR_MIN = 0.2F;
+
+    private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
 
     private static LivingEntity lockedTarget;
     private static CameraType previousCameraType;
-    private static float smoothedLookYaw;
-    private static float smoothedLookPitch;
-    private static float smoothedBodyYawOffset;
-    private static Vec3 smoothedTargetPoint = Vec3.ZERO;
-    private static boolean smoothingInitialized;
-    private static boolean cameraEditorPreviewActive;
-    private static FocusClientConfig.Shoulder activeShoulder = FocusClientConfig.Shoulder.LEFT;
-    private static FocusClientConfig.Shoulder staticSwapSourceShoulder = FocusClientConfig.Shoulder.LEFT;
-    private static double staticSwapBlend = 1.0D;
-    private static double dynamicAutoTargetBlend;
-    private static double dynamicAutoCurrentBlend;
-    private static Vec3 previousDynamicTargetOffset = Vec3.ZERO;
-    private static boolean dynamicSwapReferenceInitialized;
     private static double pendingMouseDeltaX;
     private static double pendingMouseDeltaY;
     private static int targetSwapCooldownTicks;
-    private static int targetSwapSmoothingTicks;
-    private static int targetSwapSmoothingDurationTicks;
-    private static int initialLockCameraSnapTicks;
     private static boolean targetSwapReadyForNewFlick = true;
 
     private LockOnHandler() {}
@@ -89,19 +57,8 @@ public final class LockOnHandler {
         if (player == null || minecraft.level == null) {
             lockedTarget = null;
             previousCameraType = null;
-            smoothingInitialized = false;
-            smoothedBodyYawOffset = 0.0F;
-            cameraEditorPreviewActive = false;
-            staticSwapSourceShoulder = activeShoulder;
-            staticSwapBlend = 1.0D;
-            dynamicAutoTargetBlend = 0.0D;
-            dynamicAutoCurrentBlend = 0.0D;
-            previousDynamicTargetOffset = Vec3.ZERO;
-            dynamicSwapReferenceInitialized = false;
+            CAMERA_CONTROLLER.resetForWorldUnload();
             resetTargetSwapInput();
-            targetSwapSmoothingTicks = 0;
-            targetSwapSmoothingDurationTicks = 0;
-            initialLockCameraSnapTicks = 0;
             return;
         }
 
@@ -111,6 +68,10 @@ public final class LockOnHandler {
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
             swapShoulder(player, true);
         }
+        handleOwnershipAndFreeLookInput(player);
+        boolean freeLookActive = isFreeLookActive()
+                || (lockedTarget == null && isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown());
+        CAMERA_CONTROLLER.setFreeLookInputActive(freeLookActive);
         handleCameraAdjustmentInput(player);
 
         if (lockedTarget != null && !lockedTarget.isAlive()) {
@@ -138,6 +99,7 @@ public final class LockOnHandler {
                         true);
             }
         }
+        CAMERA_CONTROLLER.updatePlayerVisibility(player, lockedTarget, 1.0F);
 
         if (targetSwapCooldownTicks > 0) {
             targetSwapCooldownTicks--;
@@ -147,25 +109,11 @@ public final class LockOnHandler {
                 pendingMouseDeltaY = 0.0D;
             }
         }
-        if (targetSwapSmoothingTicks > 0) {
-            targetSwapSmoothingTicks--;
-            if (targetSwapSmoothingTicks == 0) {
-                targetSwapSmoothingDurationTicks = 0;
-            }
-        }
-        if (lockedTarget != null) {
-            if (initialLockCameraSnapTicks > 0) {
-                initialLockCameraSnapTicks--;
-            }
-        } else {
-            initialLockCameraSnapTicks = 0;
-        }
-        if (lockedTarget != null) {
+        CAMERA_CONTROLLER.onClientTick(lockedTarget != null);
+        if (lockedTarget != null && !freeLookActive) {
             tryDirectionalTargetSwap(player);
         } else {
             resetTargetSwapInput();
-            targetSwapSmoothingTicks = 0;
-            targetSwapSmoothingDurationTicks = 0;
         }
 
         if (lockedTarget != null) {
@@ -177,7 +125,7 @@ public final class LockOnHandler {
             } else if (cameraType == CameraType.THIRD_PERSON_FRONT && !allowFrontFacing) {
                 minecraft.options.setCameraType(allowFirstPerson ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_BACK);
             }
-        } else if (cameraEditorPreviewActive && minecraft.options.getCameraType() != CameraType.THIRD_PERSON_BACK) {
+        } else if (isCameraEditorPreviewActive() && minecraft.options.getCameraType() != CameraType.THIRD_PERSON_BACK) {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
     }
@@ -194,20 +142,15 @@ public final class LockOnHandler {
             return;
         }
 
-        if (!smoothingInitialized) {
-            initializeSmoothing(player, getTargetAimPoint(lockedTarget, 1.0F));
-        }
-
         float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
         float deltaTicks = Math.max(0.01F, event.getPartialTick().getRealtimeDeltaTicks());
-        updateSmoothedOrientation(player, lockedTarget, partialTick, deltaTicks);
-        applyPlayerLook(player, smoothedLookYaw, smoothedLookPitch);
+        CAMERA_CONTROLLER.onRenderFrame(player, lockedTarget, partialTick, deltaTicks);
     }
 
     @SubscribeEvent
     public static void onDetachedCameraDistance(CalculateDetachedCameraDistanceEvent event) {
-        if (lockedTarget != null || cameraEditorPreviewActive) {
-            event.setDistance((float) Math.max(currentDetachedCameraDistance(), 4.0D));
+        if (lockedTarget != null || isCameraEditorPreviewActive()) {
+            event.setDistance((float) Math.max(CAMERA_CONTROLLER.currentDetachedCameraDistance(lockedTarget != null), 4.0D));
         }
     }
 
@@ -230,90 +173,10 @@ public final class LockOnHandler {
         if (FocusClientConfig.autoSwitchToThirdPerson()) {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         }
-        setLockedTarget(player, nextTarget, false);
-        snapPlayerLookToTarget(player, nextTarget);
-        staticSwapSourceShoulder = activeShoulder;
-        staticSwapBlend = 1.0D;
-        initializeDynamicAutoShoulderBlend(player, nextTarget);
+        CAMERA_CONTROLLER.onTargetSet(player, nextTarget, false);
+        CAMERA_CONTROLLER.onLockStarted(player, nextTarget);
         resetTargetSwapInput();
-        initialLockCameraSnapTicks = INITIAL_LOCK_CAMERA_SNAP_TICKS;
         player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
-    }
-
-    private static void initializeSmoothing(LocalPlayer player, Vec3 targetPoint) {
-        smoothedLookYaw = player.getYRot();
-        smoothedLookPitch = player.getXRot();
-        smoothedBodyYawOffset = 0.0F;
-        smoothedTargetPoint = targetPoint;
-        smoothingInitialized = true;
-    }
-
-    private static void updateSmoothedOrientation(LocalPlayer player, LivingEntity target, float partialTick, float deltaTicks) {
-        float targetPointResponsiveness = TARGET_POINT_RESPONSIVENESS;
-        float lookYawResponsiveness = LOOK_RESPONSIVENESS_YAW;
-        float lookPitchResponsiveness = LOOK_RESPONSIVENESS_PITCH;
-        float lookYawMaxStep = LOOK_MAX_YAW_STEP_PER_TICK;
-        float lookPitchMaxStep = LOOK_MAX_PITCH_STEP_PER_TICK;
-        if (targetSwapSmoothingTicks > 0 && targetSwapSmoothingDurationTicks > 0) {
-            float easedBlend = currentTargetSwapBlendToNormal();
-            targetPointResponsiveness = Mth.lerp(
-                    easedBlend,
-                    FocusClientConfig.targetSwapTargetPointResponsiveness(),
-                    TARGET_POINT_RESPONSIVENESS);
-            lookYawResponsiveness = Mth.lerp(
-                    easedBlend,
-                    FocusClientConfig.targetSwapLookYawResponsiveness(),
-                    LOOK_RESPONSIVENESS_YAW);
-            lookPitchResponsiveness = Mth.lerp(
-                    easedBlend,
-                    FocusClientConfig.targetSwapLookPitchResponsiveness(),
-                    LOOK_RESPONSIVENESS_PITCH);
-            lookYawMaxStep = Mth.lerp(
-                    easedBlend,
-                    FocusClientConfig.targetSwapLookMaxYawStepPerTick(),
-                    LOOK_MAX_YAW_STEP_PER_TICK);
-            lookPitchMaxStep = Mth.lerp(
-                    easedBlend,
-                    FocusClientConfig.targetSwapLookMaxPitchStepPerTick(),
-                    LOOK_MAX_PITCH_STEP_PER_TICK);
-        }
-
-        Vec3 currentTargetPoint = getTargetAimPoint(target, partialTick);
-        smoothedTargetPoint = SmoothingMath.smoothVec(smoothedTargetPoint, currentTargetPoint, targetPointResponsiveness, deltaTicks);
-
-        float targetYaw = SmoothingMath.computeTargetYaw(player, smoothedTargetPoint, partialTick);
-        float targetPitch = SmoothingMath.computeTargetPitch(player, smoothedTargetPoint, partialTick);
-
-        smoothedLookYaw = SmoothingMath.smoothAngle(
-                smoothedLookYaw, targetYaw, lookYawResponsiveness, lookYawMaxStep, deltaTicks);
-        smoothedLookPitch = SmoothingMath.smoothAngle(
-                smoothedLookPitch, targetPitch, lookPitchResponsiveness, lookPitchMaxStep, deltaTicks);
-        smoothedBodyYawOffset = SmoothingMath.smoothValue(
-                smoothedBodyYawOffset,
-                SmoothingMath.computeDesiredBodyYawOffset(player, BODY_FORWARD_DAMPING, BODY_MAX_STRAFE_OFFSET),
-                BODY_TURN_RESPONSIVENESS,
-                deltaTicks);
-    }
-
-    private static void applyPlayerLook(LocalPlayer player, float yaw, float pitch) {
-        float appliedYaw = yaw;
-        float appliedPitch = pitch;
-        float headYaw = yaw;
-        if (targetSwapSmoothingTicks > 0 && targetSwapSmoothingDurationTicks > 0) {
-            float easedBlend = currentTargetSwapBlendToNormal();
-            float followAlpha = Mth.lerp(easedBlend, FocusClientConfig.targetSwapPlayerLookFollow(), 1.0F);
-            appliedYaw = Mth.rotLerp(followAlpha, player.getYRot(), yaw);
-            appliedPitch = Mth.lerp(followAlpha, player.getXRot(), pitch);
-            float headFollowAlpha = Mth.clamp(followAlpha + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F);
-            headYaw = Mth.rotLerp(headFollowAlpha, player.getYHeadRot(), yaw);
-        } else {
-            headYaw = appliedYaw;
-        }
-        float clampedPitch = Mth.clamp(appliedPitch, -90.0F, 90.0F);
-        player.setYRot(appliedYaw);
-        player.setXRot(clampedPitch);
-        player.setYHeadRot(headYaw);
-        player.setYBodyRot(appliedYaw + smoothedBodyYawOffset);
     }
 
     private static void restoreCamera(Minecraft minecraft) {
@@ -325,78 +188,17 @@ public final class LockOnHandler {
             minecraft.options.setCameraType(previousCameraType);
         }
         previousCameraType = null;
-        smoothingInitialized = false;
-        smoothedBodyYawOffset = 0.0F;
-        staticSwapSourceShoulder = activeShoulder;
-        staticSwapBlend = 1.0D;
-        dynamicAutoTargetBlend = 0.0D;
-        dynamicAutoCurrentBlend = 0.0D;
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
+        CAMERA_CONTROLLER.onLockEnded();
         resetTargetSwapInput();
-        targetSwapSmoothingTicks = 0;
-        targetSwapSmoothingDurationTicks = 0;
-        initialLockCameraSnapTicks = 0;
     }
 
     private static void setLockedTarget(LocalPlayer player, LivingEntity nextTarget, boolean applySwapSmoothing) {
         lockedTarget = nextTarget;
-        if (!smoothingInitialized) {
-            initializeSmoothing(player, getTargetAimPoint(nextTarget, 1.0F));
-        }
-        if (applySwapSmoothing) {
-            targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
-            targetSwapSmoothingTicks = targetSwapSmoothingDurationTicks;
-        } else {
-            targetSwapSmoothingTicks = 0;
-            targetSwapSmoothingDurationTicks = 0;
-        }
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
-    }
-
-    private static void snapPlayerLookToTarget(LocalPlayer player, LivingEntity target) {
-        Vec3 targetPoint = getTargetAimPoint(target, 1.0F);
-        initializeSmoothing(player, targetPoint);
-        smoothedLookYaw = SmoothingMath.computeTargetYaw(player, targetPoint, 1.0F);
-        smoothedLookPitch = SmoothingMath.computeTargetPitch(player, targetPoint, 1.0F);
-        smoothedTargetPoint = targetPoint;
-        applyPlayerLook(player, smoothedLookYaw, smoothedLookPitch);
-    }
-
-    private static void initializeDynamicAutoShoulderBlend(LocalPlayer player, LivingEntity target) {
-        double initialBlend = 0.0D;
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
-        if (FocusClientConfig.cameraMode() != FocusClientConfig.CameraMode.DYNAMIC) {
-            dynamicAutoTargetBlend = 0.0D;
-            dynamicAutoCurrentBlend = 0.0D;
-            return;
-        }
-
-        Vec3 toTargetFlat = getTargetAimPoint(target, 1.0F).subtract(player.position()).multiply(1.0D, 0.0D, 1.0D);
-        if (toTargetFlat.lengthSqr() <= 1.0E-6D) {
-            dynamicAutoTargetBlend = 0.0D;
-            dynamicAutoCurrentBlend = 0.0D;
-            return;
-        }
-
-        float yawRad = player.getYRot() * ((float) Math.PI / 180.0F);
-        Vec3 right = new Vec3(Mth.cos(yawRad), 0.0D, Mth.sin(yawRad));
-        double lateral = toTargetFlat.normalize().dot(right);
-        if (lateral > DYNAMIC_INITIAL_SHOULDER_SWITCH_THRESHOLD) {
-            initialBlend = 1.0D;
-        }
-        dynamicAutoTargetBlend = initialBlend;
-        dynamicAutoCurrentBlend = initialBlend;
+        CAMERA_CONTROLLER.onTargetSet(player, nextTarget, applySwapSmoothing);
     }
 
     private static LivingEntity findTarget(LocalPlayer player) {
         return Targeting.findTarget(player);
-    }
-
-    private static Vec3 getTargetAimPoint(LivingEntity target, float partialTick) {
-        return Targeting.getTargetAimPoint(target, partialTick);
     }
 
     private static boolean hasDirectSight(LocalPlayer player, LivingEntity target) {
@@ -408,7 +210,15 @@ public final class LockOnHandler {
     }
 
     public static void onRawMouseInput(double deltaX, double deltaY) {
-        if (lockedTarget == null) {
+        boolean previewFreeLook = lockedTarget == null && isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown();
+        if (lockedTarget == null && !previewFreeLook) {
+            return;
+        }
+
+        if (isFreeLookActive() || previewFreeLook) {
+            // Priority: free-look consumes raw mouse deltas before directional target-swap logic.
+            float sensitivity = FocusClientConfig.freeLookSensitivity();
+            CAMERA_CONTROLLER.addFreeLookDelta((float) deltaX * sensitivity, (float) -deltaY * sensitivity);
             return;
         }
 
@@ -420,44 +230,36 @@ public final class LockOnHandler {
         return lockedTarget;
     }
 
-    public static CameraLockData getActiveCameraData(LocalPlayer player, float partialTick) {
+    public static FocusCameraPose getActiveCameraData(LocalPlayer player, float partialTick) {
         if (player == null) {
             return null;
         }
 
-        if (lockedTarget != null) {
-            return getLockedTargetCameraData(player, partialTick);
-        }
-
-        if (cameraEditorPreviewActive) {
-            return getEditorPreviewCameraData(player, partialTick);
-        }
-
-        return null;
+        return CAMERA_CONTROLLER.getActiveCameraPose(player, lockedTarget, partialTick);
     }
 
     public static float getTargetSwapBlendToNormal() {
-        return currentTargetSwapBlendToNormal();
+        return CAMERA_CONTROLLER.getTargetSwapBlendToNormal();
     }
 
     public static float getTargetSwapCameraPositionFactor() {
-        return Mth.lerp(getTargetSwapBlendToNormal(), TARGET_SWAP_CAMERA_POSITION_FACTOR_MIN, 1.0F);
+        return CAMERA_CONTROLLER.getTargetSwapCameraPositionFactor();
     }
 
     public static float getTargetSwapCameraRotationFactor() {
-        return Mth.lerp(getTargetSwapBlendToNormal(), TARGET_SWAP_CAMERA_ROTATION_FACTOR_MIN, 1.0F);
+        return CAMERA_CONTROLLER.getTargetSwapCameraRotationFactor();
     }
 
     public static boolean isInitialLockCameraSnapActive() {
-        return initialLockCameraSnapTicks > 0;
+        return CAMERA_CONTROLLER.isInitialLockCameraSnapActive();
     }
 
     public static void startCameraEditorPreview() {
-        cameraEditorPreviewActive = true;
+        CAMERA_CONTROLLER.startCameraEditorPreview();
     }
 
     public static void stopCameraEditorPreview(CameraType previousCameraType) {
-        cameraEditorPreviewActive = false;
+        CAMERA_CONTROLLER.stopCameraEditorPreview();
         if (lockedTarget == null && previousCameraType != null) {
             Minecraft minecraft = Minecraft.getInstance();
             minecraft.options.setCameraType(previousCameraType);
@@ -465,7 +267,7 @@ public final class LockOnHandler {
     }
 
     public static boolean isCameraEditorPreviewActive() {
-        return cameraEditorPreviewActive;
+        return CAMERA_CONTROLLER.isCameraEditorPreviewActive();
     }
 
     public static boolean hasLineOfSightToLockedTarget(LocalPlayer player) {
@@ -481,210 +283,28 @@ public final class LockOnHandler {
     }
 
     public static FocusClientConfig.Shoulder getActiveShoulder() {
-        return activeShoulder;
+        return CAMERA_CONTROLLER.getActiveShoulder();
     }
 
     public static FocusClientConfig.Shoulder getDisplayedShoulder() {
-        if (lockedTarget != null && FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
-            return dynamicDisplayedShoulder(dynamicAutoCurrentBlend);
-        }
-        return activeShoulder;
+        return CAMERA_CONTROLLER.getDisplayedShoulder(lockedTarget != null);
     }
 
     public static void setActiveShoulder(FocusClientConfig.Shoulder shoulder) {
-        if (shoulder != null) {
-            activeShoulder = shoulder;
-            staticSwapSourceShoulder = shoulder;
-            staticSwapBlend = 1.0D;
-            dynamicAutoTargetBlend = 0.0D;
-            dynamicAutoCurrentBlend = 0.0D;
-            previousDynamicTargetOffset = Vec3.ZERO;
-            dynamicSwapReferenceInitialized = false;
-        }
+        CAMERA_CONTROLLER.setActiveShoulder(shoulder);
     }
 
     public static FocusClientConfig.Shoulder swapShoulder(LocalPlayer player, boolean showMessage) {
-        if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
-            FocusClientConfig.Shoulder displayedShoulder = dynamicDisplayedShoulder(dynamicAutoCurrentBlend);
-            FocusClientConfig.Shoulder desiredDisplayedShoulder = displayedShoulder.opposite();
-            double preservedBlend = Mth.clamp(dynamicAutoCurrentBlend, 0.0D, 1.0D);
-            if (desiredDisplayedShoulder != activeShoulder) {
-                // Keep the current camera pose continuous while changing basis.
-                activeShoulder = desiredDisplayedShoulder;
-                dynamicAutoCurrentBlend = 1.0D - preservedBlend;
-            } else {
-                dynamicAutoCurrentBlend = preservedBlend;
-            }
-            dynamicAutoTargetBlend = 0.0D;
-            previousDynamicTargetOffset = Vec3.ZERO;
-            dynamicSwapReferenceInitialized = false;
-        } else {
-            FocusClientConfig.Shoulder previousShoulder = activeShoulder;
-            activeShoulder = activeShoulder.opposite();
-            staticSwapSourceShoulder = previousShoulder;
-            staticSwapBlend = 0.0D;
-        }
-        if (showMessage && player != null) {
-            player.displayClientMessage(
-                    Component.translatable("message.focus.lock_on.shoulder_swapped", activeShoulder.displayName()),
-                    true);
-        }
-        return activeShoulder;
+        return CAMERA_CONTROLLER.swapShoulder(player, showMessage, lockedTarget != null);
     }
 
-    private static CameraLockData getLockedTargetCameraData(LocalPlayer player, float partialTick) {
-        if (!smoothingInitialized) {
-            initializeSmoothing(player, getTargetAimPoint(lockedTarget, partialTick));
-        }
-
-        Vec3 targetPoint = smoothedTargetPoint.lengthSqr() > 0.0D ? smoothedTargetPoint : getTargetAimPoint(lockedTarget, partialTick);
-        if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
-            return buildDynamicCameraLockData(player, targetPoint);
-        }
-
-        dynamicAutoTargetBlend = 0.0D;
-        dynamicAutoCurrentBlend = 0.0D;
-        previousDynamicTargetOffset = Vec3.ZERO;
-        dynamicSwapReferenceInitialized = false;
-        return buildStaticCameraLockData(targetPoint);
+    public static float playerTransparencyAlpha() {
+        return CAMERA_CONTROLLER.playerTransparencyAlpha();
     }
 
-    private static CameraLockData getEditorPreviewCameraData(LocalPlayer player, float partialTick) {
-        Vec3 eye = player.getEyePosition(partialTick);
-        Vec3 forward = player.getViewVector(partialTick);
-        Vec3 targetPoint = eye.add(forward.scale(8.0D));
-        return buildCameraLockData(targetPoint, activeShoulder);
-    }
-
-    private static CameraLockData buildCameraLockData(Vec3 targetPoint, FocusClientConfig.Shoulder shoulder) {
-        FocusClientConfig.PerspectivePreset preset = FocusClientConfig.currentPreset(shoulder);
-        return new CameraLockData(
-                targetPoint,
-                preset.offsetX(),
-                preset.offsetY(),
-                preset.offsetZ(),
-                (float) preset.rotation());
-    }
-
-    private static CameraLockData buildStaticCameraLockData(Vec3 targetPoint) {
-        FocusClientConfig.PerspectivePreset sourcePreset = FocusClientConfig.currentPreset(staticSwapSourceShoulder);
-        FocusClientConfig.PerspectivePreset targetPreset = FocusClientConfig.currentPreset(activeShoulder);
-        staticSwapBlend = smoothTowards(
-                staticSwapBlend,
-                1.0D,
-                FocusClientConfig.cameraSwapSpeed(),
-                FocusClientConfig.MIN_CAMERA_SWAP_SPEED,
-                FocusClientConfig.MAX_CAMERA_SWAP_SPEED);
-        double swapBlend = applyBlendSmoothing(
-                staticSwapBlend,
-                FocusClientConfig.cameraSwapSmoothness(),
-                FocusClientConfig.MIN_CAMERA_SWAP_SMOOTHNESS,
-                FocusClientConfig.MAX_CAMERA_SWAP_SMOOTHNESS);
-        if (staticSwapBlend >= 0.999D) {
-            staticSwapSourceShoulder = activeShoulder;
-            staticSwapBlend = 1.0D;
-        }
-        return new CameraLockData(
-                targetPoint,
-                Mth.lerp(swapBlend, sourcePreset.offsetX(), targetPreset.offsetX()),
-                Mth.lerp(swapBlend, sourcePreset.offsetY(), targetPreset.offsetY()),
-                Mth.lerp(swapBlend, sourcePreset.offsetZ(), targetPreset.offsetZ()),
-                (float) Mth.lerp(swapBlend, sourcePreset.rotation(), targetPreset.rotation()));
-    }
-
-    private static CameraLockData buildDynamicCameraLockData(LocalPlayer player, Vec3 targetPoint) {
-        if (isInitialLockCameraSnapActive()) {
-            Vec3 currentOffset = targetPoint.subtract(player.position()).multiply(1.0D, 0.0D, 1.0D);
-            if (currentOffset.lengthSqr() > 1.0E-6D) {
-                previousDynamicTargetOffset = currentOffset;
-                dynamicSwapReferenceInitialized = true;
-            }
-            dynamicAutoCurrentBlend = dynamicAutoTargetBlend;
-        } else {
-            updateDynamicAutoTargetBlend(player, targetPoint);
-            dynamicAutoCurrentBlend = smoothTowards(
-                    dynamicAutoCurrentBlend,
-                    dynamicAutoTargetBlend,
-                    FocusClientConfig.dynamicCameraSwapSpeed(),
-                    FocusClientConfig.MIN_DYNAMIC_CAMERA_SWAP_SPEED,
-                    FocusClientConfig.MAX_DYNAMIC_CAMERA_SWAP_SPEED);
-        }
-
-        FocusClientConfig.PerspectivePreset basePreset = FocusClientConfig.currentPreset(activeShoulder);
-        FocusClientConfig.PerspectivePreset swappedPreset = basePreset.mirroredForOppositeShoulder();
-        double swapBlend = applyBlendSmoothing(
-                dynamicAutoCurrentBlend,
-                FocusClientConfig.dynamicCameraSwapSmoothness(),
-                FocusClientConfig.MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS,
-                FocusClientConfig.MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
-        double presetOffsetX = Mth.lerp(swapBlend, basePreset.offsetX(), swappedPreset.offsetX());
-        double presetOffsetY = Mth.lerp(swapBlend, basePreset.offsetY(), swappedPreset.offsetY());
-        double presetOffsetZ = Mth.lerp(swapBlend, basePreset.offsetZ(), swappedPreset.offsetZ());
-        double presetRotation = Mth.lerp(swapBlend, basePreset.rotation(), swappedPreset.rotation());
-
-        double targetDistance = lockedTarget != null ? player.distanceTo(lockedTarget) : player.getEyePosition().distanceTo(targetPoint);
-        double nearFactor = 1.0D - Mth.clamp(
-                (targetDistance - DYNAMIC_NEAR_DISTANCE) / (DYNAMIC_FAR_DISTANCE - DYNAMIC_NEAR_DISTANCE),
-                0.0D,
-                1.0D);
-
-        double sourceSign = activeShoulder == FocusClientConfig.Shoulder.LEFT ? -1.0D : 1.0D;
-        double targetSign = -sourceSign;
-        double offsetXSign = Mth.lerp(swapBlend, sourceSign, targetSign);
-        double offsetX = clamp(
-                presetOffsetX + offsetXSign * DYNAMIC_EXTRA_OFFSET_X_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_X,
-                FocusClientConfig.MAX_CAMERA_OFFSET_X);
-        double offsetY = clamp(
-                presetOffsetY + DYNAMIC_EXTRA_OFFSET_Y_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_Y,
-                FocusClientConfig.MAX_CAMERA_OFFSET_Y);
-        double offsetZ = clamp(
-                presetOffsetZ + DYNAMIC_EXTRA_OFFSET_Z_NEAR * nearFactor,
-                FocusClientConfig.MIN_CAMERA_OFFSET_Z,
-                FocusClientConfig.MAX_CAMERA_OFFSET_Z);
-
-        return new CameraLockData(
-                targetPoint,
-                offsetX,
-                offsetY,
-                offsetZ,
-                (float) presetRotation);
-    }
-
-    private static void updateDynamicAutoTargetBlend(LocalPlayer player, Vec3 targetPoint) {
-        Vec3 currentOffset = targetPoint.subtract(player.position()).multiply(1.0D, 0.0D, 1.0D);
-        if (currentOffset.lengthSqr() < 1.0E-6D) {
-            return;
-        }
-        if (dynamicSwapReferenceInitialized) {
-            double cross = previousDynamicTargetOffset.x * currentOffset.z - previousDynamicTargetOffset.z * currentOffset.x;
-            double dot = previousDynamicTargetOffset.x * currentOffset.x + previousDynamicTargetOffset.z * currentOffset.z;
-            double deltaAngle = Math.atan2(cross, dot);
-
-            FocusClientConfig.Shoulder displayedShoulder = dynamicDisplayedShoulder(dynamicAutoCurrentBlend);
-            if (displayedShoulder == activeShoulder && deltaAngle > DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS) {
-                dynamicAutoTargetBlend = 1.0D;
-            } else if (displayedShoulder != activeShoulder && deltaAngle < -DYNAMIC_SHOULDER_SWAP_MIN_ANGLE_RADIANS) {
-                dynamicAutoTargetBlend = 0.0D;
-            }
-        }
-        previousDynamicTargetOffset = currentOffset;
-        dynamicSwapReferenceInitialized = true;
-    }
-
-    private static FocusClientConfig.Shoulder dynamicDisplayedShoulder(double blend) {
-        return blend >= 0.5D ? activeShoulder.opposite() : activeShoulder;
-    }
-
-    private static float currentTargetSwapBlendToNormal() {
-        if (targetSwapSmoothingTicks <= 0 || targetSwapSmoothingDurationTicks <= 0) {
-            return 1.0F;
-        }
-
-        float blendToNormal = 1.0F - (float) targetSwapSmoothingTicks / (float) targetSwapSmoothingDurationTicks;
-        blendToNormal = Mth.clamp(blendToNormal, 0.0F, 1.0F);
-        return blendToNormal * blendToNormal * (3.0F - 2.0F * blendToNormal);
+    public static boolean shouldSuppressVanillaMouseTurn() {
+        return lockedTarget != null
+                || (isCameraEditorPreviewActive() && FocusKeyMappings.FREE_LOOK.isDown());
     }
 
     private static void tryDirectionalTargetSwap(LocalPlayer player) {
@@ -712,10 +332,8 @@ public final class LockOnHandler {
         }
 
         Vec2 mouseDirection = new Vec2((float) pendingMouseDeltaX, (float) -pendingMouseDeltaY);
-
         LivingEntity swappedTarget = Targeting.findDirectionalTarget(player, lockedTarget, mouseDirection);
         if (swappedTarget == null) {
-            // Keep some momentum but force a stronger follow-up flick to complete the swap.
             dampenTargetSwapInput(0.45D);
             return;
         }
@@ -738,8 +356,43 @@ public final class LockOnHandler {
         targetSwapReadyForNewFlick = true;
     }
 
+    private static void handleOwnershipAndFreeLookInput(LocalPlayer player) {
+        while (FocusKeyMappings.FREE_LOOK_TOGGLE.consumeClick()) {
+            FocusClientConfig.setFreeLookToggled(!FocusClientConfig.freeLookToggled());
+            FocusClientConfig.saveConfig();
+            player.displayClientMessage(
+                    Component.translatable(
+                            FocusClientConfig.freeLookToggled()
+                                    ? "message.focus.free_look.enabled"
+                                    : "message.focus.free_look.disabled"),
+                    true);
+        }
+        while (FocusKeyMappings.CYCLE_CAMERA_OWNERSHIP_MODE.consumeClick()) {
+            FocusClientConfig.cycleCameraOwnershipMode();
+            FocusClientConfig.saveConfig();
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.focus.camera_ownership_mode",
+                            Component.translatable(FocusClientConfig.cameraOwnershipMode().getSerializedName())),
+                    true);
+        }
+        while (FocusKeyMappings.RECENTER_CAMERA.consumeClick()) {
+            CAMERA_CONTROLLER.smoothRecenterFreeLook();
+        }
+    }
+
+    private static boolean isFreeLookActive() {
+        if (!FocusClientConfig.allowFreeLookWhileLockedOn()) {
+            return false;
+        }
+        if (FocusClientConfig.cameraOwnershipMode() != com.jvn.focus.client.camera.FocusCameraMode.FREE_LOOK) {
+            return false;
+        }
+        return FocusKeyMappings.FREE_LOOK.isDown() || FocusClientConfig.freeLookToggled();
+    }
+
     private static void handleCameraAdjustmentInput(LocalPlayer player) {
-        if (lockedTarget == null && !cameraEditorPreviewActive) {
+        if (lockedTarget == null && !isCameraEditorPreviewActive()) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -750,7 +403,7 @@ public final class LockOnHandler {
             return;
         }
 
-        FocusClientConfig.Shoulder shoulder = activeShoulder;
+        FocusClientConfig.Shoulder shoulder = getActiveShoulder();
         boolean changed = false;
         while (FocusKeyMappings.CAMERA_LEFT.consumeClick()) {
             FocusClientConfig.adjustCameraLeft(shoulder);
@@ -778,96 +431,9 @@ public final class LockOnHandler {
         }
         if (changed) {
             FocusClientConfig.saveConfig();
-            if (player != null && cameraEditorPreviewActive) {
+            if (player != null && isCameraEditorPreviewActive()) {
                 player.displayClientMessage(Component.translatable("screen.focus.camera_editor.adjusted"), true);
             }
-        }
-    }
-
-    private static double currentDetachedCameraDistance() {
-        if (lockedTarget == null) {
-            return FocusClientConfig.cameraOffsetZ(activeShoulder);
-        }
-
-        if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
-            FocusClientConfig.PerspectivePreset basePreset = FocusClientConfig.currentPreset(activeShoulder);
-            FocusClientConfig.PerspectivePreset swappedPreset = basePreset.mirroredForOppositeShoulder();
-            double swapBlend = applyBlendSmoothing(
-                    dynamicAutoCurrentBlend,
-                    FocusClientConfig.dynamicCameraSwapSmoothness(),
-                    FocusClientConfig.MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS,
-                    FocusClientConfig.MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
-            return Mth.lerp(swapBlend, basePreset.offsetZ(), swappedPreset.offsetZ());
-        }
-
-        FocusClientConfig.PerspectivePreset sourcePreset = FocusClientConfig.currentPreset(staticSwapSourceShoulder);
-        FocusClientConfig.PerspectivePreset targetPreset = FocusClientConfig.currentPreset(activeShoulder);
-        double swapBlend = applyBlendSmoothing(
-                staticSwapBlend,
-                FocusClientConfig.cameraSwapSmoothness(),
-                FocusClientConfig.MIN_CAMERA_SWAP_SMOOTHNESS,
-                FocusClientConfig.MAX_CAMERA_SWAP_SMOOTHNESS);
-        return Mth.lerp(swapBlend, sourcePreset.offsetZ(), targetPreset.offsetZ());
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static double smoothTowards(double current, double target, double speed, double minSpeed, double maxSpeed) {
-        return Mth.lerp(Mth.clamp(speed, minSpeed, maxSpeed), current, target);
-    }
-
-    private static double applyBlendSmoothing(double blend, double smoothness, double minSmoothness, double maxSmoothness) {
-        double clampedBlend = Mth.clamp(blend, 0.0D, 1.0D);
-        double clampedSmoothness = Mth.clamp(smoothness, minSmoothness, maxSmoothness);
-        double easedBlend = clampedBlend * clampedBlend * (3.0D - 2.0D * clampedBlend);
-        return Mth.lerp(clampedSmoothness, clampedBlend, easedBlend);
-    }
-
-    private static final class SmoothingMath {
-        private SmoothingMath() {}
-
-        private static float computeTargetYaw(LocalPlayer player, Vec3 targetPoint, float partialTick) {
-            Vec3 to = targetPoint.subtract(player.getEyePosition(partialTick));
-            return (float) (Mth.atan2(to.z, to.x) * (180.0D / Math.PI)) - 90.0F;
-        }
-
-        private static float computeTargetPitch(LocalPlayer player, Vec3 targetPoint, float partialTick) {
-            Vec3 to = targetPoint.subtract(player.getEyePosition(partialTick));
-            double horizontal = Math.sqrt(to.x * to.x + to.z * to.z);
-            return (float) -(Mth.atan2(to.y, horizontal) * (180.0D / Math.PI));
-        }
-
-        private static float smoothAngle(float current, float target, float responsiveness, float maxStepPerTick, float deltaTicks) {
-            float delta = Mth.wrapDegrees(target - current);
-            float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
-            float step = delta * alpha;
-            float maxStep = maxStepPerTick * deltaTicks;
-            return current + Mth.clamp(step, -maxStep, maxStep);
-        }
-
-        private static float smoothValue(float current, float target, float responsiveness, float deltaTicks) {
-            float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
-            return Mth.lerp(alpha, current, target);
-        }
-
-        private static float computeDesiredBodyYawOffset(LocalPlayer player, float bodyForwardDamping, float bodyMaxStrafeOffset) {
-            Vec2 move = player.input.getMoveVector();
-            float strafe = move.x;
-            float forward = move.y;
-            if (Math.abs(strafe) < 1.0E-3F && Math.abs(forward) < 1.0E-3F) {
-                return 0.0F;
-            }
-
-            float forwardFactor = 1.0F - Math.min(1.0F, Math.abs(forward) * bodyForwardDamping);
-            float desired = -strafe * bodyMaxStrafeOffset * forwardFactor;
-            return Mth.clamp(desired, -bodyMaxStrafeOffset, bodyMaxStrafeOffset);
-        }
-
-        private static Vec3 smoothVec(Vec3 current, Vec3 target, float responsiveness, float deltaTicks) {
-            float alpha = 1.0F - (float) Math.exp(-responsiveness * deltaTicks);
-            return current.lerp(target, alpha);
         }
     }
 
@@ -1017,7 +583,7 @@ public final class LockOnHandler {
         }
 
         private static Vec3 getTargetAimPoint(LivingEntity target, float partialTick) {
-            return target.getPosition(partialTick).add(0.0D, target.getBbHeight() * 0.75D, 0.0D);
+            return CAMERA_CONTROLLER.targetPointFor(target, partialTick);
         }
 
         private static double getTargetAlignment(Vec3 eyePosition, Vec3 lookDirection, LivingEntity target) {
@@ -1153,6 +719,4 @@ public final class LockOnHandler {
                 Set<ResourceLocation> entityTypeIds) {
         }
     }
-
-    public record CameraLockData(Vec3 targetPoint, double offsetX, double offsetY, double offsetZ, float rotationDegrees) {}
 }

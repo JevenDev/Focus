@@ -1,7 +1,6 @@
 package com.jvn.focus.client.camera;
 
 import com.jvn.focus.client.FocusClientConfig;
-import com.jvn.focus.client.LockOnHandler.CameraLockData;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -47,7 +46,7 @@ public final class FocusShoulderSurfingCameraSystem {
             BlockGetter level,
             Entity entity,
             Vec3 pivotPoint,
-            CameraLockData lockData,
+            FocusCameraPose lockData,
             float partialTick,
             float fallbackYaw,
             float fallbackPitch,

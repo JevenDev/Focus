@@ -5,6 +5,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jvn.focus.Focus;
+import com.jvn.focus.client.camera.FocusCameraMode;
+import com.jvn.focus.mixin.EntryInfoAccessor;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,9 +31,12 @@ import eu.midnightdust.lib.config.MidnightConfigListWidget;
 import eu.midnightdust.lib.config.MidnightConfigScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.loading.FMLPaths;
 
 public final class FocusClientConfig extends MidnightConfig {
@@ -47,6 +52,31 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
     public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
+    public static final FocusCameraMode DEFAULT_CAMERA_OWNERSHIP_MODE = FocusCameraMode.COUPLED;
+    public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
+    public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
+    public static final double DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.45D;
+    public static final double DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.25D;
+    public static final boolean DEFAULT_FULL_BODY_FOLLOW_ENABLED = true;
+    public static final boolean DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON = true;
+    public static final double DEFAULT_CAMERA_RECENTERING_SPEED = 0.12D;
+    public static final double DEFAULT_FREE_LOOK_SENSITIVITY = 0.12D;
+    public static final boolean DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE = true;
+    public static final boolean DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED = true;
+    public static final double DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 0.08D;
+    public static final double DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT = 0.7D;
+    public static final double DEFAULT_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT = 0.3D;
+    public static final double DEFAULT_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS = 30.0D;
+    public static final boolean DEFAULT_ADJUST_PLAYER_TRANSPARENCY = true;
+    public static final double DEFAULT_PLAYER_TRANSPARENCY_MIN_ALPHA = 0.25D;
+    public static final double DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED = 0.2D;
+    public static final boolean DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY = true;
+    public static final boolean DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW = false;
+    public static final CrosshairCorrectionMode DEFAULT_CROSSHAIR_CORRECTION_MODE = CrosshairCorrectionMode.HYBRID;
+    public static final boolean DEFAULT_RENDER_CORRECTED_CROSSHAIR = true;
+    public static final boolean DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY = true;
+    public static final boolean DEFAULT_CORRECT_ENTITY_HIT_RAY = true;
+    public static final boolean DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON = false;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_DEADZONE = 12.0D;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION = 21.0D;
     public static final double DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD = 0.56D;
@@ -88,6 +118,28 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 1.0D;
     public static final double MIN_CAMERA_STEP_SIZE = 0.001D;
     public static final double MAX_CAMERA_STEP_SIZE = 1.0D;
+    public static final double MIN_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
+    public static final double MAX_FOLLOW_PLAYER_ROTATIONS_DELAY = 40.0D;
+    public static final double MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.01D;
+    public static final double MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 1.0D;
+    public static final double MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.01D;
+    public static final double MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 1.0D;
+    public static final double MIN_CAMERA_RECENTERING_SPEED = 0.0D;
+    public static final double MAX_CAMERA_RECENTERING_SPEED = 1.0D;
+    public static final double MIN_FREE_LOOK_SENSITIVITY = 0.01D;
+    public static final double MAX_FREE_LOOK_SENSITIVITY = 0.5D;
+    public static final double MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 0.0D;
+    public static final double MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 1.0D;
+    public static final double MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT = 0.0D;
+    public static final double MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT = 1.0D;
+    public static final double MIN_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT = 0.0D;
+    public static final double MAX_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT = 1.0D;
+    public static final double MIN_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS = 0.0D;
+    public static final double MAX_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS = 200.0D;
+    public static final double MIN_PLAYER_TRANSPARENCY_MIN_ALPHA = 0.0D;
+    public static final double MAX_PLAYER_TRANSPARENCY_MIN_ALPHA = 1.0D;
+    public static final double MIN_PLAYER_TRANSPARENCY_FADE_SPEED = 0.01D;
+    public static final double MAX_PLAYER_TRANSPARENCY_FADE_SPEED = 1.0D;
     public static final double MIN_TARGET_SWAP_MOUSE_DEADZONE = 0.0D;
     public static final double MAX_TARGET_SWAP_MOUSE_DEADZONE = 60.0D;
     public static final double MIN_TARGET_SWAP_MOUSE_ACTIVATION = 0.0D;
@@ -156,8 +208,59 @@ public final class FocusClientConfig extends MidnightConfig {
     public static double cameraStepSize = DEFAULT_CAMERA_STEP_SIZE;
     @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicallyAdjustOffsets")
     public static boolean dynamicallyAdjustOffsets = DEFAULT_DYNAMICALLY_ADJUST_OFFSETS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraOwnershipMode")
+    public static FocusCameraMode cameraOwnershipMode = DEFAULT_CAMERA_OWNERSHIP_MODE;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.followPlayerRotations")
+    public static boolean followPlayerRotations = DEFAULT_FOLLOW_PLAYER_ROTATIONS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.followPlayerRotationsDelay", min = MIN_FOLLOW_PLAYER_ROTATIONS_DELAY, max = MAX_FOLLOW_PLAYER_ROTATIONS_DELAY, isSlider = true, precision = 10)
+    public static double followPlayerRotationsDelay = DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraHeadFollowResponsiveness", min = MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS, max = MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS, isSlider = true, precision = 100)
+    public static double cameraHeadFollowResponsiveness = DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraBodyFollowResponsiveness", min = MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS, max = MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS, isSlider = true, precision = 100)
+    public static double cameraBodyFollowResponsiveness = DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.fullBodyFollowEnabled")
+    public static boolean fullBodyFollowEnabled = DEFAULT_FULL_BODY_FOLLOW_ENABLED;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.allowFreeLookWhileLockedOn")
+    public static boolean allowFreeLookWhileLockedOn = DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.cameraRecenteringSpeed", min = MIN_CAMERA_RECENTERING_SPEED, max = MAX_CAMERA_RECENTERING_SPEED, isSlider = true, precision = 100)
+    public static double cameraRecenteringSpeed = DEFAULT_CAMERA_RECENTERING_SPEED;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.freeLookSensitivity", min = MIN_FREE_LOOK_SENSITIVITY, max = MAX_FREE_LOOK_SENSITIVITY, isSlider = true, precision = 100)
+    public static double freeLookSensitivity = DEFAULT_FREE_LOOK_SENSITIVITY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.freeLookRecenterOnRelease")
+    public static boolean freeLookRecenterOnRelease = DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicShoulderAutoSwapEnabled")
+    public static boolean dynamicShoulderAutoSwapEnabled = DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicShoulderSwitchThreshold", min = MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD, max = MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD, isSlider = true, precision = 100)
+    public static double dynamicShoulderSwitchThreshold = DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicShoulderVisibilityWeight", min = MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT, max = MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT, isSlider = true, precision = 100)
+    public static double dynamicShoulderVisibilityWeight = DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT;
+    // Screen-placement weight is derived from visibility weight (1 - visibilityWeight).
+    public static double dynamicShoulderScreenPlacementWeight = DEFAULT_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.dynamicShoulderManualOverrideCooldownTicks", min = MIN_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS, max = MAX_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS, isSlider = true, precision = 10)
+    public static double dynamicShoulderManualOverrideCooldownTicks = DEFAULT_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.adjustPlayerTransparency")
+    public static boolean adjustPlayerTransparency = DEFAULT_ADJUST_PLAYER_TRANSPARENCY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.playerTransparencyMinAlpha", min = MIN_PLAYER_TRANSPARENCY_MIN_ALPHA, max = MAX_PLAYER_TRANSPARENCY_MIN_ALPHA, isSlider = true, precision = 100)
+    public static double playerTransparencyMinAlpha = DEFAULT_PLAYER_TRANSPARENCY_MIN_ALPHA;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.playerTransparencyFadeSpeed", min = MIN_PLAYER_TRANSPARENCY_FADE_SPEED, max = MAX_PLAYER_TRANSPARENCY_FADE_SPEED, isSlider = true, precision = 100)
+    public static double playerTransparencyFadeSpeed = DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.playerTransparencyWhenTargetObscuredOnly")
+    public static boolean playerTransparencyWhenTargetObscuredOnly = DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.playerTransparencyInPreview")
+    public static boolean playerTransparencyInPreview = DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.crosshairCorrectionMode")
+    public static CrosshairCorrectionMode crosshairCorrectionMode = DEFAULT_CROSSHAIR_CORRECTION_MODE;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.renderCorrectedCrosshair")
+    public static boolean renderCorrectedCrosshair = DEFAULT_RENDER_CORRECTED_CROSSHAIR;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.correctBlockPlacementRay")
+    public static boolean correctBlockPlacementRay = DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.correctEntityHitRay")
+    public static boolean correctEntityHitRay = DEFAULT_CORRECT_ENTITY_HIT_RAY;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.correctCrosshairOnlyWhileLockedOn")
+    public static boolean correctCrosshairOnlyWhileLockedOn = DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON;
     // Profile selection is handled in the dedicated camera editor.
     public static String selectedCameraProfile = "";
+    public static boolean freeLookToggled;
 
     @Entry(category = TARGET_SWAP_CATEGORY, name = "focus.lock_on_client.targetSwapMouseDeadzone", min = MIN_TARGET_SWAP_MOUSE_DEADZONE, max = MAX_TARGET_SWAP_MOUSE_DEADZONE, isSlider = true, precision = 100)
     public static double targetSwapMouseDeadzone = DEFAULT_TARGET_SWAP_MOUSE_DEADZONE;
@@ -250,6 +353,24 @@ public final class FocusClientConfig extends MidnightConfig {
         private final String translationKey;
 
         TargetFilterMode(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return translationKey;
+        }
+    }
+
+    public enum CrosshairCorrectionMode implements StringRepresentable {
+        VANILLA("focus.lock_on_client.crosshair_correction_mode.VANILLA"),
+        CAMERA_PROJECTED("focus.lock_on_client.crosshair_correction_mode.CAMERA_PROJECTED"),
+        TARGET_PROJECTED("focus.lock_on_client.crosshair_correction_mode.TARGET_PROJECTED"),
+        HYBRID("focus.lock_on_client.crosshair_correction_mode.HYBRID");
+
+        private final String translationKey;
+
+        CrosshairCorrectionMode(String translationKey) {
             this.translationKey = translationKey;
         }
 
@@ -378,6 +499,98 @@ public final class FocusClientConfig extends MidnightConfig {
         public final BooleanValue dynamicallyAdjustOffsets = new BooleanValue(
                 () -> FocusClientConfig.dynamicallyAdjustOffsets,
                 value -> FocusClientConfig.dynamicallyAdjustOffsets = value);
+        public final EnumValue<FocusCameraMode> cameraOwnershipMode = new EnumValue<>(
+                () -> FocusClientConfig.cameraOwnershipMode,
+                value -> FocusClientConfig.cameraOwnershipMode = value);
+        public final BooleanValue followPlayerRotations = new BooleanValue(
+                () -> FocusClientConfig.followPlayerRotations,
+                value -> FocusClientConfig.followPlayerRotations = value);
+        public final DoubleValue followPlayerRotationsDelay = new DoubleValue(
+                () -> FocusClientConfig.followPlayerRotationsDelay,
+                value -> FocusClientConfig.followPlayerRotationsDelay = value,
+                MIN_FOLLOW_PLAYER_ROTATIONS_DELAY,
+                MAX_FOLLOW_PLAYER_ROTATIONS_DELAY);
+        public final DoubleValue cameraHeadFollowResponsiveness = new DoubleValue(
+                () -> FocusClientConfig.cameraHeadFollowResponsiveness,
+                value -> FocusClientConfig.cameraHeadFollowResponsiveness = value,
+                MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
+                MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS);
+        public final DoubleValue cameraBodyFollowResponsiveness = new DoubleValue(
+                () -> FocusClientConfig.cameraBodyFollowResponsiveness,
+                value -> FocusClientConfig.cameraBodyFollowResponsiveness = value,
+                MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
+                MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS);
+        public final BooleanValue fullBodyFollowEnabled = new BooleanValue(
+                () -> FocusClientConfig.fullBodyFollowEnabled,
+                value -> FocusClientConfig.fullBodyFollowEnabled = value);
+        public final BooleanValue allowFreeLookWhileLockedOn = new BooleanValue(
+                () -> FocusClientConfig.allowFreeLookWhileLockedOn,
+                value -> FocusClientConfig.allowFreeLookWhileLockedOn = value);
+        public final DoubleValue cameraRecenteringSpeed = new DoubleValue(
+                () -> FocusClientConfig.cameraRecenteringSpeed,
+                value -> FocusClientConfig.cameraRecenteringSpeed = value,
+                MIN_CAMERA_RECENTERING_SPEED,
+                MAX_CAMERA_RECENTERING_SPEED);
+        public final DoubleValue freeLookSensitivity = new DoubleValue(
+                () -> FocusClientConfig.freeLookSensitivity,
+                value -> FocusClientConfig.freeLookSensitivity = value,
+                MIN_FREE_LOOK_SENSITIVITY,
+                MAX_FREE_LOOK_SENSITIVITY);
+        public final BooleanValue freeLookRecenterOnRelease = new BooleanValue(
+                () -> FocusClientConfig.freeLookRecenterOnRelease,
+                value -> FocusClientConfig.freeLookRecenterOnRelease = value);
+        public final BooleanValue dynamicShoulderAutoSwapEnabled = new BooleanValue(
+                () -> FocusClientConfig.dynamicShoulderAutoSwapEnabled,
+                value -> FocusClientConfig.dynamicShoulderAutoSwapEnabled = value);
+        public final DoubleValue dynamicShoulderSwitchThreshold = new DoubleValue(
+                () -> FocusClientConfig.dynamicShoulderSwitchThreshold,
+                value -> FocusClientConfig.dynamicShoulderSwitchThreshold = value,
+                MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD,
+                MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD);
+        public final DoubleValue dynamicShoulderVisibilityWeight = new DoubleValue(
+                () -> FocusClientConfig.dynamicShoulderVisibilityWeight,
+                value -> FocusClientConfig.dynamicShoulderVisibilityWeight = value,
+                MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
+        public final DoubleValue dynamicShoulderManualOverrideCooldownTicks = new DoubleValue(
+                () -> FocusClientConfig.dynamicShoulderManualOverrideCooldownTicks,
+                value -> FocusClientConfig.dynamicShoulderManualOverrideCooldownTicks = value,
+                MIN_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS,
+                MAX_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS);
+        public final BooleanValue adjustPlayerTransparency = new BooleanValue(
+                () -> FocusClientConfig.adjustPlayerTransparency,
+                value -> FocusClientConfig.adjustPlayerTransparency = value);
+        public final DoubleValue playerTransparencyMinAlpha = new DoubleValue(
+                () -> FocusClientConfig.playerTransparencyMinAlpha,
+                value -> FocusClientConfig.playerTransparencyMinAlpha = value,
+                MIN_PLAYER_TRANSPARENCY_MIN_ALPHA,
+                MAX_PLAYER_TRANSPARENCY_MIN_ALPHA);
+        public final DoubleValue playerTransparencyFadeSpeed = new DoubleValue(
+                () -> FocusClientConfig.playerTransparencyFadeSpeed,
+                value -> FocusClientConfig.playerTransparencyFadeSpeed = value,
+                MIN_PLAYER_TRANSPARENCY_FADE_SPEED,
+                MAX_PLAYER_TRANSPARENCY_FADE_SPEED);
+        public final BooleanValue playerTransparencyWhenTargetObscuredOnly = new BooleanValue(
+                () -> FocusClientConfig.playerTransparencyWhenTargetObscuredOnly,
+                value -> FocusClientConfig.playerTransparencyWhenTargetObscuredOnly = value);
+        public final BooleanValue playerTransparencyInPreview = new BooleanValue(
+                () -> FocusClientConfig.playerTransparencyInPreview,
+                value -> FocusClientConfig.playerTransparencyInPreview = value);
+        public final EnumValue<CrosshairCorrectionMode> crosshairCorrectionMode = new EnumValue<>(
+                () -> FocusClientConfig.crosshairCorrectionMode,
+                value -> FocusClientConfig.crosshairCorrectionMode = value);
+        public final BooleanValue renderCorrectedCrosshair = new BooleanValue(
+                () -> FocusClientConfig.renderCorrectedCrosshair,
+                value -> FocusClientConfig.renderCorrectedCrosshair = value);
+        public final BooleanValue correctBlockPlacementRay = new BooleanValue(
+                () -> FocusClientConfig.correctBlockPlacementRay,
+                value -> FocusClientConfig.correctBlockPlacementRay = value);
+        public final BooleanValue correctEntityHitRay = new BooleanValue(
+                () -> FocusClientConfig.correctEntityHitRay,
+                value -> FocusClientConfig.correctEntityHitRay = value);
+        public final BooleanValue correctCrosshairOnlyWhileLockedOn = new BooleanValue(
+                () -> FocusClientConfig.correctCrosshairOnlyWhileLockedOn,
+                value -> FocusClientConfig.correctCrosshairOnlyWhileLockedOn = value);
         public final CameraPresetToolsSection presetTools = new CameraPresetToolsSection();
     }
 
@@ -603,29 +816,6 @@ public final class FocusClientConfig extends MidnightConfig {
     public void onTabInit(String tabName, MidnightConfigListWidget list, MidnightConfigScreen screen) {
         if (CAMERA_CATEGORY.equals(tabName)) {
             addSectionAction(list, "focus.lock_on_client.section.camera_setup", "Edit", true, LockOnCameraEditorScreen::openFromCurrentScreen);
-            addSectionAction(list, "focus.lock_on_client.section.camera_reset", "Reset", true, () -> {
-                resetCameraOffsetsToDefaults(Shoulder.LEFT);
-                saveConfig();
-                screen.updateList();
-            });
-            return;
-        }
-
-        if (TARGET_SWAP_CATEGORY.equals(tabName)) {
-            addSectionAction(list, "focus.lock_on_client.section.target_swap_reset", "Reset", true, () -> {
-                resetTargetSwapToDefaults();
-                saveConfig();
-                screen.updateList();
-            });
-            return;
-        }
-
-        if (TARGET_FILTER_CATEGORY.equals(tabName)) {
-            addSectionAction(list, "focus.lock_on_client.section.target_filters_clear_ids", "Clear", !targetFilterEntityIds().isEmpty(), () -> {
-                clearTargetFilterEntityIdsFromConfigScreen();
-                saveConfig();
-                screen.updateList();
-            });
         }
     }
 
@@ -639,24 +829,19 @@ public final class FocusClientConfig extends MidnightConfig {
         list.addButton(List.of(button), Component.translatable(labelKey), new EntryInfo(null, Focus.MOD_ID));
     }
 
-    private static void resetTargetSwapToDefaults() {
-        config().targetSwap.targetSwapMouseDeadzone.validateAndSet(DEFAULT_TARGET_SWAP_MOUSE_DEADZONE);
-        config().targetSwap.targetSwapMouseActivation.validateAndSet(DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION);
-        config().targetSwap.targetSwapDirectionThreshold.validateAndSet(DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD);
-        config().targetSwap.targetSwapMinScreenSeparation.validateAndSet(DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION);
-        config().targetSwap.targetSwapInputDecay.validateAndSet(DEFAULT_TARGET_SWAP_INPUT_DECAY);
-        config().targetSwap.targetSwapCooldownTicks.validateAndSet(DEFAULT_TARGET_SWAP_COOLDOWN_TICKS);
-        config().targetSwap.targetSwapSmoothTicks.validateAndSet(DEFAULT_TARGET_SWAP_SMOOTH_TICKS);
-        config().targetSwap.targetSwapLookYawResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW);
-        config().targetSwap.targetSwapLookPitchResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH);
-        config().targetSwap.targetSwapLookMaxYawStepPerTick.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK);
-        config().targetSwap.targetSwapLookMaxPitchStepPerTick.validateAndSet(DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK);
-        config().targetSwap.targetSwapTargetPointResponsiveness.validateAndSet(DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS);
-        config().targetSwap.targetSwapPlayerLookFollow.validateAndSet(DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW);
-    }
-
-    private static void clearTargetFilterEntityIdsFromConfigScreen() {
-        config().targetFilters.targetFilterEntityIds.validateAndSet(List.of());
+    public static List<String> availableMobEntityTypeIds() {
+        List<String> availableIds = new ArrayList<>();
+        for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
+            if (entityType == EntityType.PLAYER || entityType.getCategory() == MobCategory.MISC) {
+                continue;
+            }
+            ResourceLocation entityTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+            if (entityTypeId != null) {
+                availableIds.add(entityTypeId.toString());
+            }
+        }
+        availableIds.sort(String::compareTo);
+        return List.copyOf(availableIds);
     }
 
     public static boolean autoSwitchToThirdPerson() {
@@ -717,6 +902,106 @@ public final class FocusClientConfig extends MidnightConfig {
 
     public static boolean dynamicallyAdjustOffsets() {
         return config().camera.dynamicallyAdjustOffsets.get();
+    }
+
+    public static FocusCameraMode cameraOwnershipMode() {
+        return config().camera.cameraOwnershipMode.get();
+    }
+
+    public static boolean followPlayerRotations() {
+        return config().camera.followPlayerRotations.get();
+    }
+
+    public static int followPlayerRotationsDelay() {
+        return (int) Math.round(config().camera.followPlayerRotationsDelay.get());
+    }
+
+    public static float cameraHeadFollowResponsiveness() {
+        return config().camera.cameraHeadFollowResponsiveness.get().floatValue();
+    }
+
+    public static float cameraBodyFollowResponsiveness() {
+        return config().camera.cameraBodyFollowResponsiveness.get().floatValue();
+    }
+
+    public static boolean fullBodyFollowEnabled() {
+        return config().camera.fullBodyFollowEnabled.get();
+    }
+
+    public static boolean allowFreeLookWhileLockedOn() {
+        return config().camera.allowFreeLookWhileLockedOn.get();
+    }
+
+    public static float cameraRecenteringSpeed() {
+        return config().camera.cameraRecenteringSpeed.get().floatValue();
+    }
+
+    public static float freeLookSensitivity() {
+        return config().camera.freeLookSensitivity.get().floatValue();
+    }
+
+    public static boolean freeLookRecenterOnRelease() {
+        return config().camera.freeLookRecenterOnRelease.get();
+    }
+
+    public static boolean dynamicShoulderAutoSwapEnabled() {
+        return config().camera.dynamicShoulderAutoSwapEnabled.get();
+    }
+
+    public static double dynamicShoulderSwitchThreshold() {
+        return config().camera.dynamicShoulderSwitchThreshold.get();
+    }
+
+    public static double dynamicShoulderVisibilityWeight() {
+        return config().camera.dynamicShoulderVisibilityWeight.get();
+    }
+
+    public static double dynamicShoulderScreenPlacementWeight() {
+        return 1.0D - dynamicShoulderVisibilityWeight();
+    }
+
+    public static int dynamicShoulderManualOverrideCooldownTicks() {
+        return (int) Math.round(config().camera.dynamicShoulderManualOverrideCooldownTicks.get());
+    }
+
+    public static boolean adjustPlayerTransparency() {
+        return config().camera.adjustPlayerTransparency.get();
+    }
+
+    public static float playerTransparencyMinAlpha() {
+        return config().camera.playerTransparencyMinAlpha.get().floatValue();
+    }
+
+    public static float playerTransparencyFadeSpeed() {
+        return config().camera.playerTransparencyFadeSpeed.get().floatValue();
+    }
+
+    public static boolean playerTransparencyWhenTargetObscuredOnly() {
+        return config().camera.playerTransparencyWhenTargetObscuredOnly.get();
+    }
+
+    public static boolean playerTransparencyInPreview() {
+        return config().camera.playerTransparencyInPreview.get();
+    }
+
+    public static CrosshairCorrectionMode crosshairCorrectionMode() {
+        return config().camera.crosshairCorrectionMode.get();
+    }
+
+    public static boolean renderCorrectedCrosshair() {
+        return config().camera.renderCorrectedCrosshair.get();
+    }
+
+    public static boolean correctBlockPlacementRay() {
+        return config().camera.correctBlockPlacementRay.get();
+    }
+
+    public static boolean correctEntityHitRay() {
+        return config().camera.correctEntityHitRay.get();
+    }
+
+    public static boolean correctCrosshairOnlyWhileLockedOn() {
+        return config().camera.correctCrosshairOnlyWhileLockedOn.get();
     }
 
     public static double targetSwapMouseDeadzone() {
@@ -805,6 +1090,31 @@ public final class FocusClientConfig extends MidnightConfig {
 
     public static void setSelectedCameraProfileName(String profileName) {
         config().camera.presetTools.selectedCameraProfile.validateAndSet(sanitizeCameraProfileName(profileName));
+    }
+
+    public static boolean freeLookToggled() {
+        config();
+        return freeLookToggled;
+    }
+
+    public static void setFreeLookToggled(boolean toggled) {
+        config();
+        freeLookToggled = toggled;
+    }
+
+    public static void cycleCameraOwnershipMode() {
+        FocusCameraMode mode = cameraOwnershipMode();
+        FocusCameraMode[] values = FocusCameraMode.values();
+        int nextIndex = (mode.ordinal() + 1) % values.length;
+        config().camera.cameraOwnershipMode.validateAndSet(values[nextIndex]);
+    }
+
+    public static void setCameraOwnershipMode(FocusCameraMode mode) {
+        config().camera.cameraOwnershipMode.validateAndSet(mode);
+    }
+
+    public static void setFollowPlayerRotations(boolean value) {
+        config().camera.followPlayerRotations.validateAndSet(value);
     }
 
     public static void setUseCustomSwappedShoulderValues(boolean useCustomSwappedShoulderValues, Shoulder sourceShoulder) {
@@ -999,6 +1309,31 @@ public final class FocusClientConfig extends MidnightConfig {
                 dynamicCameraSwapSmoothness(),
                 cameraStepSize(),
                 dynamicallyAdjustOffsets(),
+                cameraOwnershipMode(),
+                followPlayerRotations(),
+                config().camera.followPlayerRotationsDelay.get(),
+                config().camera.cameraHeadFollowResponsiveness.get(),
+                config().camera.cameraBodyFollowResponsiveness.get(),
+                fullBodyFollowEnabled(),
+                allowFreeLookWhileLockedOn(),
+                config().camera.cameraRecenteringSpeed.get(),
+                config().camera.freeLookSensitivity.get(),
+                freeLookRecenterOnRelease(),
+                dynamicShoulderAutoSwapEnabled(),
+                config().camera.dynamicShoulderSwitchThreshold.get(),
+                dynamicShoulderVisibilityWeight(),
+                dynamicShoulderScreenPlacementWeight(),
+                config().camera.dynamicShoulderManualOverrideCooldownTicks.get(),
+                adjustPlayerTransparency(),
+                config().camera.playerTransparencyMinAlpha.get(),
+                config().camera.playerTransparencyFadeSpeed.get(),
+                playerTransparencyWhenTargetObscuredOnly(),
+                playerTransparencyInPreview(),
+                crosshairCorrectionMode(),
+                renderCorrectedCrosshair(),
+                correctBlockPlacementRay(),
+                correctEntityHitRay(),
+                correctCrosshairOnlyWhileLockedOn(),
                 config().targetSwap.targetSwapMouseDeadzone.get(),
                 config().targetSwap.targetSwapMouseActivation.get(),
                 config().targetSwap.targetSwapDirectionThreshold.get(),
@@ -1039,6 +1374,33 @@ public final class FocusClientConfig extends MidnightConfig {
         config().camera.dynamicCameraSwapSmoothness.validateAndSet(setup.dynamicCameraSwapSmoothness());
         config().camera.cameraStepSize.validateAndSet(setup.cameraStepSize());
         config().camera.dynamicallyAdjustOffsets.validateAndSet(setup.dynamicallyAdjustOffsets());
+        config().camera.cameraOwnershipMode.validateAndSet(setup.cameraOwnershipMode());
+        config().camera.followPlayerRotations.validateAndSet(setup.followPlayerRotations());
+        config().camera.followPlayerRotationsDelay.validateAndSet(setup.followPlayerRotationsDelay());
+        config().camera.cameraHeadFollowResponsiveness.validateAndSet(setup.cameraHeadFollowResponsiveness());
+        config().camera.cameraBodyFollowResponsiveness.validateAndSet(setup.cameraBodyFollowResponsiveness());
+        config().camera.fullBodyFollowEnabled.validateAndSet(setup.fullBodyFollowEnabled());
+        config().camera.allowFreeLookWhileLockedOn.validateAndSet(setup.allowFreeLookWhileLockedOn());
+        config().camera.cameraRecenteringSpeed.validateAndSet(setup.cameraRecenteringSpeed());
+        config().camera.freeLookSensitivity.validateAndSet(setup.freeLookSensitivity());
+        config().camera.freeLookRecenterOnRelease.validateAndSet(setup.freeLookRecenterOnRelease());
+        config().camera.dynamicShoulderAutoSwapEnabled.validateAndSet(setup.dynamicShoulderAutoSwapEnabled());
+        config().camera.dynamicShoulderSwitchThreshold.validateAndSet(setup.dynamicShoulderSwitchThreshold());
+        config().camera.dynamicShoulderVisibilityWeight.validateAndSet(
+            normalizeDynamicShoulderVisibilityWeight(
+                setup.dynamicShoulderVisibilityWeight(),
+                setup.dynamicShoulderScreenPlacementWeight()));
+        config().camera.dynamicShoulderManualOverrideCooldownTicks.validateAndSet(setup.dynamicShoulderManualOverrideCooldownTicks());
+        config().camera.adjustPlayerTransparency.validateAndSet(setup.adjustPlayerTransparency());
+        config().camera.playerTransparencyMinAlpha.validateAndSet(setup.playerTransparencyMinAlpha());
+        config().camera.playerTransparencyFadeSpeed.validateAndSet(setup.playerTransparencyFadeSpeed());
+        config().camera.playerTransparencyWhenTargetObscuredOnly.validateAndSet(setup.playerTransparencyWhenTargetObscuredOnly());
+        config().camera.playerTransparencyInPreview.validateAndSet(setup.playerTransparencyInPreview());
+        config().camera.crosshairCorrectionMode.validateAndSet(setup.crosshairCorrectionMode());
+        config().camera.renderCorrectedCrosshair.validateAndSet(setup.renderCorrectedCrosshair());
+        config().camera.correctBlockPlacementRay.validateAndSet(setup.correctBlockPlacementRay());
+        config().camera.correctEntityHitRay.validateAndSet(setup.correctEntityHitRay());
+        config().camera.correctCrosshairOnlyWhileLockedOn.validateAndSet(setup.correctCrosshairOnlyWhileLockedOn());
         config().targetSwap.targetSwapMouseDeadzone.validateAndSet(setup.targetSwapMouseDeadzone());
         config().targetSwap.targetSwapMouseActivation.validateAndSet(setup.targetSwapMouseActivation());
         config().targetSwap.targetSwapDirectionThreshold.validateAndSet(setup.targetSwapDirectionThreshold());
@@ -1235,6 +1597,25 @@ public final class FocusClientConfig extends MidnightConfig {
         return Math.max(min, Math.min(max, value));
     }
 
+    private static double normalizeDynamicShoulderVisibilityWeight(double visibilityWeight, double screenPlacementWeight) {
+        double clampedVisibility = clamp(
+                visibilityWeight,
+                MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
+        double clampedScreenPlacement = clamp(
+                screenPlacementWeight,
+                MIN_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT);
+        double total = clampedVisibility + clampedScreenPlacement;
+        if (total <= 0.000001D) {
+            return DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT;
+        }
+        return clamp(
+                clampedVisibility / total,
+                MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
+    }
+
     private static List<String> sanitizeTargetFilterEntityIds(List<? extends String> targetFilterEntityIds) {
         if (targetFilterEntityIds == null || targetFilterEntityIds.isEmpty()) {
             return List.of();
@@ -1415,6 +1796,31 @@ public final class FocusClientConfig extends MidnightConfig {
                 clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
                 DEFAULT_CAMERA_STEP_SIZE,
                 DEFAULT_DYNAMICALLY_ADJUST_OFFSETS,
+                DEFAULT_CAMERA_OWNERSHIP_MODE,
+                DEFAULT_FOLLOW_PLAYER_ROTATIONS,
+                DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY,
+                DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
+                DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
+                DEFAULT_FULL_BODY_FOLLOW_ENABLED,
+                DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON,
+                DEFAULT_CAMERA_RECENTERING_SPEED,
+                DEFAULT_FREE_LOOK_SENSITIVITY,
+                DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE,
+                DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED,
+                DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD,
+                DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
+                DEFAULT_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT,
+                DEFAULT_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS,
+                DEFAULT_ADJUST_PLAYER_TRANSPARENCY,
+                DEFAULT_PLAYER_TRANSPARENCY_MIN_ALPHA,
+                DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED,
+                DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY,
+                DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW,
+                DEFAULT_CROSSHAIR_CORRECTION_MODE,
+                DEFAULT_RENDER_CORRECTED_CROSSHAIR,
+                DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY,
+                DEFAULT_CORRECT_ENTITY_HIT_RAY,
+                DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON,
                 DEFAULT_TARGET_SWAP_MOUSE_DEADZONE,
                 DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION,
                 DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD,
@@ -1536,7 +1942,7 @@ public final class FocusClientConfig extends MidnightConfig {
         try {
             Files.createDirectories(CAMERA_PRESET_PATH.getParent());
             JsonObject object = new JsonObject();
-            object.addProperty("format", "focus_camera_presets_v4");
+            object.addProperty("format", "focus_camera_presets_v5");
             object.add("leftShoulder", presetToJson(leftShoulderPreset));
             object.add("rightShoulder", presetToJson(rightShoulderPreset));
             JsonArray profiles = new JsonArray();
@@ -1569,6 +1975,31 @@ public final class FocusClientConfig extends MidnightConfig {
         object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
         object.addProperty("cameraStepSize", setup.cameraStepSize());
         object.addProperty("dynamicallyAdjustOffsets", setup.dynamicallyAdjustOffsets());
+        object.addProperty("cameraOwnershipMode", setup.cameraOwnershipMode().name());
+        object.addProperty("followPlayerRotations", setup.followPlayerRotations());
+        object.addProperty("followPlayerRotationsDelay", setup.followPlayerRotationsDelay());
+        object.addProperty("cameraHeadFollowResponsiveness", setup.cameraHeadFollowResponsiveness());
+        object.addProperty("cameraBodyFollowResponsiveness", setup.cameraBodyFollowResponsiveness());
+        object.addProperty("fullBodyFollowEnabled", setup.fullBodyFollowEnabled());
+        object.addProperty("allowFreeLookWhileLockedOn", setup.allowFreeLookWhileLockedOn());
+        object.addProperty("cameraRecenteringSpeed", setup.cameraRecenteringSpeed());
+        object.addProperty("freeLookSensitivity", setup.freeLookSensitivity());
+        object.addProperty("freeLookRecenterOnRelease", setup.freeLookRecenterOnRelease());
+        object.addProperty("dynamicShoulderAutoSwapEnabled", setup.dynamicShoulderAutoSwapEnabled());
+        object.addProperty("dynamicShoulderSwitchThreshold", setup.dynamicShoulderSwitchThreshold());
+        object.addProperty("dynamicShoulderVisibilityWeight", setup.dynamicShoulderVisibilityWeight());
+        object.addProperty("dynamicShoulderScreenPlacementWeight", setup.dynamicShoulderScreenPlacementWeight());
+        object.addProperty("dynamicShoulderManualOverrideCooldownTicks", setup.dynamicShoulderManualOverrideCooldownTicks());
+        object.addProperty("adjustPlayerTransparency", setup.adjustPlayerTransparency());
+        object.addProperty("playerTransparencyMinAlpha", setup.playerTransparencyMinAlpha());
+        object.addProperty("playerTransparencyFadeSpeed", setup.playerTransparencyFadeSpeed());
+        object.addProperty("playerTransparencyWhenTargetObscuredOnly", setup.playerTransparencyWhenTargetObscuredOnly());
+        object.addProperty("playerTransparencyInPreview", setup.playerTransparencyInPreview());
+        object.addProperty("crosshairCorrectionMode", setup.crosshairCorrectionMode().name());
+        object.addProperty("renderCorrectedCrosshair", setup.renderCorrectedCrosshair());
+        object.addProperty("correctBlockPlacementRay", setup.correctBlockPlacementRay());
+        object.addProperty("correctEntityHitRay", setup.correctEntityHitRay());
+        object.addProperty("correctCrosshairOnlyWhileLockedOn", setup.correctCrosshairOnlyWhileLockedOn());
         object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
         object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
         object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
@@ -1625,6 +2056,76 @@ public final class FocusClientConfig extends MidnightConfig {
                 MIN_CAMERA_STEP_SIZE,
                 MAX_CAMERA_STEP_SIZE);
         boolean dynamicallyAdjustOffsets = readOptionalBoolean(object, "dynamicallyAdjustOffsets", DEFAULT_DYNAMICALLY_ADJUST_OFFSETS);
+        FocusCameraMode cameraOwnershipMode = readOptionalFocusCameraMode(object, "cameraOwnershipMode", DEFAULT_CAMERA_OWNERSHIP_MODE);
+        boolean followPlayerRotations = readOptionalBoolean(object, "followPlayerRotations", DEFAULT_FOLLOW_PLAYER_ROTATIONS);
+        double followPlayerRotationsDelay = clamp(
+                readOptionalDouble(object, "followPlayerRotationsDelay", DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY),
+                MIN_FOLLOW_PLAYER_ROTATIONS_DELAY,
+                MAX_FOLLOW_PLAYER_ROTATIONS_DELAY);
+        double cameraHeadFollowResponsiveness = clamp(
+                readOptionalDouble(object, "cameraHeadFollowResponsiveness", DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS),
+                MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
+                MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS);
+        double cameraBodyFollowResponsiveness = clamp(
+                readOptionalDouble(object, "cameraBodyFollowResponsiveness", DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS),
+                MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
+                MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS);
+        boolean fullBodyFollowEnabled = readOptionalBoolean(object, "fullBodyFollowEnabled", DEFAULT_FULL_BODY_FOLLOW_ENABLED);
+        boolean allowFreeLookWhileLockedOn = readOptionalBoolean(object, "allowFreeLookWhileLockedOn", DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON);
+        double cameraRecenteringSpeed = clamp(
+                readOptionalDouble(object, "cameraRecenteringSpeed", DEFAULT_CAMERA_RECENTERING_SPEED),
+                MIN_CAMERA_RECENTERING_SPEED,
+                MAX_CAMERA_RECENTERING_SPEED);
+        double freeLookSensitivity = clamp(
+                readOptionalDouble(object, "freeLookSensitivity", DEFAULT_FREE_LOOK_SENSITIVITY),
+                MIN_FREE_LOOK_SENSITIVITY,
+                MAX_FREE_LOOK_SENSITIVITY);
+        boolean freeLookRecenterOnRelease = readOptionalBoolean(
+                object,
+                "freeLookRecenterOnRelease",
+                DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE);
+        boolean dynamicShoulderAutoSwapEnabled = readOptionalBoolean(object, "dynamicShoulderAutoSwapEnabled", DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED);
+        double dynamicShoulderSwitchThreshold = clamp(
+                readOptionalDouble(object, "dynamicShoulderSwitchThreshold", DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD),
+                MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD,
+                MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD);
+        double dynamicShoulderVisibilityWeight = clamp(
+                readOptionalDouble(object, "dynamicShoulderVisibilityWeight", DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT),
+                MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
+        double dynamicShoulderScreenPlacementWeight = clamp(
+                readOptionalDouble(object, "dynamicShoulderScreenPlacementWeight", DEFAULT_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT),
+                MIN_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT,
+                MAX_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT);
+        double dynamicShoulderManualOverrideCooldownTicks = clamp(
+                readOptionalDouble(object, "dynamicShoulderManualOverrideCooldownTicks", DEFAULT_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS),
+                MIN_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS,
+                MAX_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS);
+        boolean adjustPlayerTransparency = readOptionalBoolean(object, "adjustPlayerTransparency", DEFAULT_ADJUST_PLAYER_TRANSPARENCY);
+        double playerTransparencyMinAlpha = clamp(
+                readOptionalDouble(object, "playerTransparencyMinAlpha", DEFAULT_PLAYER_TRANSPARENCY_MIN_ALPHA),
+                MIN_PLAYER_TRANSPARENCY_MIN_ALPHA,
+                MAX_PLAYER_TRANSPARENCY_MIN_ALPHA);
+        double playerTransparencyFadeSpeed = clamp(
+                readOptionalDouble(object, "playerTransparencyFadeSpeed", DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED),
+                MIN_PLAYER_TRANSPARENCY_FADE_SPEED,
+                MAX_PLAYER_TRANSPARENCY_FADE_SPEED);
+        boolean playerTransparencyWhenTargetObscuredOnly = readOptionalBoolean(
+                object,
+                "playerTransparencyWhenTargetObscuredOnly",
+                DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY);
+        boolean playerTransparencyInPreview = readOptionalBoolean(object, "playerTransparencyInPreview", DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW);
+        CrosshairCorrectionMode crosshairCorrectionMode = readOptionalCrosshairCorrectionMode(
+                object,
+                "crosshairCorrectionMode",
+                DEFAULT_CROSSHAIR_CORRECTION_MODE);
+        boolean renderCorrectedCrosshair = readOptionalBoolean(object, "renderCorrectedCrosshair", DEFAULT_RENDER_CORRECTED_CROSSHAIR);
+        boolean correctBlockPlacementRay = readOptionalBoolean(object, "correctBlockPlacementRay", DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY);
+        boolean correctEntityHitRay = readOptionalBoolean(object, "correctEntityHitRay", DEFAULT_CORRECT_ENTITY_HIT_RAY);
+        boolean correctCrosshairOnlyWhileLockedOn = readOptionalBoolean(
+                object,
+                "correctCrosshairOnlyWhileLockedOn",
+                DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON);
         double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
         double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
         double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
@@ -1661,6 +2162,31 @@ public final class FocusClientConfig extends MidnightConfig {
                 dynamicCameraSwapSmoothness,
                 cameraStepSize,
                 dynamicallyAdjustOffsets,
+                cameraOwnershipMode,
+                followPlayerRotations,
+                followPlayerRotationsDelay,
+                cameraHeadFollowResponsiveness,
+                cameraBodyFollowResponsiveness,
+                fullBodyFollowEnabled,
+                allowFreeLookWhileLockedOn,
+                cameraRecenteringSpeed,
+                freeLookSensitivity,
+                freeLookRecenterOnRelease,
+                dynamicShoulderAutoSwapEnabled,
+                dynamicShoulderSwitchThreshold,
+                dynamicShoulderVisibilityWeight,
+                dynamicShoulderScreenPlacementWeight,
+                dynamicShoulderManualOverrideCooldownTicks,
+                adjustPlayerTransparency,
+                playerTransparencyMinAlpha,
+                playerTransparencyFadeSpeed,
+                playerTransparencyWhenTargetObscuredOnly,
+                playerTransparencyInPreview,
+                crosshairCorrectionMode,
+                renderCorrectedCrosshair,
+                correctBlockPlacementRay,
+                correctEntityHitRay,
+                correctCrosshairOnlyWhileLockedOn,
                 targetSwapMouseDeadzone,
                 targetSwapMouseActivation,
                 targetSwapDirectionThreshold,
@@ -1772,6 +2298,39 @@ public final class FocusClientConfig extends MidnightConfig {
         }
     }
 
+    private static FocusCameraMode readOptionalFocusCameraMode(JsonObject object, String key, FocusCameraMode fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset has non-string enum field: " + key);
+        }
+        try {
+            return FocusCameraMode.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid camera ownership mode: " + element.getAsString(), e);
+        }
+    }
+
+    private static CrosshairCorrectionMode readOptionalCrosshairCorrectionMode(
+            JsonObject object,
+            String key,
+            CrosshairCorrectionMode fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset has non-string enum field: " + key);
+        }
+        try {
+            return CrosshairCorrectionMode.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid crosshair correction mode: " + element.getAsString(), e);
+        }
+    }
+
     private static TargetFilterMode readOptionalTargetFilterMode(JsonObject object, String key, TargetFilterMode fallback) {
         JsonElement element = object.get(key);
         if (element == null) {
@@ -1866,6 +2425,31 @@ public final class FocusClientConfig extends MidnightConfig {
             double dynamicCameraSwapSmoothness,
             double cameraStepSize,
             boolean dynamicallyAdjustOffsets,
+            FocusCameraMode cameraOwnershipMode,
+            boolean followPlayerRotations,
+            double followPlayerRotationsDelay,
+            double cameraHeadFollowResponsiveness,
+            double cameraBodyFollowResponsiveness,
+            boolean fullBodyFollowEnabled,
+            boolean allowFreeLookWhileLockedOn,
+            double cameraRecenteringSpeed,
+            double freeLookSensitivity,
+            boolean freeLookRecenterOnRelease,
+            boolean dynamicShoulderAutoSwapEnabled,
+            double dynamicShoulderSwitchThreshold,
+            double dynamicShoulderVisibilityWeight,
+            double dynamicShoulderScreenPlacementWeight,
+            double dynamicShoulderManualOverrideCooldownTicks,
+            boolean adjustPlayerTransparency,
+            double playerTransparencyMinAlpha,
+            double playerTransparencyFadeSpeed,
+            boolean playerTransparencyWhenTargetObscuredOnly,
+            boolean playerTransparencyInPreview,
+            CrosshairCorrectionMode crosshairCorrectionMode,
+            boolean renderCorrectedCrosshair,
+            boolean correctBlockPlacementRay,
+            boolean correctEntityHitRay,
+            boolean correctCrosshairOnlyWhileLockedOn,
             double targetSwapMouseDeadzone,
             double targetSwapMouseActivation,
             double targetSwapDirectionThreshold,
