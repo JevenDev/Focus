@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jvn.focus.Focus;
+import com.jvn.focus.client.FocusConfig;
 import com.jvn.focus.client.camera.FocusCameraMode;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -21,17 +22,12 @@ import java.util.Set;
 
 import net.minecraft.client.gui.screens.Screen;
 import io.wispforest.owo.config.ui.ConfigScreen;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.loading.FMLPaths;
 
 public final class FocusClientConfig {
-
-    // â”€â”€ Default values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static final double DEFAULT_CAMERA_OFFSET_X = -2.0D;
     public static final double DEFAULT_CAMERA_OFFSET_Y = 0.4D;
@@ -41,7 +37,7 @@ public final class FocusClientConfig {
     public static final double DEFAULT_CAMERA_DRAG = 0.95D;
     public static final double DEFAULT_CAMERA_SWAP_SPEED = 0.1D;
     public static final double DEFAULT_CAMERA_SWAP_SMOOTHNESS = 1.0D;
-    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.01D;
+    public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED = 0.5D;
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.0D;
     public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
@@ -91,8 +87,6 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_FILTER_NEUTRAL_MOBS = false;
     public static final boolean DEFAULT_FILTER_HOSTILE_MOBS = false;
     public static final List<String> DEFAULT_TARGET_FILTER_ENTITY_IDS = List.of();
-
-    // â”€â”€ Bounds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static final double MIN_CAMERA_OFFSET_X = -4.0D;
     public static final double MAX_CAMERA_OFFSET_X = 4.0D;
