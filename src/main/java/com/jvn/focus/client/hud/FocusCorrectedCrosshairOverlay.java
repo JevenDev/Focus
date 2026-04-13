@@ -63,12 +63,29 @@ public final class FocusCorrectedCrosshairOverlay {
         }
 
         LivingEntity lockedTarget = LockOnHandler.getLockedTarget();
+        if (FocusClientConfig.hideVanillaCrosshair()) {
+            return;
+        }
         if (FocusClientConfig.correctCrosshairOnlyWhileLockedOn() && lockedTarget == null) {
+            return;
+        }
+        if (FocusClientConfig.hideVanillaCrosshairOutOfRange() && lockedTarget != null
+                && !LockOnHandler.canHitLockedTarget(minecraft.player)) {
             return;
         }
 
         float partialTick = deltaTracker.getGameTimeDeltaPartialTick(minecraft.level.tickRateManager().runsNormally());
-        Vec3 correctedPoint = resolveCorrectedPoint(minecraft, lockedTarget, partialTick);
+
+        Vec3 correctedPoint;
+        if (FocusClientConfig.hideVanillaCrosshairOutOfRange() && lockedTarget != null) {
+            // Snap directly to the target center so the crosshair appears on the
+            // target the instant it enters range instead of sliding in from the
+            // hit-result position.
+            correctedPoint = lockedTarget.getPosition(partialTick)
+                    .add(0, lockedTarget.getBbHeight() * 0.5, 0);
+        } else {
+            correctedPoint = resolveCorrectedPoint(minecraft, lockedTarget, partialTick);
+        }
         if (correctedPoint == null) {
             return;
         }

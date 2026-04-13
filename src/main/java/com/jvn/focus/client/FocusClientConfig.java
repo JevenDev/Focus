@@ -77,6 +77,8 @@ public final class FocusClientConfig extends MidnightConfig {
     public static final boolean DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY = true;
     public static final boolean DEFAULT_CORRECT_ENTITY_HIT_RAY = true;
     public static final boolean DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON = false;
+    public static final boolean DEFAULT_HIDE_VANILLA_CROSSHAIR = true;
+    public static final boolean DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE = false;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_DEADZONE = 12.0D;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION = 21.0D;
     public static final double DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD = 0.56D;
@@ -258,6 +260,10 @@ public final class FocusClientConfig extends MidnightConfig {
     public static boolean correctEntityHitRay = DEFAULT_CORRECT_ENTITY_HIT_RAY;
     @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.correctCrosshairOnlyWhileLockedOn")
     public static boolean correctCrosshairOnlyWhileLockedOn = DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.hideVanillaCrosshair")
+    public static boolean hideVanillaCrosshair = DEFAULT_HIDE_VANILLA_CROSSHAIR;
+    @Entry(category = CAMERA_CATEGORY, name = "focus.lock_on_client.hideVanillaCrosshairOutOfRange")
+    public static boolean hideVanillaCrosshairOutOfRange = DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE;
     // Profile selection is handled in the dedicated camera editor.
     public static String selectedCameraProfile = "";
     public static boolean freeLookToggled;
@@ -591,6 +597,12 @@ public final class FocusClientConfig extends MidnightConfig {
         public final BooleanValue correctCrosshairOnlyWhileLockedOn = new BooleanValue(
                 () -> FocusClientConfig.correctCrosshairOnlyWhileLockedOn,
                 value -> FocusClientConfig.correctCrosshairOnlyWhileLockedOn = value);
+        public final BooleanValue hideVanillaCrosshair = new BooleanValue(
+                () -> FocusClientConfig.hideVanillaCrosshair,
+                value -> FocusClientConfig.hideVanillaCrosshair = value);
+        public final BooleanValue hideVanillaCrosshairOutOfRange = new BooleanValue(
+                () -> FocusClientConfig.hideVanillaCrosshairOutOfRange,
+                value -> FocusClientConfig.hideVanillaCrosshairOutOfRange = value);
         public final CameraPresetToolsSection presetTools = new CameraPresetToolsSection();
     }
 
@@ -1004,6 +1016,14 @@ public final class FocusClientConfig extends MidnightConfig {
         return config().camera.correctCrosshairOnlyWhileLockedOn.get();
     }
 
+    public static boolean hideVanillaCrosshair() {
+        return config().camera.hideVanillaCrosshair.get();
+    }
+
+    public static boolean hideVanillaCrosshairOutOfRange() {
+        return config().camera.hideVanillaCrosshairOutOfRange.get();
+    }
+
     public static double targetSwapMouseDeadzone() {
         return config().targetSwap.targetSwapMouseDeadzone.get();
     }
@@ -1334,6 +1354,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 correctBlockPlacementRay(),
                 correctEntityHitRay(),
                 correctCrosshairOnlyWhileLockedOn(),
+                hideVanillaCrosshair(),
+                hideVanillaCrosshairOutOfRange(),
                 config().targetSwap.targetSwapMouseDeadzone.get(),
                 config().targetSwap.targetSwapMouseActivation.get(),
                 config().targetSwap.targetSwapDirectionThreshold.get(),
@@ -1401,6 +1423,8 @@ public final class FocusClientConfig extends MidnightConfig {
         config().camera.correctBlockPlacementRay.validateAndSet(setup.correctBlockPlacementRay());
         config().camera.correctEntityHitRay.validateAndSet(setup.correctEntityHitRay());
         config().camera.correctCrosshairOnlyWhileLockedOn.validateAndSet(setup.correctCrosshairOnlyWhileLockedOn());
+        config().camera.hideVanillaCrosshair.validateAndSet(setup.hideVanillaCrosshair());
+        config().camera.hideVanillaCrosshairOutOfRange.validateAndSet(setup.hideVanillaCrosshairOutOfRange());
         config().targetSwap.targetSwapMouseDeadzone.validateAndSet(setup.targetSwapMouseDeadzone());
         config().targetSwap.targetSwapMouseActivation.validateAndSet(setup.targetSwapMouseActivation());
         config().targetSwap.targetSwapDirectionThreshold.validateAndSet(setup.targetSwapDirectionThreshold());
@@ -1821,6 +1845,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY,
                 DEFAULT_CORRECT_ENTITY_HIT_RAY,
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON,
+                DEFAULT_HIDE_VANILLA_CROSSHAIR,
+                DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE,
                 DEFAULT_TARGET_SWAP_MOUSE_DEADZONE,
                 DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION,
                 DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD,
@@ -2000,6 +2026,8 @@ public final class FocusClientConfig extends MidnightConfig {
         object.addProperty("correctBlockPlacementRay", setup.correctBlockPlacementRay());
         object.addProperty("correctEntityHitRay", setup.correctEntityHitRay());
         object.addProperty("correctCrosshairOnlyWhileLockedOn", setup.correctCrosshairOnlyWhileLockedOn());
+        object.addProperty("hideVanillaCrosshair", setup.hideVanillaCrosshair());
+        object.addProperty("hideVanillaCrosshairOutOfRange", setup.hideVanillaCrosshairOutOfRange());
         object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
         object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
         object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
@@ -2138,6 +2166,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 object,
                 "correctCrosshairOnlyWhileLockedOn",
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON);
+        boolean hideVanillaCrosshair = readOptionalBoolean(object, "hideVanillaCrosshair", DEFAULT_HIDE_VANILLA_CROSSHAIR);
+        boolean hideVanillaCrosshairOutOfRange = readOptionalBoolean(object, "hideVanillaCrosshairOutOfRange", DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE);
         // Target swap and filter fields use readOptional for graceful degradation with older/partial presets.
         double targetSwapMouseDeadzone = clamp(
                 readOptionalDouble(object, "targetSwapMouseDeadzone", DEFAULT_TARGET_SWAP_MOUSE_DEADZONE),
@@ -2226,6 +2256,8 @@ public final class FocusClientConfig extends MidnightConfig {
                 correctBlockPlacementRay,
                 correctEntityHitRay,
                 correctCrosshairOnlyWhileLockedOn,
+                hideVanillaCrosshair,
+                hideVanillaCrosshairOutOfRange,
                 targetSwapMouseDeadzone,
                 targetSwapMouseActivation,
                 targetSwapDirectionThreshold,
@@ -2504,6 +2536,8 @@ public final class FocusClientConfig extends MidnightConfig {
             boolean correctBlockPlacementRay,
             boolean correctEntityHitRay,
             boolean correctCrosshairOnlyWhileLockedOn,
+            boolean hideVanillaCrosshair,
+            boolean hideVanillaCrosshairOutOfRange,
             double targetSwapMouseDeadzone,
             double targetSwapMouseActivation,
             double targetSwapDirectionThreshold,
