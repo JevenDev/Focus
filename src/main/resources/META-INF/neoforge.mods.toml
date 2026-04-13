@@ -28,8 +28,8 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.focus]]
-modId="midnightlib"
+modId="owo"
 type="required"
-versionRange="[1.9.2,)"
+versionRange="[0.12.15,)"
 ordering="NONE"
-side="BOTH"
+side="CLIENT"
