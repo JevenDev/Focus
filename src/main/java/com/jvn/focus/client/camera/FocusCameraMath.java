@@ -54,6 +54,17 @@ final class FocusCameraMath {
         return Mth.lerp(Mth.clamp(speed, minSpeed, maxSpeed), current, target);
     }
 
+    /**
+     * Frame-rate-independent variant of {@link #smoothTowards}.
+     * Uses exponential decay so the convergence rate is stable across refresh rates.
+     * {@code deltaTicks} is in game ticks (1.0 = 50 ms at 20 TPS).
+     */
+    static double smoothTowardsTimeAdjusted(double current, double target, double speed, float deltaTicks, double minSpeed, double maxSpeed) {
+        double clampedSpeed = Mth.clamp(speed, minSpeed, maxSpeed);
+        double alpha = 1.0D - Math.pow(1.0D - clampedSpeed, deltaTicks);
+        return Mth.lerp(alpha, current, target);
+    }
+
     static double applyBlendSmoothing(double blend, double smoothness, double minSmoothness, double maxSmoothness) {
         double clampedBlend = Mth.clamp(blend, 0.0D, 1.0D);
         double clampedSmoothness = Mth.clamp(smoothness, minSmoothness, maxSmoothness);

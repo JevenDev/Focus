@@ -2039,18 +2039,30 @@ public final class FocusClientConfig extends MidnightConfig {
 
         PerspectivePreset left = readPreset(leftElement.getAsJsonObject());
         PerspectivePreset right = readPreset(rightElement.getAsJsonObject());
-        boolean autoSwitchToThirdPerson = readRequiredBoolean(object, "autoSwitchToThirdPerson");
-        boolean allowFirstPersonWhileTargeting = readRequiredBoolean(object, "allowFirstPersonWhileTargeting");
-        boolean allowFrontFacingThirdPersonWhileTargeting = readRequiredBoolean(object, "allowFrontFacingThirdPersonWhileTargeting");
-        boolean showLockOnDebugText = readRequiredBoolean(object, "showLockOnDebugText");
-        LockOnIndicatorStyle lockOnIndicatorStyle = readRequiredLockOnIndicatorStyle(object, "lockOnIndicatorStyle");
-        CameraMode cameraMode = readRequiredCameraMode(object, "cameraMode");
-        double cameraFloatiness = readRequiredDouble(object, "cameraFloatiness");
-        double cameraDrag = readRequiredDouble(object, "cameraDrag");
-        double cameraSwapSpeed = readRequiredDouble(object, "cameraSwapSpeed");
-        double cameraSwapSmoothness = readRequiredDouble(object, "cameraSwapSmoothness");
-        double dynamicCameraSwapSpeed = readRequiredDouble(object, "dynamicCameraSwapSpeed");
-        double dynamicCameraSwapSmoothness = readRequiredDouble(object, "dynamicCameraSwapSmoothness");
+        boolean autoSwitchToThirdPerson = readOptionalBoolean(object, "autoSwitchToThirdPerson", true);
+        boolean allowFirstPersonWhileTargeting = readOptionalBoolean(object, "allowFirstPersonWhileTargeting", true);
+        boolean allowFrontFacingThirdPersonWhileTargeting = readOptionalBoolean(object, "allowFrontFacingThirdPersonWhileTargeting", false);
+        boolean showLockOnDebugText = readOptionalBoolean(object, "showLockOnDebugText", false);
+        LockOnIndicatorStyle lockOnIndicatorStyle = readOptionalLockOnIndicatorStyle(object, "lockOnIndicatorStyle", LockOnIndicatorStyle.OOT_16X);
+        CameraMode cameraMode = readOptionalCameraMode(object, "cameraMode", CameraMode.DYNAMIC);
+        double cameraFloatiness = clamp(
+                readOptionalDouble(object, "cameraFloatiness", DEFAULT_CAMERA_FLOATINESS),
+                MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS);
+        double cameraDrag = clamp(
+                readOptionalDouble(object, "cameraDrag", DEFAULT_CAMERA_DRAG),
+                MIN_CAMERA_DRAG, MAX_CAMERA_DRAG);
+        double cameraSwapSpeed = clamp(
+                readOptionalDouble(object, "cameraSwapSpeed", DEFAULT_CAMERA_SWAP_SPEED),
+                MIN_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED);
+        double cameraSwapSmoothness = clamp(
+                readOptionalDouble(object, "cameraSwapSmoothness", DEFAULT_CAMERA_SWAP_SMOOTHNESS),
+                MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS);
+        double dynamicCameraSwapSpeed = clamp(
+                readOptionalDouble(object, "dynamicCameraSwapSpeed", DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED),
+                MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED);
+        double dynamicCameraSwapSmoothness = clamp(
+                readOptionalDouble(object, "dynamicCameraSwapSmoothness", DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
+                MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
         double cameraStepSize = clamp(
                 readOptionalDouble(object, "cameraStepSize", DEFAULT_CAMERA_STEP_SIZE),
                 MIN_CAMERA_STEP_SIZE,
@@ -2126,27 +2138,54 @@ public final class FocusClientConfig extends MidnightConfig {
                 object,
                 "correctCrosshairOnlyWhileLockedOn",
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON);
-        double targetSwapMouseDeadzone = readRequiredDouble(object, "targetSwapMouseDeadzone");
-        double targetSwapMouseActivation = readRequiredDouble(object, "targetSwapMouseActivation");
-        double targetSwapDirectionThreshold = readRequiredDouble(object, "targetSwapDirectionThreshold");
-        double targetSwapMinScreenSeparation = readRequiredDouble(object, "targetSwapMinScreenSeparation");
-        double targetSwapInputDecay = readRequiredDouble(object, "targetSwapInputDecay");
-        double targetSwapCooldownTicks = readRequiredDouble(object, "targetSwapCooldownTicks");
-        double targetSwapSmoothTicks = readRequiredDouble(object, "targetSwapSmoothTicks");
-        double targetSwapLookYawResponsiveness = readRequiredDouble(object, "targetSwapLookYawResponsiveness");
-        double targetSwapLookPitchResponsiveness = readRequiredDouble(object, "targetSwapLookPitchResponsiveness");
-        double targetSwapLookMaxYawStepPerTick = readRequiredDouble(object, "targetSwapLookMaxYawStepPerTick");
-        double targetSwapLookMaxPitchStepPerTick = readRequiredDouble(object, "targetSwapLookMaxPitchStepPerTick");
-        double targetSwapTargetPointResponsiveness = readRequiredDouble(object, "targetSwapTargetPointResponsiveness");
-        double targetSwapPlayerLookFollow = readRequiredDouble(object, "targetSwapPlayerLookFollow");
-        boolean enableTargetFilters = readRequiredBoolean(object, "enableTargetFilters");
-        TargetFilterMode targetFilterMode = readRequiredTargetFilterMode(object, "targetFilterMode");
-        boolean filterPlayers = readRequiredBoolean(object, "filterPlayers");
-        boolean filterPassiveMobs = readRequiredBoolean(object, "filterPassiveMobs");
-        boolean filterNeutralMobs = readRequiredBoolean(object, "filterNeutralMobs");
-        boolean filterHostileMobs = readRequiredBoolean(object, "filterHostileMobs");
-        List<String> targetFilterEntityIds = readRequiredStringList(object, "targetFilterEntityIds");
-        boolean useCustom = readRequiredBoolean(object, "useCustomSwappedShoulderValues");
+        // Target swap and filter fields use readOptional for graceful degradation with older/partial presets.
+        double targetSwapMouseDeadzone = clamp(
+                readOptionalDouble(object, "targetSwapMouseDeadzone", DEFAULT_TARGET_SWAP_MOUSE_DEADZONE),
+                MIN_TARGET_SWAP_MOUSE_DEADZONE, MAX_TARGET_SWAP_MOUSE_DEADZONE);
+        double targetSwapMouseActivation = clamp(
+                readOptionalDouble(object, "targetSwapMouseActivation", DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION),
+                MIN_TARGET_SWAP_MOUSE_ACTIVATION, MAX_TARGET_SWAP_MOUSE_ACTIVATION);
+        double targetSwapDirectionThreshold = clamp(
+                readOptionalDouble(object, "targetSwapDirectionThreshold", DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD),
+                MIN_TARGET_SWAP_DIRECTION_THRESHOLD, MAX_TARGET_SWAP_DIRECTION_THRESHOLD);
+        double targetSwapMinScreenSeparation = clamp(
+                readOptionalDouble(object, "targetSwapMinScreenSeparation", DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION),
+                MIN_TARGET_SWAP_MIN_SCREEN_SEPARATION, MAX_TARGET_SWAP_MIN_SCREEN_SEPARATION);
+        double targetSwapInputDecay = clamp(
+                readOptionalDouble(object, "targetSwapInputDecay", DEFAULT_TARGET_SWAP_INPUT_DECAY),
+                MIN_TARGET_SWAP_INPUT_DECAY, MAX_TARGET_SWAP_INPUT_DECAY);
+        double targetSwapCooldownTicks = clamp(
+                readOptionalDouble(object, "targetSwapCooldownTicks", DEFAULT_TARGET_SWAP_COOLDOWN_TICKS),
+                MIN_TARGET_SWAP_COOLDOWN_TICKS, MAX_TARGET_SWAP_COOLDOWN_TICKS);
+        double targetSwapSmoothTicks = clamp(
+                readOptionalDouble(object, "targetSwapSmoothTicks", DEFAULT_TARGET_SWAP_SMOOTH_TICKS),
+                MIN_TARGET_SWAP_SMOOTH_TICKS, MAX_TARGET_SWAP_SMOOTH_TICKS);
+        double targetSwapLookYawResponsiveness = clamp(
+                readOptionalDouble(object, "targetSwapLookYawResponsiveness", DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW),
+                MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW, MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW);
+        double targetSwapLookPitchResponsiveness = clamp(
+                readOptionalDouble(object, "targetSwapLookPitchResponsiveness", DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH),
+                MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH, MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH);
+        double targetSwapLookMaxYawStepPerTick = clamp(
+                readOptionalDouble(object, "targetSwapLookMaxYawStepPerTick", DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK),
+                MIN_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK, MAX_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK);
+        double targetSwapLookMaxPitchStepPerTick = clamp(
+                readOptionalDouble(object, "targetSwapLookMaxPitchStepPerTick", DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK),
+                MIN_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK, MAX_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK);
+        double targetSwapTargetPointResponsiveness = clamp(
+                readOptionalDouble(object, "targetSwapTargetPointResponsiveness", DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS),
+                MIN_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS, MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS);
+        double targetSwapPlayerLookFollow = clamp(
+                readOptionalDouble(object, "targetSwapPlayerLookFollow", DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW),
+                MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW, MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW);
+        boolean enableTargetFilters = readOptionalBoolean(object, "enableTargetFilters", DEFAULT_TARGET_FILTERS_ENABLED);
+        TargetFilterMode targetFilterMode = readOptionalTargetFilterMode(object, "targetFilterMode", TargetFilterMode.EXCLUDE);
+        boolean filterPlayers = readOptionalBoolean(object, "filterPlayers", DEFAULT_FILTER_PLAYERS);
+        boolean filterPassiveMobs = readOptionalBoolean(object, "filterPassiveMobs", DEFAULT_FILTER_PASSIVE_MOBS);
+        boolean filterNeutralMobs = readOptionalBoolean(object, "filterNeutralMobs", DEFAULT_FILTER_NEUTRAL_MOBS);
+        boolean filterHostileMobs = readOptionalBoolean(object, "filterHostileMobs", DEFAULT_FILTER_HOSTILE_MOBS);
+        List<String> targetFilterEntityIds = readOptionalStringList(object, "targetFilterEntityIds", DEFAULT_TARGET_FILTER_ENTITY_IDS);
+        boolean useCustom = readOptionalBoolean(object, "useCustomSwappedShoulderValues", false);
         return new CameraSetupPreset(
                 autoSwitchToThirdPerson,
                 allowFirstPersonWhileTargeting,
@@ -2380,6 +2419,21 @@ public final class FocusClientConfig extends MidnightConfig {
         JsonElement element = object.get(key);
         if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
             throw new IllegalArgumentException("Preset is missing string enum field: " + key);
+        }
+        try {
+            return LockOnIndicatorStyle.valueOf(element.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Preset has invalid lock-on indicator style: " + element.getAsString(), e);
+        }
+    }
+
+    private static LockOnIndicatorStyle readOptionalLockOnIndicatorStyle(JsonObject object, String key, LockOnIndicatorStyle fallback) {
+        JsonElement element = object.get(key);
+        if (element == null) {
+            return fallback;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException("Preset has non-string enum field: " + key);
         }
         try {
             return LockOnIndicatorStyle.valueOf(element.getAsString());

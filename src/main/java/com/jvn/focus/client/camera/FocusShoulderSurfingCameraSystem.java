@@ -48,12 +48,17 @@ public final class FocusShoulderSurfingCameraSystem {
             Vec3 pivotPoint,
             FocusCameraPose lockData,
             float partialTick,
+            float deltaTicks,
             float fallbackYaw,
             float fallbackPitch,
             double positionLerpAlpha,
             float rotationLerpAlpha,
             boolean forceSnap,
             boolean targetSwapActive) {
+        // Convert per-tick lerp factors to FPS-independent equivalents.
+        double adjustedPositionAlpha = 1.0D - Math.pow(1.0D - positionLerpAlpha, deltaTicks);
+        float adjustedRotationAlpha = 1.0F - (float) Math.pow(1.0F - rotationLerpAlpha, deltaTicks);
+
         Rotation pivotRotation = rotationToTarget(pivotPoint, lockData.targetPoint(), fallbackYaw, fallbackPitch);
         float targetOrbitYaw = pivotRotation.yaw() + lockData.rotationDegrees();
         float targetOrbitPitch = pivotRotation.pitch();
@@ -63,7 +68,15 @@ public final class FocusShoulderSurfingCameraSystem {
             smoothedOrbitPitch = targetOrbitPitch;
             hasSmoothedOrbitRotation = true;
         } else {
-            float orbitLerpAlpha = Math.max(rotationLerpAlpha, 0.025F);
+            float orbitLerpAlpha = Math.max(adjustedRotationAlpha, 0.025F);
+            // Adaptive orbit smoothing: catch up faster when deviation is large
+            float orbitDevYaw = Math.abs(Mth.wrapDegrees(smoothedOrbitYaw - targetOrbitYaw));
+            float orbitDevPitch = Math.abs(smoothedOrbitPitch - targetOrbitPitch);
+            float orbitDevMax = Math.max(orbitDevYaw, orbitDevPitch);
+            if (orbitDevMax > 12.0F) {
+                float catchup = Mth.clamp(orbitDevMax / 12.0F, 1.0F, 5.0F);
+                orbitLerpAlpha = 1.0F - (float) Math.pow(1.0F - orbitLerpAlpha, catchup);
+            }
             smoothedOrbitYaw = Mth.rotLerp(orbitLerpAlpha, smoothedOrbitYaw, targetOrbitYaw);
             smoothedOrbitPitch = Mth.lerp(orbitLerpAlpha, smoothedOrbitPitch, targetOrbitPitch);
         }
@@ -80,9 +93,9 @@ public final class FocusShoulderSurfingCameraSystem {
             maxCameraDistance = desiredOffset.length();
             maxCameraDistancePrevious = maxCameraDistance;
         } else {
-            smoothedOffset = smoothedOffset.lerp(desiredOffset, positionLerpAlpha);
+            smoothedOffset = smoothedOffset.lerp(desiredOffset, adjustedPositionAlpha);
             maxCameraDistancePrevious = maxCameraDistance;
-            maxCameraDistance += (smoothedOffset.length() - maxCameraDistance) * positionLerpAlpha;
+            maxCameraDistance += (smoothedOffset.length() - maxCameraDistance) * adjustedPositionAlpha;
         }
 
         double maxDistance = maxZoomDistance(level, entity, pivotPoint, orbitBasis, smoothedOrbitYaw, smoothedOrbitPitch, smoothedOffset);
@@ -108,8 +121,26 @@ public final class FocusShoulderSurfingCameraSystem {
             smoothedPitch = desiredRotation.pitch();
             hasSmoothedRotation = true;
         } else {
-            smoothedYaw = Mth.rotLerp(rotationLerpAlpha, smoothedYaw, desiredRotation.yaw());
-            smoothedPitch = Mth.lerp(rotationLerpAlpha, smoothedPitch, desiredRotation.pitch());
+            // Adaptive rotation: accelerate when the target deviates far from screen center
+            float rotDevYaw = Math.abs(Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw()));
+            float rotDevPitch = Math.abs(smoothedPitch - desiredRotation.pitch());
+            float rotDevMax = Math.max(rotDevYaw, rotDevPitch);
+            float effectiveAlpha = adjustedRotationAlpha;
+            if (rotDevMax > 12.0F) {
+                float catchup = Mth.clamp(rotDevMax / 12.0F, 1.0F, 5.0F);
+                effectiveAlpha = 1.0F - (float) Math.pow(1.0F - adjustedRotationAlpha, catchup);
+            }
+            smoothedYaw = Mth.rotLerp(effectiveAlpha, smoothedYaw, desiredRotation.yaw());
+            smoothedPitch = Mth.lerp(effectiveAlpha, smoothedPitch, desiredRotation.pitch());
+            // Hard clamp: target must stay within 40 degrees of screen center
+            float clampedYawDev = Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw());
+            float clampedPitchDev = smoothedPitch - desiredRotation.pitch();
+            if (Math.abs(clampedYawDev) > 40.0F) {
+                smoothedYaw = desiredRotation.yaw() + Math.signum(clampedYawDev) * 40.0F;
+            }
+            if (Math.abs(clampedPitchDev) > 40.0F) {
+                smoothedPitch = desiredRotation.pitch() + Math.signum(clampedPitchDev) * 40.0F;
+            }
         }
 
         wasActive = true;

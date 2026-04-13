@@ -2,6 +2,7 @@ package com.jvn.focus.mixin;
 
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
+import com.jvn.focus.client.camera.FocusCameraController;
 import com.jvn.focus.client.camera.FocusCameraPose;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem.CameraPose;
@@ -26,6 +27,8 @@ public abstract class CameraMixin {
     private static final float MIN_ROTATION_LERP = 0.01F;
     @Unique
     private static final FocusShoulderSurfingCameraSystem focus$cameraSystem = FocusShoulderSurfingCameraSystem.getInstance();
+    @Unique
+    private static final FocusCameraController focus$cameraController = FocusCameraController.getInstance();
 
     @Shadow
     private float yRot;
@@ -71,12 +74,14 @@ public abstract class CameraMixin {
         float rotationFactor = LockOnHandler.getTargetSwapCameraRotationFactor();
         float rotationLerp = Math.max(MIN_ROTATION_LERP, baseRotationLerp * rotationFactor);
 
+        float deltaTicks = focus$cameraController.getLastRenderDeltaTicks();
         CameraPose pose = focus$cameraSystem.update(
                 level,
                 entity,
                 player.getEyePosition(partialTick),
                 lockData,
                 partialTick,
+                deltaTicks,
                 this.yRot,
                 this.xRot,
                 positionLerp,

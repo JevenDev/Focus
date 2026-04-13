@@ -19,6 +19,9 @@ public final class FocusCameraController {
     private static final int INITIAL_LOCK_CAMERA_SNAP_TICKS = 4;
     private static final float TARGET_SWAP_CAMERA_POSITION_FACTOR_MIN = 0.22F;
     private static final float TARGET_SWAP_CAMERA_ROTATION_FACTOR_MIN = 0.2F;
+    private static final float MAX_TARGET_ANGULAR_DEVIATION = 35.0F;
+    private static final float ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES = 12.0F;
+    private static final double ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE = 3.0D;
 
     private static final FocusCameraController INSTANCE = new FocusCameraController();
 
@@ -148,11 +151,20 @@ public final class FocusCameraController {
     }
 
     public void onRenderFrame(LocalPlayer player, LivingEntity target, float partialTick, float deltaTicks) {
+        state.lastRenderDeltaTicks = deltaTicks;
         if (!state.smoothingInitialized) {
             initializeSmoothing(player, getTargetAimPoint(target, 1.0F));
         }
         updateSmoothedOrientation(player, target, partialTick, deltaTicks);
         applyRotationPolicy(player, target, partialTick, deltaTicks);
+    }
+
+    public void storeRenderDeltaTicks(float deltaTicks) {
+        state.lastRenderDeltaTicks = deltaTicks;
+    }
+
+    public float getLastRenderDeltaTicks() {
+        return state.lastRenderDeltaTicks;
     }
 
     public FocusCameraPose getActiveCameraPose(LocalPlayer player, @Nullable LivingEntity lockedTarget, float partialTick) {
@@ -165,7 +177,7 @@ public final class FocusCameraController {
                     lockedTarget,
                     targetPoint,
                     partialTick,
-                    0.0F,
+                    state.lastRenderDeltaTicks,
                     true,
                     false,
                     getTargetSwapBlendToNormal() < 0.999F);
@@ -183,7 +195,7 @@ public final class FocusCameraController {
                     null,
                     targetPoint,
                     partialTick,
-                    0.0F,
+                    state.lastRenderDeltaTicks,
                     false,
                     true,
                     false);
@@ -225,6 +237,14 @@ public final class FocusCameraController {
 
     public void stopCameraEditorPreview() {
         state.cameraEditorPreviewActive = false;
+    }
+
+    public double getDynamicAutoCurrentBlend() {
+        return state.dynamicAutoCurrentBlend;
+    }
+
+    public double getStaticSwapBlend() {
+        return state.staticSwapBlend;
     }
 
     public FocusClientConfig.Shoulder getActiveShoulder() {
@@ -293,7 +313,10 @@ public final class FocusCameraController {
 
         if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
             FocusClientConfig.PerspectivePreset basePreset = FocusClientConfig.currentPreset(state.activeShoulder);
-            FocusClientConfig.PerspectivePreset swappedPreset = basePreset.mirroredForOppositeShoulder();
+            // Use the actual opposite-shoulder preset when the user has configured custom values.
+            FocusClientConfig.PerspectivePreset swappedPreset = FocusClientConfig.useCustomSwappedShoulderValues()
+                    ? FocusClientConfig.currentPreset(state.activeShoulder.opposite())
+                    : basePreset.mirroredForOppositeShoulder();
             double swapBlend = FocusCameraMath.applyBlendSmoothing(
                     state.dynamicAutoCurrentBlend,
                     FocusClientConfig.dynamicCameraSwapSmoothness(),
@@ -350,6 +373,13 @@ public final class FocusCameraController {
         return targetPointProvider.resolveTargetPoint(target, partialTick);
     }
 
+    public Vec3 getSmoothedLookDirection() {
+        if (!state.smoothingInitialized) {
+            return Vec3.ZERO;
+        }
+        return Vec3.directionFromRotation(state.smoothedLookPitch, state.smoothedLookYaw);
+    }
+
     public void setShoulderPolicy(FocusCameraShoulderPolicy shoulderPolicy) {
         if (shoulderPolicy != null) {
             this.shoulderPolicy = shoulderPolicy;
@@ -395,6 +425,14 @@ public final class FocusCameraController {
         }
 
         Vec3 currentTargetPoint = getTargetAimPoint(target, partialTick);
+
+        // Adaptive target point smoothing: accelerate when target deviates far to prevent drift
+        double targetPointDeviation = currentTargetPoint.distanceTo(state.smoothedTargetPoint);
+        if (targetPointDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE) {
+            float deviationScale = (float) (targetPointDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE);
+            targetPointResponsiveness *= deviationScale;
+        }
+
         state.smoothedTargetPoint = FocusCameraMath.smoothVec(
                 state.smoothedTargetPoint,
                 currentTargetPoint,
@@ -407,10 +445,33 @@ public final class FocusCameraController {
         targetYaw += state.freeLookYaw;
         targetPitch = Mth.clamp(targetPitch + state.freeLookPitch, -90.0F, 90.0F);
 
+        // Adaptive look smoothing: speed up when angular deviation is large to keep target on screen
+        float yawDeviation = Math.abs(Mth.wrapDegrees(targetYaw - state.smoothedLookYaw));
+        float pitchDeviation = Math.abs(targetPitch - state.smoothedLookPitch);
+        float angularDeviation = Math.max(yawDeviation, pitchDeviation);
+        if (angularDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES) {
+            float deviationScale = angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES;
+            lookYawResponsiveness *= deviationScale;
+            lookPitchResponsiveness *= deviationScale;
+            lookYawMaxStep *= deviationScale;
+            lookPitchMaxStep *= deviationScale;
+        }
+
         state.smoothedLookYaw = FocusCameraMath.smoothAngle(
                 state.smoothedLookYaw, targetYaw, lookYawResponsiveness, lookYawMaxStep, deltaTicks);
         state.smoothedLookPitch = FocusCameraMath.smoothAngle(
                 state.smoothedLookPitch, targetPitch, lookPitchResponsiveness, lookPitchMaxStep, deltaTicks);
+
+        // Hard clamp: ensure target never drifts beyond maximum deviation from screen center
+        float finalYawDev = Mth.wrapDegrees(state.smoothedLookYaw - targetYaw);
+        float finalPitchDev = state.smoothedLookPitch - targetPitch;
+        if (Math.abs(finalYawDev) > MAX_TARGET_ANGULAR_DEVIATION) {
+            state.smoothedLookYaw = targetYaw + Math.signum(finalYawDev) * MAX_TARGET_ANGULAR_DEVIATION;
+        }
+        if (Math.abs(finalPitchDev) > MAX_TARGET_ANGULAR_DEVIATION) {
+            state.smoothedLookPitch = targetPitch + Math.signum(finalPitchDev) * MAX_TARGET_ANGULAR_DEVIATION;
+        }
+
         state.smoothedBodyYawOffset = FocusCameraMath.smoothValue(
                 state.smoothedBodyYawOffset,
                 FocusCameraMath.computeDesiredBodyYawOffset(player, BODY_FORWARD_DAMPING, BODY_MAX_STRAFE_OFFSET),
