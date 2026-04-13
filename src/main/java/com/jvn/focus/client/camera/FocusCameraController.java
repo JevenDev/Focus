@@ -364,6 +364,23 @@ public final class FocusCameraController {
         return state.playerTransparencyAlpha;
     }
 
+    public void updateCloseRangeHeadingLock(boolean forwardPressed, float currentYaw) {
+        if (state.closeRangeProximityFactor < 1.0F && forwardPressed && !state.closeRangeHeadingLocked) {
+            state.closeRangeHeadingLocked = true;
+            state.closeRangeLockedHeadingYaw = currentYaw;
+        } else if (state.closeRangeHeadingLocked && !forwardPressed) {
+            state.closeRangeHeadingLocked = false;
+        }
+    }
+
+    public boolean isCloseRangeHeadingLocked() {
+        return state.closeRangeHeadingLocked;
+    }
+
+    public float getCloseRangeLockedHeadingYaw() {
+        return state.closeRangeLockedHeadingYaw;
+    }
+
     public void setRotationFollowPolicy(FocusCameraRotationFollowPolicy rotationFollowPolicy) {
         if (rotationFollowPolicy != null) {
             this.rotationFollowPolicy = rotationFollowPolicy;

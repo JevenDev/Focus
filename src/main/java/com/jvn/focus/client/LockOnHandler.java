@@ -28,6 +28,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.MovementInputUpdateEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
 @EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
@@ -184,6 +185,44 @@ public final class LockOnHandler {
 
         float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
         CAMERA_CONTROLLER.onRenderFrame(player, lockedTarget, partialTick, deltaTicks);
+    }
+
+    @SubscribeEvent
+    public static void onMovementInput(MovementInputUpdateEvent event) {
+        if (lockedTarget == null) {
+            return;
+        }
+
+        net.minecraft.client.player.Input input = event.getInput();
+        float rawForward = input.forwardImpulse;
+
+        // Update heading lock state using RAW input (before rotation).
+        // This must happen here, not in the render-frame rotation policy,
+        // because our rotation below modifies forwardImpulse — if the
+        // rotation policy reads the modified value it clears the lock
+        // prematurely once the yaw difference exceeds 90°.
+        CAMERA_CONTROLLER.updateCloseRangeHeadingLock(
+                rawForward > 0.0F,
+                event.getEntity().getYRot());
+
+        if (!CAMERA_CONTROLLER.isCloseRangeHeadingLocked()) {
+            return;
+        }
+
+        // Rotate the movement input vector so that "forward" moves in the locked heading
+        // direction instead of toward the target. This lets setYRot face the target (so
+        // strafe is correct) while W still walks straight through.
+        float currentYaw = event.getEntity().getYRot();
+        float lockedYaw = CAMERA_CONTROLLER.getCloseRangeLockedHeadingYaw();
+        float yawDiff = (lockedYaw - currentYaw) * ((float) Math.PI / 180.0F);
+
+        float cos = Mth.cos(yawDiff);
+        float sin = Mth.sin(yawDiff);
+        float origForward = input.forwardImpulse;
+        float origStrafe = input.leftImpulse;
+
+        input.forwardImpulse = origForward * cos + origStrafe * sin;
+        input.leftImpulse = origStrafe * cos - origForward * sin;
     }
 
     @SubscribeEvent
