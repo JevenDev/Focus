@@ -106,7 +106,7 @@ public final class LockOnHandler {
     }
 
     private static void updateGraceTimers(LocalPlayer player, Minecraft minecraft) {
-        boolean obstructed = !FocusTargetSelector.hasDirectSight(player, lockedTarget);
+        boolean obstructed = !FocusTargetSelector.hasTargetingSight(player, lockedTarget);
         double distanceSqr = player.distanceToSqr(lockedTarget);
         double maxDistanceSqr = obstructed
                 ? FocusTargetSelector.OCCLUDED_LOCK_DISTANCE_SQR

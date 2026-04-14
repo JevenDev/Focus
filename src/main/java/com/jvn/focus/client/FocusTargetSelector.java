@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -13,22 +15,28 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * Target selection, filtering, and directional-swap logic for the lock-on system.
  * Extracted from {@link LockOnHandler} to separate targeting concerns from input/state handling.
  */
 final class FocusTargetSelector {
-    private static final double MAX_LOCK_DISTANCE = 20.0D;
+    private static final double MAX_LOCK_DISTANCE = 15.0D;
     static final double MAX_LOCK_DISTANCE_SQR = MAX_LOCK_DISTANCE * MAX_LOCK_DISTANCE;
-    private static final double OCCLUDED_LOCK_DISTANCE = 10.0D;
+    private static final double OCCLUDED_LOCK_DISTANCE = 8.0D;
     static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
+    private static final int MAX_SIGHT_ITERATIONS = 48;
 
     private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
 
@@ -46,7 +54,7 @@ final class FocusTargetSelector {
                 LivingEntity.class,
                 player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
                 candidate -> candidate != player && candidate.isAlive() && isTargetAllowed(candidate, filterSettings))) {
-            if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
+            if (!isValidNewLockCandidate(player, entity)) {
                 continue;
             }
 
@@ -79,7 +87,7 @@ final class FocusTargetSelector {
                         && candidate.isAlive()
                         && candidate != excludedTarget
                         && isTargetAllowed(candidate, filterSettings))) {
-            if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
+            if (!isValidNewLockCandidate(player, entity)) {
                 continue;
             }
 
@@ -138,7 +146,7 @@ final class FocusTargetSelector {
                         && candidate.isAlive()
                         && candidate != currentTarget
                         && isTargetAllowed(candidate, filterSettings))) {
-            if (isLockOnHiddenFromPlayer(player, entity) || !isWithinAllowedLockDistance(player, entity)) {
+            if (!isValidNewLockCandidate(player, entity)) {
                 continue;
             }
 
@@ -178,11 +186,54 @@ final class FocusTargetSelector {
         return bestTarget;
     }
 
+    /**
+     * Checks direct line-of-sight using standard collision shapes.
+     * Used for combat/hit checks where all collision-bearing blocks should count.
+     */
     static boolean hasDirectSight(LocalPlayer player, LivingEntity target) {
         Vec3 from = player.getEyePosition();
         Vec3 to = getTargetAimPoint(target, 1.0F);
         BlockHitResult hitResult = player.level().clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         return hitResult.getType() != HitResult.Type.BLOCK;
+    }
+
+    /**
+     * Checks targeting line-of-sight, ignoring blocks that are not real targeting
+     * occluders (glass, fences, panes, iron bars, leaves, etc.).
+     * <p>
+     * Used for both new target acquisition (must have clear sight) and existing lock
+     * persistence (grace timer only counts real occlusion).
+     */
+    static boolean hasTargetingSight(LocalPlayer player, LivingEntity target) {
+        Vec3 from = player.getEyePosition();
+        Vec3 to = getTargetAimPoint(target, 1.0F);
+        Vec3 ray = to.subtract(from);
+        double totalDistSqr = ray.lengthSqr();
+        if (totalDistSqr < 1.0E-8) {
+            return true;
+        }
+        Vec3 dir = ray.normalize();
+
+        Level level = player.level();
+        Vec3 start = from;
+        for (int i = 0; i < MAX_SIGHT_ITERATIONS; i++) {
+            BlockHitResult hit = level.clip(
+                    new ClipContext(start, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+            if (hit.getType() != HitResult.Type.BLOCK) {
+                return true;
+            }
+
+            BlockState state = level.getBlockState(hit.getBlockPos());
+            if (isTargetingOccluder(state, level, hit.getBlockPos())) {
+                return false;
+            }
+
+            start = advancePastBlock(hit.getLocation(), dir, hit.getBlockPos());
+            if (start.subtract(from).lengthSqr() >= totalDistSqr) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static boolean isLockOnHiddenFromPlayer(LocalPlayer player, LivingEntity target) {
@@ -193,7 +244,96 @@ final class FocusTargetSelector {
         return isTargetAllowed(target, readTargetFilterSettings());
     }
 
-    // --- Private helpers ---
+    // --- Private helpers: targeting sight ---
+
+    /**
+     * Checks if a candidate entity passes all requirements for new lock-on acquisition.
+     * Requires the target to be not hidden, within max lock distance, and to have clear
+     * targeting sight (no real walls between player and target).
+     * <p>
+     * Note: {@code isAlive()} and target-filter checks should be done before calling this
+     * method (typically in the entity-class filter passed to {@code getEntitiesOfClass}).
+     */
+    private static boolean isValidNewLockCandidate(LocalPlayer player, LivingEntity candidate) {
+        if (isLockOnHiddenFromPlayer(player, candidate)) {
+            return false;
+        }
+        if (player.distanceToSqr(candidate) > MAX_LOCK_DISTANCE_SQR) {
+            return false;
+        }
+        return hasTargetingSight(player, candidate);
+    }
+
+    /**
+     * Returns {@code true} if the given block state represents a real targeting occluder
+     * that should block lock-on line-of-sight.
+     * <p>
+     * Non-occluding blocks (glass, glass panes, iron bars, doors, trapdoors, leaves,
+     * and similar transparent or pass-through blocks) return {@code false} via
+     * {@link BlockState#canOcclude()}.
+     * <p>
+     * Blocks whose collision shape does not cover any full block face (fences, chests,
+     * walls, and similar non-full-cube shapes) are also excluded, since the player can
+     * always see around or through them.
+     */
+    private static boolean isTargetingOccluder(BlockState state, BlockGetter level, BlockPos pos) {
+        if (state.isAir()) {
+            return false;
+        }
+        if (!state.canOcclude()) {
+            return false;
+        }
+        VoxelShape collisionShape = state.getCollisionShape(level, pos);
+        if (collisionShape.isEmpty()) {
+            return false;
+        }
+        // Only count as an occluder if the shape covers at least one full block face.
+        // Fences (thin posts) and chests (smaller than full cube) fail this check,
+        // while solid blocks and stairs (full bottom face) pass.
+        for (Direction direction : Direction.values()) {
+            if (Block.isFaceFull(collisionShape, direction)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Advances a position along the ray direction to just past the unit-cube boundary
+     * of the given block position. Used by {@link #hasTargetingSight} to skip past
+     * non-occluding blocks during iterative raycasting.
+     */
+    private static Vec3 advancePastBlock(Vec3 hitLoc, Vec3 dir, BlockPos blockPos) {
+        double bx = blockPos.getX();
+        double by = blockPos.getY();
+        double bz = blockPos.getZ();
+
+        double tX = dir.x > 0 ? (bx + 1.0 - hitLoc.x) / dir.x
+                   : dir.x < 0 ? (bx - hitLoc.x) / dir.x
+                   : Double.MAX_VALUE;
+        double tY = dir.y > 0 ? (by + 1.0 - hitLoc.y) / dir.y
+                   : dir.y < 0 ? (by - hitLoc.y) / dir.y
+                   : Double.MAX_VALUE;
+        double tZ = dir.z > 0 ? (bz + 1.0 - hitLoc.z) / dir.z
+                   : dir.z < 0 ? (bz - hitLoc.z) / dir.z
+                   : Double.MAX_VALUE;
+
+        double tExit = Double.MAX_VALUE;
+        if (tX > 1.0E-6) {
+            tExit = Math.min(tExit, tX);
+        }
+        if (tY > 1.0E-6) {
+            tExit = Math.min(tExit, tY);
+        }
+        if (tZ > 1.0E-6) {
+            tExit = Math.min(tExit, tZ);
+        }
+
+        double advance = tExit < Double.MAX_VALUE ? tExit + 0.001 : 0.5;
+        return hitLoc.add(dir.scale(advance));
+    }
+
+    // --- Private helpers: general ---
 
     private static Vec3 getTargetAimPoint(LivingEntity target, float partialTick) {
         return CAMERA_CONTROLLER.targetPointFor(target, partialTick);
@@ -224,12 +364,6 @@ final class FocusTargetSelector {
         double screenX = toTarget.dot(right) / forward;
         double screenY = toTarget.dot(up) / forward;
         return new Vec2((float) screenX, (float) screenY);
-    }
-
-    private static boolean isWithinAllowedLockDistance(LocalPlayer player, LivingEntity target) {
-        boolean obstructed = !hasDirectSight(player, target);
-        double maxDistanceSqr = obstructed ? OCCLUDED_LOCK_DISTANCE_SQR : MAX_LOCK_DISTANCE_SQR;
-        return player.distanceToSqr(target) <= maxDistanceSqr;
     }
 
     private static boolean isTargetAllowed(LivingEntity target, TargetFilterSettings filterSettings) {
