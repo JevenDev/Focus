@@ -1,12 +1,16 @@
 package com.jvn.focus.client.camera;
 
 import com.jvn.focus.client.FocusClientConfig;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 
 final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotationFollowPolicy {
     private static final float TARGET_SWAP_HEAD_FOLLOW_BONUS = 0.25F;
     private static final float CLOSE_RANGE_BODY_SMOOTHING_FACTOR = 0.25F;
+    private static final float FIRST_PERSON_MIN_TARGET_SWAP_FOLLOW = 0.72F;
+    private static final float CLOSE_RANGE_TURN_MAX_YAW_STEP_NEAR = 11.0F;
+    private static final float CLOSE_RANGE_TURN_MAX_YAW_STEP_FAR = 18.0F;
 
     @Override
     public void applyPlayerRotation(FocusCameraTargetContext context, FocusCameraState state, float desiredYaw, float desiredPitch) {
@@ -25,11 +29,27 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
 
         float targetSwapBlend = currentTargetSwapBlendToNormal(state);
         float swapFollowAlpha = Mth.lerp(targetSwapBlend, FocusClientConfig.targetSwapPlayerLookFollow(), 1.0F);
-        applyCoupledFollow(player, state, desiredYaw, clampedPitch, swapFollowAlpha);
+        if (Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
+            swapFollowAlpha = Math.max(swapFollowAlpha, FIRST_PERSON_MIN_TARGET_SWAP_FOLLOW);
+        }
+        applyCoupledFollow(context, player, state, desiredYaw, clampedPitch, swapFollowAlpha);
     }
 
-    private void applyCoupledFollow(LocalPlayer player, FocusCameraState state, float desiredYaw, float desiredPitch, float swapFollowAlpha) {
+    private void applyCoupledFollow(
+            FocusCameraTargetContext context,
+            LocalPlayer player,
+            FocusCameraState state,
+            float desiredYaw,
+            float desiredPitch,
+            float swapFollowAlpha) {
         float yaw = Mth.rotLerp(swapFollowAlpha, player.getYRot(), desiredYaw);
+        if (!Minecraft.getInstance().options.getCameraType().isFirstPerson() && state.closeRangeHeadingLocked) {
+            float proximity = Mth.clamp(state.closeRangeProximityFactor, 0.0F, 1.0F);
+            float maxYawStepPerTick = Mth.lerp(proximity, CLOSE_RANGE_TURN_MAX_YAW_STEP_NEAR, CLOSE_RANGE_TURN_MAX_YAW_STEP_FAR);
+            float maxYawStep = maxYawStepPerTick * Math.max(0.01F, context.deltaTicks());
+            float yawDelta = Mth.wrapDegrees(yaw - player.getYRot());
+            yaw = player.getYRot() + Mth.clamp(yawDelta, -maxYawStep, maxYawStep);
+        }
         float pitch = Mth.lerp(swapFollowAlpha, player.getXRot(), desiredPitch);
         float headFollowAlpha = Mth.clamp(swapFollowAlpha + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F);
         float headYaw = Mth.rotLerp(headFollowAlpha, player.getYHeadRot(), desiredYaw);

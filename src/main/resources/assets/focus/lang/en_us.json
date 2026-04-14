@@ -31,6 +31,8 @@
   "text.config.focus-config.option.allowFirstPersonWhileTargeting.tooltip": "Allow entering and staying in first-person while locked on.",
   "text.config.focus-config.option.allowFrontFacingThirdPersonWhileTargeting": "Allow Front Third-Person While Locked On",
   "text.config.focus-config.option.allowFrontFacingThirdPersonWhileTargeting.tooltip": "Allow front-facing third-person while locked on.",
+  "text.config.focus-config.option.showLockOnStatusMessages": "Show Lock-On Status Messages",
+  "text.config.focus-config.option.showLockOnStatusMessages.tooltip": "Show lock-on chat-style status messages (enabled, disabled, no target, lost, obstructed, shoulder swap).",
   "text.config.focus-config.option.showLockOnDebugText": "Show Lock-On Debug HUD",
   "text.config.focus-config.option.showLockOnDebugText.tooltip": "Show debug text in the HUD while a target is locked.",
   "text.config.focus-config.option.cinematicBarsWhileLockedOn": "Cinematic Bars While Locked-On",

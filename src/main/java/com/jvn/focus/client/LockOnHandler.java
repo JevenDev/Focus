@@ -60,7 +60,9 @@ public final class LockOnHandler {
             toggleLockOn(minecraft, player);
         }
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
-            boolean showMessage = lockedTarget != null && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK;
+            boolean showMessage = lockedTarget != null
+                    && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK
+                    && FocusClientConfig.showLockOnStatusMessages();
             swapShoulder(player, showMessage);
         }
         handleOpenCameraEditorInput(minecraft);
@@ -126,7 +128,7 @@ public final class LockOnHandler {
     private static void unlockWithMessage(LocalPlayer player, Minecraft minecraft, String messageKey) {
         lockedTarget = null;
         restoreCamera(minecraft);
-        player.displayClientMessage(Component.translatable(messageKey), true);
+        showLockOnStatusMessage(player, Component.translatable(messageKey));
     }
 
     private static void updateTargetSwapCooldown() {
@@ -230,13 +232,13 @@ public final class LockOnHandler {
         if (lockedTarget != null) {
             lockedTarget = null;
             restoreCamera(minecraft);
-            player.displayClientMessage(Component.translatable("message.focus.lock_on.disabled"), true);
+            showLockOnStatusMessage(player, Component.translatable("message.focus.lock_on.disabled"));
             return;
         }
 
         LivingEntity nextTarget = FocusTargetSelector.findTarget(player);
         if (nextTarget == null) {
-            player.displayClientMessage(Component.translatable("message.focus.lock_on.no_target"), true);
+            showLockOnStatusMessage(player, Component.translatable("message.focus.lock_on.no_target"));
             return;
         }
 
@@ -254,7 +256,7 @@ public final class LockOnHandler {
         CAMERA_CONTROLLER.onTargetSet(player, nextTarget, false);
         CAMERA_CONTROLLER.onLockStarted(player, nextTarget);
         resetTargetSwapInput();
-        player.displayClientMessage(Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()), true);
+        showLockOnStatusMessage(player, Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()));
     }
 
     private static void restoreCamera(Minecraft minecraft) {
@@ -439,6 +441,12 @@ public final class LockOnHandler {
     private static void handleOpenCameraEditorInput(Minecraft minecraft) {
         while (FocusKeyMappings.OPEN_CAMERA_EDITOR.consumeClick()) {
             openCameraEditorScreen(minecraft);
+        }
+    }
+
+    private static void showLockOnStatusMessage(LocalPlayer player, Component message) {
+        if (player != null && FocusClientConfig.showLockOnStatusMessages()) {
+            player.displayClientMessage(message, true);
         }
     }
 
