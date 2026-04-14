@@ -54,7 +54,9 @@ public final class FocusShoulderSurfingCameraSystem {
             double positionLerpAlpha,
             float rotationLerpAlpha,
             boolean forceSnap,
-            boolean targetSwapActive) {
+            float targetSwapBlendToNormal) {
+        float swapBlendToNormal = Mth.clamp(targetSwapBlendToNormal, 0.0F, 1.0F);
+        boolean targetSwapActive = swapBlendToNormal < 0.999F;
         // Convert per-tick lerp factors to FPS-independent equivalents.
         double adjustedPositionAlpha = 1.0D - Math.pow(1.0D - positionLerpAlpha, deltaTicks);
         float adjustedRotationAlpha = 1.0F - (float) Math.pow(1.0F - rotationLerpAlpha, deltaTicks);
@@ -70,15 +72,14 @@ public final class FocusShoulderSurfingCameraSystem {
         } else {
             float orbitLerpAlpha = Math.max(adjustedRotationAlpha, 0.025F);
             // Adaptive orbit smoothing: catch up faster when deviation is large.
-            // Suppressed during target swaps to keep the transition smooth.
-            if (!targetSwapActive) {
-                float orbitDevYaw = Math.abs(Mth.wrapDegrees(smoothedOrbitYaw - targetOrbitYaw));
-                float orbitDevPitch = Math.abs(smoothedOrbitPitch - targetOrbitPitch);
-                float orbitDevMax = Math.max(orbitDevYaw, orbitDevPitch);
-                if (orbitDevMax > 12.0F) {
-                    float catchup = Mth.clamp(orbitDevMax / 12.0F, 1.0F, 5.0F);
-                    orbitLerpAlpha = 1.0F - (float) Math.pow(1.0F - orbitLerpAlpha, catchup);
-                }
+            // Blend this back in over the swap window to avoid a late transition snap.
+            float orbitDevYaw = Math.abs(Mth.wrapDegrees(smoothedOrbitYaw - targetOrbitYaw));
+            float orbitDevPitch = Math.abs(smoothedOrbitPitch - targetOrbitPitch);
+            float orbitDevMax = Math.max(orbitDevYaw, orbitDevPitch);
+            if (orbitDevMax > 12.0F) {
+                float catchup = Mth.clamp(orbitDevMax / 12.0F, 1.0F, 5.0F);
+                float blendedCatchup = Mth.lerp(swapBlendToNormal, 1.0F, catchup);
+                orbitLerpAlpha = 1.0F - (float) Math.pow(1.0F - orbitLerpAlpha, blendedCatchup);
             }
             smoothedOrbitYaw = Mth.rotLerp(orbitLerpAlpha, smoothedOrbitYaw, targetOrbitYaw);
             smoothedOrbitPitch = Mth.lerp(orbitLerpAlpha, smoothedOrbitPitch, targetOrbitPitch);
@@ -111,9 +112,8 @@ public final class FocusShoulderSurfingCameraSystem {
                 maxCameraDistance = maxDistance;
             }
         }
-        double maxDistanceLerped = targetSwapActive
-                ? maxDistance
-                : Mth.lerp(partialTick, maxCameraDistancePrevious, maxCameraDistance);
+        double normalDistanceLerp = Mth.lerp(partialTick, maxCameraDistancePrevious, maxCameraDistance);
+        double maxDistanceLerped = Mth.lerp(swapBlendToNormal, maxDistance, normalDistanceLerp);
         double resolvedDistance = Math.min(maxDistance, maxDistanceLerped);
         Vec3 renderOffset = smoothedOffset.lengthSqr() < CAMERA_EPSILON ? Vec3.ZERO : smoothedOffset.normalize().scale(resolvedDistance);
 
@@ -125,31 +125,27 @@ public final class FocusShoulderSurfingCameraSystem {
             hasSmoothedRotation = true;
         } else {
             // Adaptive rotation: accelerate when the target deviates far from screen center.
-            // Suppressed during target swaps to prevent abrupt snapping.
+            // Blend this back in over the swap window to prevent abrupt snapping.
             float effectiveAlpha = adjustedRotationAlpha;
-            if (!targetSwapActive) {
-                float rotDevYaw = Math.abs(Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw()));
-                float rotDevPitch = Math.abs(smoothedPitch - desiredRotation.pitch());
-                float rotDevMax = Math.max(rotDevYaw, rotDevPitch);
-                if (rotDevMax > 12.0F) {
-                    float catchup = Mth.clamp(rotDevMax / 12.0F, 1.0F, 5.0F);
-                    effectiveAlpha = 1.0F - (float) Math.pow(1.0F - adjustedRotationAlpha, catchup);
-                }
+            float rotDevYaw = Math.abs(Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw()));
+            float rotDevPitch = Math.abs(smoothedPitch - desiredRotation.pitch());
+            float rotDevMax = Math.max(rotDevYaw, rotDevPitch);
+            if (rotDevMax > 12.0F) {
+                float catchup = Mth.clamp(rotDevMax / 12.0F, 1.0F, 5.0F);
+                float blendedCatchup = Mth.lerp(swapBlendToNormal, 1.0F, catchup);
+                effectiveAlpha = 1.0F - (float) Math.pow(1.0F - adjustedRotationAlpha, blendedCatchup);
             }
             smoothedYaw = Mth.rotLerp(effectiveAlpha, smoothedYaw, desiredRotation.yaw());
             smoothedPitch = Mth.lerp(effectiveAlpha, smoothedPitch, desiredRotation.pitch());
-            // Hard clamp: target must stay within 40 degrees of screen center.
-            // Skip during target swaps — the large angular distance is expected and the
-            // interpolation is converging naturally; clamping would cause an instant cut.
-            if (!targetSwapActive) {
-                float clampedYawDev = Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw());
-                float clampedPitchDev = smoothedPitch - desiredRotation.pitch();
-                if (Math.abs(clampedYawDev) > 40.0F) {
-                    smoothedYaw = desiredRotation.yaw() + Math.signum(clampedYawDev) * 40.0F;
-                }
-                if (Math.abs(clampedPitchDev) > 40.0F) {
-                    smoothedPitch = desiredRotation.pitch() + Math.signum(clampedPitchDev) * 40.0F;
-                }
+            // Hard clamp: blend from a permissive limit back to the normal 40 degrees.
+            float maxAngularDeviation = Mth.lerp(swapBlendToNormal, 180.0F, 40.0F);
+            float clampedYawDev = Mth.wrapDegrees(smoothedYaw - desiredRotation.yaw());
+            float clampedPitchDev = smoothedPitch - desiredRotation.pitch();
+            if (Math.abs(clampedYawDev) > maxAngularDeviation) {
+                smoothedYaw = desiredRotation.yaw() + Math.signum(clampedYawDev) * maxAngularDeviation;
+            }
+            if (Math.abs(clampedPitchDev) > maxAngularDeviation) {
+                smoothedPitch = desiredRotation.pitch() + Math.signum(clampedPitchDev) * maxAngularDeviation;
             }
         }
 

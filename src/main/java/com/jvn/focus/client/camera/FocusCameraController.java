@@ -441,18 +441,17 @@ public final class FocusCameraController {
         }
 
         Vec3 currentTargetPoint = getTargetAimPoint(target, partialTick);
-        boolean duringSwap = state.targetSwapSmoothingTicks > 0 && state.targetSwapSmoothingDurationTicks > 0;
+        float swapBlendToNormal = getTargetSwapBlendToNormal();
+        float adaptiveRestoreBlend = swapBlendToNormal * swapBlendToNormal;
 
         // Adaptive target point smoothing: accelerate when target deviates far to prevent drift.
-        // Suppressed during target swaps — the swap smoothing already provides a gradual
-        // transition, and adaptive scaling would defeat it by jumping the target point instantly.
-        if (!duringSwap) {
-            double targetPointDeviation = currentTargetPoint.distanceTo(state.smoothedTargetPoint);
-            if (targetPointDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE) {
-                float deviationScale = (float) (targetPointDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE);
-                deviationScale = Math.min(deviationScale, MAX_ADAPTIVE_TARGET_POINT_SCALE);
-                targetPointResponsiveness *= deviationScale;
-            }
+        // During target swaps, re-enable adaptiveness gradually (instead of abruptly at the end)
+        // to avoid an end-of-transition velocity jump when switching to distant targets.
+        double targetPointDeviation = currentTargetPoint.distanceTo(state.smoothedTargetPoint);
+        if (targetPointDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE) {
+            float deviationScale = (float) (targetPointDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE);
+            deviationScale = Math.min(deviationScale, MAX_ADAPTIVE_TARGET_POINT_SCALE);
+            targetPointResponsiveness *= Mth.lerp(adaptiveRestoreBlend, 1.0F, deviationScale);
         }
 
         state.smoothedTargetPoint = FocusCameraMath.smoothVec(
@@ -489,28 +488,28 @@ public final class FocusCameraController {
         state.closeRangeProximityFactor = proximityFactor;
 
         // Adaptive look smoothing: speed up when angular deviation is large to keep target on screen.
-        // Suppressed during target swaps to prevent the large angular jump from scaling up the
-        // rotation speed, which is what causes the abrupt "cut" when swapping to a distant target.
-        if (!duringSwap) {
-            float yawDeviation = Math.abs(Mth.wrapDegrees(targetYaw - state.smoothedLookYaw));
-            float pitchDeviation = Math.abs(targetPitch - state.smoothedLookPitch);
-            float angularDeviation = Math.max(yawDeviation, pitchDeviation);
-            if (angularDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES) {
-                float deviationScale = Math.min(
-                        angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES,
-                        MAX_ADAPTIVE_LOOK_SCALE);
-                if (proximityFactor < 1.0F) {
-                    float maxYawAdaptiveScale = 1.0F / Math.max(proximityFactor, CLOSE_RANGE_YAW_MIN_FACTOR);
-                    float yawScale = Math.min(deviationScale, maxYawAdaptiveScale);
-                    lookYawResponsiveness *= yawScale;
-                    lookYawMaxStep *= yawScale;
-                } else {
-                    lookYawResponsiveness *= deviationScale;
-                    lookYawMaxStep *= deviationScale;
-                }
-                lookPitchResponsiveness *= deviationScale;
-                lookPitchMaxStep *= deviationScale;
+        // During target swaps, blend this back in smoothly to prevent a late snap.
+        float yawDeviation = Math.abs(Mth.wrapDegrees(targetYaw - state.smoothedLookYaw));
+        float pitchDeviation = Math.abs(targetPitch - state.smoothedLookPitch);
+        float angularDeviation = Math.max(yawDeviation, pitchDeviation);
+        if (angularDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES) {
+            float deviationScale = Math.min(
+                    angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES,
+                    MAX_ADAPTIVE_LOOK_SCALE);
+            if (proximityFactor < 1.0F) {
+                float maxYawAdaptiveScale = 1.0F / Math.max(proximityFactor, CLOSE_RANGE_YAW_MIN_FACTOR);
+                float yawScale = Math.min(deviationScale, maxYawAdaptiveScale);
+                float blendedYawScale = Mth.lerp(adaptiveRestoreBlend, 1.0F, yawScale);
+                lookYawResponsiveness *= blendedYawScale;
+                lookYawMaxStep *= blendedYawScale;
+            } else {
+                float blendedScale = Mth.lerp(adaptiveRestoreBlend, 1.0F, deviationScale);
+                lookYawResponsiveness *= blendedScale;
+                lookYawMaxStep *= blendedScale;
             }
+            float blendedPitchScale = Mth.lerp(adaptiveRestoreBlend, 1.0F, deviationScale);
+            lookPitchResponsiveness *= blendedPitchScale;
+            lookPitchMaxStep *= blendedPitchScale;
         }
 
         state.smoothedLookYaw = FocusCameraMath.smoothAngle(
@@ -519,21 +518,21 @@ public final class FocusCameraController {
                 state.smoothedLookPitch, targetPitch, lookPitchResponsiveness, lookPitchMaxStep, deltaTicks);
 
         // Hard clamp: ensure target never drifts beyond maximum deviation from screen center.
-        // Skip during target swaps — the large angular distance is intentional and the smooth
-        // interpolation is already converging; hard-clamping would cause an instant cut.
+        // Blend clamp strength in after target swaps to avoid an abrupt cut near the end of
+        // long-distance swaps, while still restoring the normal framing bound.
         // Also skip yaw clamping at close range where proximity attenuation is active, since
         // forcing yaw toward the target would re-introduce the orbital feedback loop.
-        if (!duringSwap) {
-            if (proximityFactor >= 1.0F) {
-                float finalYawDev = Mth.wrapDegrees(state.smoothedLookYaw - targetYaw);
-                if (Math.abs(finalYawDev) > MAX_TARGET_ANGULAR_DEVIATION) {
-                    state.smoothedLookYaw = targetYaw + Math.signum(finalYawDev) * MAX_TARGET_ANGULAR_DEVIATION;
-                }
+        float clampRestoreBlend = adaptiveRestoreBlend * swapBlendToNormal;
+        float maxAllowedAngularDeviation = Mth.lerp(clampRestoreBlend, 180.0F, MAX_TARGET_ANGULAR_DEVIATION);
+        if (proximityFactor >= 1.0F) {
+            float finalYawDev = Mth.wrapDegrees(state.smoothedLookYaw - targetYaw);
+            if (Math.abs(finalYawDev) > maxAllowedAngularDeviation) {
+                state.smoothedLookYaw = targetYaw + Math.signum(finalYawDev) * maxAllowedAngularDeviation;
             }
-            float finalPitchDev = state.smoothedLookPitch - targetPitch;
-            if (Math.abs(finalPitchDev) > MAX_TARGET_ANGULAR_DEVIATION) {
-                state.smoothedLookPitch = targetPitch + Math.signum(finalPitchDev) * MAX_TARGET_ANGULAR_DEVIATION;
-            }
+        }
+        float finalPitchDev = state.smoothedLookPitch - targetPitch;
+        if (Math.abs(finalPitchDev) > maxAllowedAngularDeviation) {
+            state.smoothedLookPitch = targetPitch + Math.signum(finalPitchDev) * maxAllowedAngularDeviation;
         }
 
         state.smoothedBodyYawOffset = FocusCameraMath.smoothValue(
