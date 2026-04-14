@@ -60,7 +60,8 @@ public final class LockOnHandler {
             toggleLockOn(minecraft, player);
         }
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
-            swapShoulder(player, true);
+            boolean showMessage = lockedTarget != null && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK;
+            swapShoulder(player, showMessage);
         }
         handleOpenCameraEditorInput(minecraft);
         boolean previewOrbitActive = lockedTarget == null && isCameraEditorPreviewActive();
