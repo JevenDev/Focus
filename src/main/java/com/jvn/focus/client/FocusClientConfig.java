@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jvn.focus.Focus;
 import com.jvn.focus.client.FocusConfig;
-import com.jvn.focus.client.camera.FocusCameraMode;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,16 +40,11 @@ public final class FocusClientConfig {
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.12D;
     public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
-    public static final FocusCameraMode DEFAULT_CAMERA_OWNERSHIP_MODE = FocusCameraMode.COUPLED;
     public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
     public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
     public static final double DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.45D;
     public static final double DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.25D;
     public static final boolean DEFAULT_FULL_BODY_FOLLOW_ENABLED = true;
-    public static final boolean DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON = true;
-    public static final double DEFAULT_CAMERA_RECENTERING_SPEED = 0.12D;
-    public static final double DEFAULT_FREE_LOOK_SENSITIVITY = 0.12D;
-    public static final boolean DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE = true;
     public static final boolean DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED = true;
     public static final double DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 0.08D;
     public static final double DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT = 0.7D;
@@ -116,10 +110,6 @@ public final class FocusClientConfig {
     public static final double MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 1.0D;
     public static final double MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.01D;
     public static final double MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 1.0D;
-    public static final double MIN_CAMERA_RECENTERING_SPEED = 0.0D;
-    public static final double MAX_CAMERA_RECENTERING_SPEED = 1.0D;
-    public static final double MIN_FREE_LOOK_SENSITIVITY = 0.01D;
-    public static final double MAX_FREE_LOOK_SENSITIVITY = 0.5D;
     public static final double MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 0.0D;
     public static final double MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD = 1.0D;
     public static final double MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT = 0.0D;
@@ -167,7 +157,6 @@ public final class FocusClientConfig {
 
     private static FocusConfig CONFIG;
     private static boolean initialized;
-    private static boolean freeLookToggled;
     private static PerspectivePreset leftShoulderPreset = defaultLeftPreset();
     private static PerspectivePreset rightShoulderPreset = defaultLeftPreset().mirroredForOppositeShoulder();
     private static final Map<String, CameraSetupPreset> CAMERA_SETUP_PROFILES = new LinkedHashMap<>();
@@ -385,10 +374,6 @@ public final class FocusClientConfig {
         return config().cameraBehavior.dynamicallyAdjustOffsets();
     }
 
-    public static FocusCameraMode cameraOwnershipMode() {
-        return DEFAULT_CAMERA_OWNERSHIP_MODE;
-    }
-
     public static boolean followPlayerRotations() {
         return config().cameraFollowing.followPlayerRotations();
     }
@@ -407,22 +392,6 @@ public final class FocusClientConfig {
 
     public static boolean fullBodyFollowEnabled() {
         return config().cameraFollowing.fullBodyFollowEnabled();
-    }
-
-    public static boolean allowFreeLookWhileLockedOn() {
-        return config().cameraFollowing.allowFreeLookWhileLockedOn();
-    }
-
-    public static float cameraRecenteringSpeed() {
-        return (float) config().cameraFollowing.cameraRecenteringSpeed();
-    }
-
-    public static float freeLookSensitivity() {
-        return (float) config().cameraFollowing.freeLookSensitivity();
-    }
-
-    public static boolean freeLookRecenterOnRelease() {
-        return config().cameraFollowing.freeLookRecenterOnRelease();
     }
 
     public static boolean dynamicShoulderAutoSwapEnabled() {
@@ -581,15 +550,6 @@ public final class FocusClientConfig {
         config().selectedCameraProfile(sanitizeCameraProfileName(profileName));
     }
 
-    public static boolean freeLookToggled() {
-        config();
-        return freeLookToggled;
-    }
-
-    public static void setFreeLookToggled(boolean toggled) {
-        config();
-        freeLookToggled = toggled;
-    }
 
     // â”€â”€ Setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -797,16 +757,11 @@ public final class FocusClientConfig {
                 dynamicCameraSwapSmoothness(),
                 cameraStepSize(),
                 dynamicallyAdjustOffsets(),
-                cameraOwnershipMode(),
                 followPlayerRotations(),
                 config().cameraFollowing.followPlayerRotationsDelay(),
                 config().cameraFollowing.cameraHeadFollowResponsiveness(),
                 config().cameraFollowing.cameraBodyFollowResponsiveness(),
                 fullBodyFollowEnabled(),
-                allowFreeLookWhileLockedOn(),
-                config().cameraFollowing.cameraRecenteringSpeed(),
-                config().cameraFollowing.freeLookSensitivity(),
-                freeLookRecenterOnRelease(),
                 dynamicShoulderAutoSwapEnabled(),
                 config().shoulderSwap.dynamicShoulderSwitchThreshold(),
                 dynamicShoulderVisibilityWeight(),
@@ -869,10 +824,6 @@ public final class FocusClientConfig {
         config().cameraFollowing.cameraHeadFollowResponsiveness(setup.cameraHeadFollowResponsiveness());
         config().cameraFollowing.cameraBodyFollowResponsiveness(setup.cameraBodyFollowResponsiveness());
         config().cameraFollowing.fullBodyFollowEnabled(setup.fullBodyFollowEnabled());
-        config().cameraFollowing.allowFreeLookWhileLockedOn(setup.allowFreeLookWhileLockedOn());
-        config().cameraFollowing.cameraRecenteringSpeed(setup.cameraRecenteringSpeed());
-        config().cameraFollowing.freeLookSensitivity(setup.freeLookSensitivity());
-        config().cameraFollowing.freeLookRecenterOnRelease(setup.freeLookRecenterOnRelease());
         config().shoulderSwap.dynamicShoulderAutoSwapEnabled(setup.dynamicShoulderAutoSwapEnabled());
         config().shoulderSwap.dynamicShoulderSwitchThreshold(setup.dynamicShoulderSwitchThreshold());
         config().shoulderSwap.dynamicShoulderVisibilityWeight(
@@ -1263,16 +1214,11 @@ public final class FocusClientConfig {
                 clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
                 DEFAULT_CAMERA_STEP_SIZE,
                 DEFAULT_DYNAMICALLY_ADJUST_OFFSETS,
-                DEFAULT_CAMERA_OWNERSHIP_MODE,
                 DEFAULT_FOLLOW_PLAYER_ROTATIONS,
                 DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY,
                 DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
                 DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
                 DEFAULT_FULL_BODY_FOLLOW_ENABLED,
-                DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON,
-                DEFAULT_CAMERA_RECENTERING_SPEED,
-                DEFAULT_FREE_LOOK_SENSITIVITY,
-                DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE,
                 DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED,
                 DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD,
                 DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
@@ -1448,16 +1394,11 @@ public final class FocusClientConfig {
         object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
         object.addProperty("cameraStepSize", setup.cameraStepSize());
         object.addProperty("dynamicallyAdjustOffsets", setup.dynamicallyAdjustOffsets());
-        object.addProperty("cameraOwnershipMode", setup.cameraOwnershipMode().name());
         object.addProperty("followPlayerRotations", setup.followPlayerRotations());
         object.addProperty("followPlayerRotationsDelay", setup.followPlayerRotationsDelay());
         object.addProperty("cameraHeadFollowResponsiveness", setup.cameraHeadFollowResponsiveness());
         object.addProperty("cameraBodyFollowResponsiveness", setup.cameraBodyFollowResponsiveness());
         object.addProperty("fullBodyFollowEnabled", setup.fullBodyFollowEnabled());
-        object.addProperty("allowFreeLookWhileLockedOn", setup.allowFreeLookWhileLockedOn());
-        object.addProperty("cameraRecenteringSpeed", setup.cameraRecenteringSpeed());
-        object.addProperty("freeLookSensitivity", setup.freeLookSensitivity());
-        object.addProperty("freeLookRecenterOnRelease", setup.freeLookRecenterOnRelease());
         object.addProperty("dynamicShoulderAutoSwapEnabled", setup.dynamicShoulderAutoSwapEnabled());
         object.addProperty("dynamicShoulderSwitchThreshold", setup.dynamicShoulderSwitchThreshold());
         object.addProperty("dynamicShoulderVisibilityWeight", setup.dynamicShoulderVisibilityWeight());
@@ -1543,7 +1484,6 @@ public final class FocusClientConfig {
                 MIN_CAMERA_STEP_SIZE,
                 MAX_CAMERA_STEP_SIZE);
         boolean dynamicallyAdjustOffsets = readOptionalBoolean(object, "dynamicallyAdjustOffsets", DEFAULT_DYNAMICALLY_ADJUST_OFFSETS);
-        FocusCameraMode cameraOwnershipMode = readOptionalFocusCameraMode(object, "cameraOwnershipMode", DEFAULT_CAMERA_OWNERSHIP_MODE);
         boolean followPlayerRotations = readOptionalBoolean(object, "followPlayerRotations", DEFAULT_FOLLOW_PLAYER_ROTATIONS);
         double followPlayerRotationsDelay = clamp(
                 readOptionalDouble(object, "followPlayerRotationsDelay", DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY),
@@ -1558,19 +1498,6 @@ public final class FocusClientConfig {
                 MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
                 MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS);
         boolean fullBodyFollowEnabled = readOptionalBoolean(object, "fullBodyFollowEnabled", DEFAULT_FULL_BODY_FOLLOW_ENABLED);
-        boolean allowFreeLookWhileLockedOn = readOptionalBoolean(object, "allowFreeLookWhileLockedOn", DEFAULT_ALLOW_FREE_LOOK_WHILE_LOCKED_ON);
-        double cameraRecenteringSpeed = clamp(
-                readOptionalDouble(object, "cameraRecenteringSpeed", DEFAULT_CAMERA_RECENTERING_SPEED),
-                MIN_CAMERA_RECENTERING_SPEED,
-                MAX_CAMERA_RECENTERING_SPEED);
-        double freeLookSensitivity = clamp(
-                readOptionalDouble(object, "freeLookSensitivity", DEFAULT_FREE_LOOK_SENSITIVITY),
-                MIN_FREE_LOOK_SENSITIVITY,
-                MAX_FREE_LOOK_SENSITIVITY);
-        boolean freeLookRecenterOnRelease = readOptionalBoolean(
-                object,
-                "freeLookRecenterOnRelease",
-                DEFAULT_FREE_LOOK_RECENTER_ON_RELEASE);
         boolean dynamicShoulderAutoSwapEnabled = readOptionalBoolean(object, "dynamicShoulderAutoSwapEnabled", DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED);
         double dynamicShoulderSwitchThreshold = clamp(
                 readOptionalDouble(object, "dynamicShoulderSwitchThreshold", DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD),
@@ -1677,16 +1604,11 @@ public final class FocusClientConfig {
                 dynamicCameraSwapSmoothness,
                 cameraStepSize,
                 dynamicallyAdjustOffsets,
-                cameraOwnershipMode,
                 followPlayerRotations,
                 followPlayerRotationsDelay,
                 cameraHeadFollowResponsiveness,
                 cameraBodyFollowResponsiveness,
                 fullBodyFollowEnabled,
-                allowFreeLookWhileLockedOn,
-                cameraRecenteringSpeed,
-                freeLookSensitivity,
-                freeLookRecenterOnRelease,
                 dynamicShoulderAutoSwapEnabled,
                 dynamicShoulderSwitchThreshold,
                 dynamicShoulderVisibilityWeight,
@@ -1793,21 +1715,6 @@ public final class FocusClientConfig {
         }
     }
 
-    private static FocusCameraMode readOptionalFocusCameraMode(JsonObject object, String key, FocusCameraMode fallback) {
-        JsonElement element = object.get(key);
-        if (element == null) {
-            return fallback;
-        }
-        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
-            throw new IllegalArgumentException("Preset has non-string enum field: " + key);
-        }
-        try {
-            return FocusCameraMode.valueOf(element.getAsString());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Preset has invalid camera ownership mode: " + element.getAsString(), e);
-        }
-    }
-
     private static CrosshairCorrectionMode readOptionalCrosshairCorrectionMode(
             JsonObject object,
             String key,
@@ -1901,16 +1808,11 @@ public final class FocusClientConfig {
             double dynamicCameraSwapSmoothness,
             double cameraStepSize,
             boolean dynamicallyAdjustOffsets,
-            FocusCameraMode cameraOwnershipMode,
             boolean followPlayerRotations,
             double followPlayerRotationsDelay,
             double cameraHeadFollowResponsiveness,
             double cameraBodyFollowResponsiveness,
             boolean fullBodyFollowEnabled,
-            boolean allowFreeLookWhileLockedOn,
-            double cameraRecenteringSpeed,
-            double freeLookSensitivity,
-            boolean freeLookRecenterOnRelease,
             boolean dynamicShoulderAutoSwapEnabled,
             double dynamicShoulderSwitchThreshold,
             double dynamicShoulderVisibilityWeight,

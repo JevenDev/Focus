@@ -26,10 +26,10 @@ public final class FocusCameraState {
     int occlusionGraceTicks;
     int outOfRangeGraceTicks;
 
-    float freeLookYaw;
-    float freeLookPitch;
-    boolean freeLookInputActive;
-    boolean freeLookRecentering;
+    float previewOrbitYaw;
+    float previewOrbitPitch;
+    boolean previewOrbitActive;
+    boolean previewOrbitRecentering;
     float playerTransparencyAlpha = 1.0F;
     int dynamicManualShoulderOverrideTicks;
     /** How close the player is to the target horizontally (0 = on top, 1 = far enough). */
@@ -64,10 +64,10 @@ public final class FocusCameraState {
         playerFollowDelayTicks = 0;
         occlusionGraceTicks = 0;
         outOfRangeGraceTicks = 0;
-        freeLookYaw = 0.0F;
-        freeLookPitch = 0.0F;
-        freeLookInputActive = false;
-        freeLookRecentering = false;
+        previewOrbitYaw = 0.0F;
+        previewOrbitPitch = 0.0F;
+        previewOrbitActive = false;
+        previewOrbitRecentering = false;
         playerTransparencyAlpha = 1.0F;
         dynamicManualShoulderOverrideTicks = 0;
         closeRangeProximityFactor = 1.0F;

@@ -34,7 +34,7 @@ public final class FocusScreenProjectionUtil {
     private static float lastRenderedFovDegrees = 70.0F;
 
     private FocusScreenProjectionUtil() {}
-    
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onComputeFov(ViewportEvent.ComputeFov event) {
         if (event.usedConfiguredFov()) {
