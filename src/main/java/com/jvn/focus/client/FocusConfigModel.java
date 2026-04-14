@@ -1,6 +1,5 @@
 package com.jvn.focus.client;
 
-import com.jvn.focus.client.camera.FocusCameraMode;
 import io.wispforest.owo.config.annotation.*;
 import io.wispforest.owo.config.annotation.RangeConstraint;
 
@@ -40,9 +39,6 @@ public class FocusConfigModel {
 
     @Nest
     public Crosshair crosshair = new Crosshair();
-
-    @ExcludeFromScreen
-    public FocusCameraMode cameraOwnershipMode = FocusCameraMode.COUPLED;
 
     // Hidden camera fields — persisted for preset compatibility, not shown in screen
     @ExcludeFromScreen
@@ -130,16 +126,6 @@ public class FocusConfigModel {
         public double cameraBodyFollowResponsiveness = 0.25;
 
         public boolean fullBodyFollowEnabled = true;
-
-        public boolean allowFreeLookWhileLockedOn = true;
-
-        @RangeConstraint(min = 0.0, max = 1.0)
-        public double cameraRecenteringSpeed = 0.12;
-
-        @RangeConstraint(min = 0.01, max = 0.5)
-        public double freeLookSensitivity = 0.12;
-
-        public boolean freeLookRecenterOnRelease = true;
     }
 
     public static class ShoulderSwap {

@@ -100,14 +100,14 @@ public final class FocusCameraController {
         if (state.dynamicManualShoulderOverrideTicks > 0) {
             state.dynamicManualShoulderOverrideTicks--;
         }
-        if (state.freeLookRecentering && !state.freeLookInputActive) {
-            float recenterSpeed = FocusClientConfig.cameraRecenteringSpeed();
-            state.freeLookYaw = Mth.lerp(recenterSpeed, state.freeLookYaw, 0.0F);
-            state.freeLookPitch = Mth.lerp(recenterSpeed, state.freeLookPitch, 0.0F);
-            if (Math.abs(state.freeLookYaw) < 0.01F && Math.abs(state.freeLookPitch) < 0.01F) {
-                state.freeLookYaw = 0.0F;
-                state.freeLookPitch = 0.0F;
-                state.freeLookRecentering = false;
+        if (state.previewOrbitRecentering && !state.previewOrbitActive) {
+            float recenterSpeed = 0.12F;
+            state.previewOrbitYaw = Mth.lerp(recenterSpeed, state.previewOrbitYaw, 0.0F);
+            state.previewOrbitPitch = Mth.lerp(recenterSpeed, state.previewOrbitPitch, 0.0F);
+            if (Math.abs(state.previewOrbitYaw) < 0.01F && Math.abs(state.previewOrbitPitch) < 0.01F) {
+                state.previewOrbitYaw = 0.0F;
+                state.previewOrbitPitch = 0.0F;
+                state.previewOrbitRecentering = false;
             }
         }
     }
@@ -193,8 +193,8 @@ public final class FocusCameraController {
 
         if (state.cameraEditorPreviewActive) {
             Vec3 eye = player.getEyePosition(partialTick);
-            float previewYaw = player.getYRot() + state.freeLookYaw;
-            float previewPitch = Mth.clamp(player.getXRot() + state.freeLookPitch, -89.0F, 89.0F);
+            float previewYaw = player.getYRot() + state.previewOrbitYaw;
+            float previewPitch = Mth.clamp(player.getXRot() + state.previewOrbitPitch, -89.0F, 89.0F);
             Vec3 forward = Vec3.directionFromRotation(previewPitch, previewYaw);
             Vec3 targetPoint = eye.add(forward.scale(8.0D));
             FocusCameraTargetContext context = new FocusCameraTargetContext(
@@ -336,21 +336,17 @@ public final class FocusCameraController {
         return Mth.lerp(swapBlend, sourcePreset.offsetZ(), targetPreset.offsetZ());
     }
 
-    public void addFreeLookDelta(float yawDelta, float pitchDelta) {
-        state.freeLookYaw += yawDelta;
-        state.freeLookPitch = Mth.clamp(state.freeLookPitch + pitchDelta, -85.0F, 85.0F);
+    public void addPreviewOrbitDelta(float yawDelta, float pitchDelta) {
+        state.previewOrbitYaw += yawDelta;
+        state.previewOrbitPitch = Mth.clamp(state.previewOrbitPitch + pitchDelta, -85.0F, 85.0F);
     }
 
-    public void smoothRecenterFreeLook() {
-        state.freeLookRecentering = true;
-    }
-
-    public void setFreeLookInputActive(boolean active) {
-        state.freeLookInputActive = active;
+    public void setPreviewOrbitActive(boolean active) {
+        state.previewOrbitActive = active;
         if (active) {
-            state.freeLookRecentering = false;
-        } else if (FocusClientConfig.freeLookRecenterOnRelease()) {
-            state.freeLookRecentering = true;
+            state.previewOrbitRecentering = false;
+        } else {
+            state.previewOrbitRecentering = true;
         }
     }
 
@@ -467,9 +463,6 @@ public final class FocusCameraController {
             targetYaw = FocusCameraMath.computeTargetYaw(player, state.smoothedTargetPoint, partialTick);
         }
         float targetPitch = FocusCameraMath.computeTargetPitch(player, state.smoothedTargetPoint, partialTick);
-
-        targetYaw += state.freeLookYaw;
-        targetPitch = Mth.clamp(targetPitch + state.freeLookPitch, -90.0F, 90.0F);
 
         // Proximity-based yaw attenuation: at close range, small movements cause huge yaw swings
         // which creates a feedback loop with rotation-follow (player faces target -> movement curves

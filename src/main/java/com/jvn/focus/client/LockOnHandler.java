@@ -63,16 +63,15 @@ public final class LockOnHandler {
             swapShoulder(player, true);
         }
         handleOpenCameraEditorInput(minecraft);
-        boolean freeLookActive = isFreeLookActive()
-                || (lockedTarget == null && isCameraEditorPreviewActive());
-        CAMERA_CONTROLLER.setFreeLookInputActive(freeLookActive);
+        boolean previewOrbitActive = lockedTarget == null && isCameraEditorPreviewActive();
+        CAMERA_CONTROLLER.setPreviewOrbitActive(previewOrbitActive);
         handleCameraAdjustmentInput(player);
 
         updateLockOnState(player, minecraft);
         CAMERA_CONTROLLER.updatePlayerVisibility(player, lockedTarget, 1.0F);
         updateTargetSwapCooldown();
         CAMERA_CONTROLLER.onClientTick(lockedTarget != null);
-        if (lockedTarget != null && !freeLookActive) {
+        if (lockedTarget != null && !previewOrbitActive) {
             tryDirectionalTargetSwap(player);
         } else {
             resetTargetSwapInput();
@@ -282,15 +281,14 @@ public final class LockOnHandler {
     }
 
     public static void onRawMouseInput(double deltaX, double deltaY) {
-        boolean previewFreeLook = lockedTarget == null && isCameraEditorPreviewActive();
-        if (lockedTarget == null && !previewFreeLook) {
+        boolean previewOrbit = lockedTarget == null && isCameraEditorPreviewActive();
+        if (lockedTarget == null && !previewOrbit) {
             return;
         }
 
-        if (isFreeLookActive() || previewFreeLook) {
-            // Priority: free-look consumes raw mouse deltas before directional target-swap logic.
-            float sensitivity = FocusClientConfig.freeLookSensitivity();
-            CAMERA_CONTROLLER.addFreeLookDelta((float) deltaX * sensitivity, (float) -deltaY * sensitivity);
+        if (previewOrbit) {
+            float sensitivity = 0.12F;
+            CAMERA_CONTROLLER.addPreviewOrbitDelta((float) deltaX * sensitivity, (float) -deltaY * sensitivity);
             return;
         }
 
@@ -448,10 +446,6 @@ public final class LockOnHandler {
             return;
         }
         LockOnCameraEditorScreen.openFromCurrentScreen();
-    }
-
-    private static boolean isFreeLookActive() {
-        return false;
     }
 
     private static void handleCameraAdjustmentInput(LocalPlayer player) {
