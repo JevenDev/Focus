@@ -55,6 +55,8 @@ public final class FocusClientConfig {
     public static final double DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED = 0.2D;
     public static final boolean DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY = true;
     public static final boolean DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW = false;
+    public static final boolean DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON = false;
+    public static final boolean DEFAULT_CINEMATIC_BARS_UNDER_HUD = false;
     public static final CrosshairCorrectionMode DEFAULT_CROSSHAIR_CORRECTION_MODE = CrosshairCorrectionMode.HYBRID;
     public static final boolean DEFAULT_RENDER_CORRECTED_CROSSHAIR = true;
     public static final boolean DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY = true;
@@ -328,6 +330,14 @@ public final class FocusClientConfig {
 
     public static boolean showLockOnDebugText() {
         return config().showLockOnDebugText();
+    }
+
+    public static boolean cinematicBarsWhileLockedOn() {
+        return config().cinematicBarsWhileLockedOn();
+    }
+
+    public static boolean cinematicBarsUnderHud() {
+        return config().cinematicBarsUnderHud();
     }
 
     public static LockOnIndicatorStyle lockOnIndicatorStyle() {
@@ -747,6 +757,8 @@ public final class FocusClientConfig {
                 allowFirstPersonWhileTargeting(),
                 allowFrontFacingThirdPersonWhileTargeting(),
                 showLockOnDebugText(),
+                cinematicBarsWhileLockedOn(),
+                cinematicBarsUnderHud(),
                 lockOnIndicatorStyle(),
                 cameraMode(),
                 cameraFloatiness(),
@@ -809,6 +821,8 @@ public final class FocusClientConfig {
         config().allowFirstPersonWhileTargeting(setup.allowFirstPersonWhileTargeting());
         config().allowFrontFacingThirdPersonWhileTargeting(setup.allowFrontFacingThirdPersonWhileTargeting());
         config().showLockOnDebugText(setup.showLockOnDebugText());
+        config().cinematicBarsWhileLockedOn(setup.cinematicBarsWhileLockedOn());
+        config().cinematicBarsUnderHud(setup.cinematicBarsUnderHud());
         config().lockOnIndicatorStyle(setup.lockOnIndicatorStyle());
         config().cameraMode(setup.cameraMode());
         config().cameraBehavior.cameraFloatiness(setup.cameraFloatiness());
@@ -1204,6 +1218,8 @@ public final class FocusClientConfig {
                 true,
                 false,
                 false,
+                DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON,
+                DEFAULT_CINEMATIC_BARS_UNDER_HUD,
                 LockOnIndicatorStyle.OOT_16X,
                 cameraMode,
                 clamp(cameraFloatiness, MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS),
@@ -1384,6 +1400,8 @@ public final class FocusClientConfig {
         object.addProperty("allowFirstPersonWhileTargeting", setup.allowFirstPersonWhileTargeting());
         object.addProperty("allowFrontFacingThirdPersonWhileTargeting", setup.allowFrontFacingThirdPersonWhileTargeting());
         object.addProperty("showLockOnDebugText", setup.showLockOnDebugText());
+        object.addProperty("cinematicBarsWhileLockedOn", setup.cinematicBarsWhileLockedOn());
+        object.addProperty("cinematicBarsUnderHud", setup.cinematicBarsUnderHud());
         object.addProperty("lockOnIndicatorStyle", setup.lockOnIndicatorStyle().name());
         object.addProperty("cameraMode", setup.cameraMode().name());
         object.addProperty("cameraFloatiness", setup.cameraFloatiness());
@@ -1459,6 +1477,14 @@ public final class FocusClientConfig {
         boolean allowFirstPersonWhileTargeting = readOptionalBoolean(object, "allowFirstPersonWhileTargeting", true);
         boolean allowFrontFacingThirdPersonWhileTargeting = readOptionalBoolean(object, "allowFrontFacingThirdPersonWhileTargeting", false);
         boolean showLockOnDebugText = readOptionalBoolean(object, "showLockOnDebugText", false);
+        boolean cinematicBarsWhileLockedOn = readOptionalBoolean(
+                object,
+                "cinematicBarsWhileLockedOn",
+                DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON);
+        boolean cinematicBarsUnderHud = readOptionalBoolean(
+                object,
+                "cinematicBarsUnderHud",
+                DEFAULT_CINEMATIC_BARS_UNDER_HUD);
         LockOnIndicatorStyle lockOnIndicatorStyle = readOptionalLockOnIndicatorStyle(object, "lockOnIndicatorStyle", LockOnIndicatorStyle.OOT_16X);
         CameraMode cameraMode = readOptionalCameraMode(object, "cameraMode", CameraMode.DYNAMIC);
         double cameraFloatiness = clamp(
@@ -1594,6 +1620,8 @@ public final class FocusClientConfig {
                 allowFirstPersonWhileTargeting,
                 allowFrontFacingThirdPersonWhileTargeting,
                 showLockOnDebugText,
+                cinematicBarsWhileLockedOn,
+                cinematicBarsUnderHud,
                 lockOnIndicatorStyle,
                 cameraMode,
                 cameraFloatiness,
@@ -1798,6 +1826,8 @@ public final class FocusClientConfig {
             boolean allowFirstPersonWhileTargeting,
             boolean allowFrontFacingThirdPersonWhileTargeting,
             boolean showLockOnDebugText,
+            boolean cinematicBarsWhileLockedOn,
+            boolean cinematicBarsUnderHud,
             LockOnIndicatorStyle lockOnIndicatorStyle,
             CameraMode cameraMode,
             double cameraFloatiness,

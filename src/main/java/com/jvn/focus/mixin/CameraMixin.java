@@ -87,7 +87,7 @@ public abstract class CameraMixin {
                 positionLerp,
                 rotationLerp,
                 LockOnHandler.isInitialLockCameraSnapActive(),
-                LockOnHandler.getTargetSwapBlendToNormal() < 0.999F);
+                LockOnHandler.getTargetSwapBlendToNormal());
 
         this.setPosition(pose.position());
         this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());

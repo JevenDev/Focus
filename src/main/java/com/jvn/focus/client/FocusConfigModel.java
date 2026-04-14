@@ -17,6 +17,8 @@ public class FocusConfigModel {
     public boolean allowFirstPersonWhileTargeting = true;
     public boolean allowFrontFacingThirdPersonWhileTargeting = false;
     public boolean showLockOnDebugText = false;
+    public boolean cinematicBarsWhileLockedOn = false;
+    public boolean cinematicBarsUnderHud = false;
     public FocusClientConfig.LockOnIndicatorStyle lockOnIndicatorStyle = FocusClientConfig.LockOnIndicatorStyle.OOT_16X;
 
     // ── Camera ───────────────────────────────────────────────────────────────
