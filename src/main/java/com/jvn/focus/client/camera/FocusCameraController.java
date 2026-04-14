@@ -22,6 +22,8 @@ public final class FocusCameraController {
     private static final float MAX_TARGET_ANGULAR_DEVIATION = 35.0F;
     private static final float ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES = 12.0F;
     private static final double ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE = 3.0D;
+    private static final float MAX_ADAPTIVE_TARGET_POINT_SCALE = 3.0F;
+    private static final float MAX_ADAPTIVE_LOOK_SCALE = 3.0F;
     private static final double MIN_HORIZONTAL_DISTANCE_FOR_YAW = 0.3D;
     private static final double CLOSE_RANGE_YAW_ATTENUATION_DISTANCE = 1.5D;
     private static final float CLOSE_RANGE_YAW_MIN_FACTOR = 0.05F;
@@ -444,6 +446,7 @@ public final class FocusCameraController {
         double targetPointDeviation = currentTargetPoint.distanceTo(state.smoothedTargetPoint);
         if (targetPointDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE) {
             float deviationScale = (float) (targetPointDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DISTANCE);
+            deviationScale = Math.min(deviationScale, MAX_ADAPTIVE_TARGET_POINT_SCALE);
             targetPointResponsiveness *= deviationScale;
         }
 
@@ -481,16 +484,19 @@ public final class FocusCameraController {
         state.closeRangeProximityFactor = proximityFactor;
 
         // Adaptive look smoothing: speed up when angular deviation is large to keep target on screen
-        // Cap yaw scaling so it cannot undo proximity attenuation.
+        // Cap scaling so transitions between near and distant targets stay smooth.
         float yawDeviation = Math.abs(Mth.wrapDegrees(targetYaw - state.smoothedLookYaw));
         float pitchDeviation = Math.abs(targetPitch - state.smoothedLookPitch);
         float angularDeviation = Math.max(yawDeviation, pitchDeviation);
         if (angularDeviation > ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES) {
-            float deviationScale = angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES;
+            float deviationScale = Math.min(
+                    angularDeviation / ADAPTIVE_SMOOTHING_THRESHOLD_DEGREES,
+                    MAX_ADAPTIVE_LOOK_SCALE);
             if (proximityFactor < 1.0F) {
                 float maxYawAdaptiveScale = 1.0F / Math.max(proximityFactor, CLOSE_RANGE_YAW_MIN_FACTOR);
-                lookYawResponsiveness *= Math.min(deviationScale, maxYawAdaptiveScale);
-                lookYawMaxStep *= Math.min(deviationScale, maxYawAdaptiveScale);
+                float yawScale = Math.min(deviationScale, maxYawAdaptiveScale);
+                lookYawResponsiveness *= yawScale;
+                lookYawMaxStep *= yawScale;
             } else {
                 lookYawResponsiveness *= deviationScale;
                 lookYawMaxStep *= deviationScale;
