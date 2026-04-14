@@ -42,6 +42,7 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
     public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
     public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
+    public static final boolean DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES = true;
     public static final double DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.45D;
     public static final double DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.25D;
     public static final boolean DEFAULT_FULL_BODY_FOLLOW_ENABLED = true;
@@ -326,6 +327,10 @@ public final class FocusClientConfig {
 
     public static boolean allowFrontFacingThirdPersonWhileTargeting() {
         return config().allowFrontFacingThirdPersonWhileTargeting();
+    }
+
+    public static boolean showLockOnStatusMessages() {
+        return config().showLockOnStatusMessages();
     }
 
     public static boolean showLockOnDebugText() {
@@ -756,6 +761,7 @@ public final class FocusClientConfig {
                 autoSwitchToThirdPerson(),
                 allowFirstPersonWhileTargeting(),
                 allowFrontFacingThirdPersonWhileTargeting(),
+                showLockOnStatusMessages(),
                 showLockOnDebugText(),
                 cinematicBarsWhileLockedOn(),
                 cinematicBarsUnderHud(),
@@ -820,6 +826,7 @@ public final class FocusClientConfig {
         config().autoSwitchToThirdPerson(setup.autoSwitchToThirdPerson());
         config().allowFirstPersonWhileTargeting(setup.allowFirstPersonWhileTargeting());
         config().allowFrontFacingThirdPersonWhileTargeting(setup.allowFrontFacingThirdPersonWhileTargeting());
+        config().showLockOnStatusMessages(setup.showLockOnStatusMessages());
         config().showLockOnDebugText(setup.showLockOnDebugText());
         config().cinematicBarsWhileLockedOn(setup.cinematicBarsWhileLockedOn());
         config().cinematicBarsUnderHud(setup.cinematicBarsUnderHud());
@@ -1217,6 +1224,7 @@ public final class FocusClientConfig {
                 true,
                 true,
                 false,
+                DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES,
                 false,
                 DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON,
                 DEFAULT_CINEMATIC_BARS_UNDER_HUD,
@@ -1399,6 +1407,7 @@ public final class FocusClientConfig {
         object.addProperty("autoSwitchToThirdPerson", setup.autoSwitchToThirdPerson());
         object.addProperty("allowFirstPersonWhileTargeting", setup.allowFirstPersonWhileTargeting());
         object.addProperty("allowFrontFacingThirdPersonWhileTargeting", setup.allowFrontFacingThirdPersonWhileTargeting());
+        object.addProperty("showLockOnStatusMessages", setup.showLockOnStatusMessages());
         object.addProperty("showLockOnDebugText", setup.showLockOnDebugText());
         object.addProperty("cinematicBarsWhileLockedOn", setup.cinematicBarsWhileLockedOn());
         object.addProperty("cinematicBarsUnderHud", setup.cinematicBarsUnderHud());
@@ -1476,6 +1485,7 @@ public final class FocusClientConfig {
         boolean autoSwitchToThirdPerson = readOptionalBoolean(object, "autoSwitchToThirdPerson", true);
         boolean allowFirstPersonWhileTargeting = readOptionalBoolean(object, "allowFirstPersonWhileTargeting", true);
         boolean allowFrontFacingThirdPersonWhileTargeting = readOptionalBoolean(object, "allowFrontFacingThirdPersonWhileTargeting", false);
+        boolean showLockOnStatusMessages = readOptionalBoolean(object, "showLockOnStatusMessages", DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES);
         boolean showLockOnDebugText = readOptionalBoolean(object, "showLockOnDebugText", false);
         boolean cinematicBarsWhileLockedOn = readOptionalBoolean(
                 object,
@@ -1619,6 +1629,7 @@ public final class FocusClientConfig {
                 autoSwitchToThirdPerson,
                 allowFirstPersonWhileTargeting,
                 allowFrontFacingThirdPersonWhileTargeting,
+                showLockOnStatusMessages,
                 showLockOnDebugText,
                 cinematicBarsWhileLockedOn,
                 cinematicBarsUnderHud,
@@ -1825,6 +1836,7 @@ public final class FocusClientConfig {
             boolean autoSwitchToThirdPerson,
             boolean allowFirstPersonWhileTargeting,
             boolean allowFrontFacingThirdPersonWhileTargeting,
+            boolean showLockOnStatusMessages,
             boolean showLockOnDebugText,
             boolean cinematicBarsWhileLockedOn,
             boolean cinematicBarsUnderHud,

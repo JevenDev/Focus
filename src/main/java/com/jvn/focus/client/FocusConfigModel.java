@@ -16,6 +16,7 @@ public class FocusConfigModel {
     public boolean autoSwitchToThirdPerson = true;
     public boolean allowFirstPersonWhileTargeting = true;
     public boolean allowFrontFacingThirdPersonWhileTargeting = false;
+    public boolean showLockOnStatusMessages = true;
     public boolean showLockOnDebugText = false;
     public boolean cinematicBarsWhileLockedOn = false;
     public boolean cinematicBarsUnderHud = false;
