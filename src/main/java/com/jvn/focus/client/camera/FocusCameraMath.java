@@ -77,8 +77,11 @@ final class FocusCameraMath {
             return 1.0F;
         }
 
+        // Linear ramp from 0→1 over the swap duration.  The underlying exponential-decay
+        // smoothing (smoothAngle / smoothVec) already provides natural ease-in/ease-out,
+        // so a linear blend distributes the responsiveness ramp evenly across ticks and
+        // avoids the mid-transition velocity spike that smoothstep produced.
         float blendToNormal = 1.0F - (float) state.targetSwapSmoothingTicks / (float) state.targetSwapSmoothingDurationTicks;
-        blendToNormal = Mth.clamp(blendToNormal, 0.0F, 1.0F);
-        return blendToNormal * blendToNormal * (3.0F - 2.0F * blendToNormal);
+        return Mth.clamp(blendToNormal, 0.0F, 1.0F);
     }
 }
