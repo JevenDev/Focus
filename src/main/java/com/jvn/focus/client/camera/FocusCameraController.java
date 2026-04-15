@@ -357,7 +357,8 @@ public final class FocusCameraController {
     }
 
     public void updateCloseRangeHeadingLock(boolean forwardPressed, float currentYaw) {
-        if (state.closeRangeProximityFactor < 1.0F && forwardPressed && !state.closeRangeHeadingLocked) {
+        if (state.closeRangeProximityFactor <= 0.0F
+                && forwardPressed && !state.closeRangeHeadingLocked) {
             state.closeRangeHeadingLocked = true;
             state.closeRangeLockedHeadingYaw = currentYaw;
         } else if (state.closeRangeHeadingLocked && !forwardPressed) {
