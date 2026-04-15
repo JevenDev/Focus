@@ -154,7 +154,8 @@ public final class FocusShoulderSurfingCameraSystem {
             float targetSwapBlendToNormal,
             Vec3 vanillaCameraPos,
             float vanillaCameraYaw,
-            float vanillaCameraPitch) {
+            float vanillaCameraPitch,
+            boolean wasThirdPerson) {
         float swapBlendToNormal = Mth.clamp(targetSwapBlendToNormal, 0.0F, 1.0F);
         boolean targetSwapActive = swapBlendToNormal < 0.999F;
         // Convert per-tick lerp factors to FPS-independent equivalents.
@@ -263,7 +264,7 @@ public final class FocusShoulderSurfingCameraSystem {
         float focusPitch = Mth.clamp(smoothedPitch, -90.0F, 90.0F);
 
         boolean smoothTransition = FocusClientConfig.smoothCameraTransition();
-        if (smoothTransition && snapNow && !previouslyActive) {
+        if (smoothTransition && snapNow && !previouslyActive && wasThirdPerson) {
             // First frame of lock-on with smooth transition: begin blending from the vanilla camera.
             transitionStartOffset = vanillaCameraPos.subtract(pivotPoint);
             transitionStartYaw = vanillaCameraYaw;
