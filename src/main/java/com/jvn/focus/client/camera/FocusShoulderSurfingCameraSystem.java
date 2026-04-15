@@ -169,7 +169,15 @@ public final class FocusShoulderSurfingCameraSystem {
         boolean previouslyActive = wasActive;
 
         // Cancel any ongoing return transition since lock-on is active again.
+        // Resume the entry transition from where the return blend currently is.
         if (inReturnTransition) {
+            float t = returnBlend;
+            float easedBlend = t * t * (3.0F - 2.0F * t);
+            Vec3 vanillaOffset = vanillaCameraPos.subtract(pivotPoint);
+            Vec3 blendedOffset = returnStartOffset.lerp(vanillaOffset, easedBlend);
+            vanillaCameraPos = pivotPoint.add(blendedOffset);
+            vanillaCameraYaw = Mth.rotLerp(easedBlend, returnStartYaw, vanillaCameraYaw);
+            vanillaCameraPitch = Mth.lerp(easedBlend, returnStartPitch, vanillaCameraPitch);
             inReturnTransition = false;
             returnBlend = 1.0F;
         }
