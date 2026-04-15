@@ -68,6 +68,10 @@
   "text.config.focus-config.option.cameraBehavior.cameraStepSize.tooltip": "Size of each camera offset adjustment step.",
   "text.config.focus-config.option.cameraBehavior.dynamicallyAdjustOffsets": "Dynamically Adjust Offsets",
   "text.config.focus-config.option.cameraBehavior.dynamicallyAdjustOffsets.tooltip": "Dynamically adjust camera side/up offsets when space is constrained.",
+  "text.config.focus-config.option.cameraBehavior.smoothCameraTransition": "Smooth Camera Transition",
+  "text.config.focus-config.option.cameraBehavior.smoothCameraTransition.tooltip": "Smoothly blend between vanilla and lock-on camera when entering or exiting lock-on.",
+  "text.config.focus-config.option.cameraBehavior.cameraTransitionSpeed": "Camera Transition Speed",
+  "text.config.focus-config.option.cameraBehavior.cameraTransitionSpeed.tooltip": "How quickly the camera blends between vanilla and lock-on positions during transitions.",
 
   "text.config.focus-config.option.cameraFollowing": "Camera Following",
   "text.config.focus-config.option.cameraFollowing.followPlayerRotations": "Follow Player Rotations",
