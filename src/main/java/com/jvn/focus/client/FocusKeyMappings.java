@@ -20,7 +20,7 @@ public final class FocusKeyMappings {
     public static final KeyMapping SWAP_SHOULDER =
             new KeyMapping("key.focus.swap_shoulder", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY);
     public static final KeyMapping OPEN_CAMERA_EDITOR =
-            new KeyMapping("key.focus.open_camera_editor", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, CATEGORY);
+            new KeyMapping("key.focus.open_camera_editor", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F6, CATEGORY);
     public static final KeyMapping CAMERA_LEFT =
             new KeyMapping("key.focus.adjust_camera_left", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT, CATEGORY);
     public static final KeyMapping CAMERA_RIGHT =
