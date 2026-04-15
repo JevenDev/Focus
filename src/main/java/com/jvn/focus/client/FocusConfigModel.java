@@ -114,6 +114,11 @@ public class FocusConfigModel {
         public double cameraStepSize = 0.025;
 
         public boolean dynamicallyAdjustOffsets = true;
+
+        public boolean smoothCameraTransition = true;
+
+        @RangeConstraint(min = 0.02, max = 1.0)
+        public double cameraTransitionSpeed = 0.12;
     }
 
     public static class CameraFollowing {

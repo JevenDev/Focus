@@ -45,6 +45,9 @@ public abstract class CameraMixin {
     @Shadow
     public abstract float getRoll();
 
+    @Shadow
+    public abstract Vec3 getPosition();
+
     @Inject(method = "setup", at = @At("TAIL"))
     private void focus$applyLockOnCamera(BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci) {
         boolean detachedBackCamera = detached && !thirdPersonReverse;
@@ -55,9 +58,27 @@ public abstract class CameraMixin {
 
         FocusCameraPose lockData = LockOnHandler.getActiveCameraData(player, partialTick);
         if (lockData == null) {
-            focus$cameraSystem.reset();
+            Vec3 pivotPoint = player.getEyePosition(partialTick);
+
+            if (focus$cameraSystem.wasActive()) {
+                focus$cameraSystem.beginReturnTransition(pivotPoint);
+            }
+
+            if (focus$cameraSystem.isInReturnTransition()) {
+                Vec3 vanillaPos = this.getPosition();
+                float deltaTicks = focus$cameraController.getLastRenderDeltaTicks();
+                CameraPose pose = focus$cameraSystem.updateReturnTransition(
+                        vanillaPos, this.yRot, this.xRot, pivotPoint, deltaTicks);
+                this.setPosition(pose.position());
+                this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
+            }
             return;
         }
+
+        // Capture vanilla/SS camera state before Focus overrides it.
+        Vec3 vanillaCameraPos = this.getPosition();
+        float vanillaCameraYaw = this.yRot;
+        float vanillaCameraPitch = this.xRot;
 
         double cameraFloatiness = Mth.clamp(
                 FocusClientConfig.cameraFloatiness(),
@@ -87,7 +108,10 @@ public abstract class CameraMixin {
                 positionLerp,
                 rotationLerp,
                 LockOnHandler.isInitialLockCameraSnapActive(),
-                LockOnHandler.getTargetSwapBlendToNormal());
+                LockOnHandler.getTargetSwapBlendToNormal(),
+                vanillaCameraPos,
+                vanillaCameraYaw,
+                vanillaCameraPitch);
 
         this.setPosition(pose.position());
         this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
