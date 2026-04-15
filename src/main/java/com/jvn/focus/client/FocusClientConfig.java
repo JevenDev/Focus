@@ -42,7 +42,7 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
     public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
     public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
-    public static final boolean DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES = true;
+    public static final boolean DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES = false;
     public static final double DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.45D;
     public static final double DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.25D;
     public static final boolean DEFAULT_FULL_BODY_FOLLOW_ENABLED = true;
