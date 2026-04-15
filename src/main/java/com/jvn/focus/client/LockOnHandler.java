@@ -245,10 +245,26 @@ public final class LockOnHandler {
         lockedTarget = nextTarget;
         previousCameraType = minecraft.options.getCameraType();
         if (FocusClientConfig.autoSwitchToThirdPerson()) {
-            CameraType preferredLockPerspective = lockOnPreferredCameraType != null
-                    ? lockOnPreferredCameraType
-                    : CameraType.THIRD_PERSON_BACK;
-            minecraft.options.setCameraType(preferredLockPerspective);
+            CameraType currentType = previousCameraType;
+            boolean allowFirstPerson = FocusClientConfig.allowFirstPersonWhileTargeting();
+            boolean allowFrontFacing = FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting();
+
+            if (currentType == CameraType.THIRD_PERSON_BACK) {
+                // Already in back third-person; keep it.
+            } else if (currentType == CameraType.THIRD_PERSON_FRONT && allowFrontFacing) {
+                // Front-facing is allowed; keep it.
+            } else if (currentType == CameraType.THIRD_PERSON_FRONT) {
+                // Front-facing not allowed; switch to back.
+                minecraft.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            } else {
+                // First-person or unknown: switch to a third-person mode.
+                CameraType preferred = lockOnPreferredCameraType;
+                if (preferred == null || preferred.isFirstPerson()
+                        || (preferred == CameraType.THIRD_PERSON_FRONT && !allowFrontFacing)) {
+                    preferred = CameraType.THIRD_PERSON_BACK;
+                }
+                minecraft.options.setCameraType(preferred);
+            }
         }
         lastEnforcedCameraType = minecraft.options.getCameraType();
         occlusionGraceTicks = 0;

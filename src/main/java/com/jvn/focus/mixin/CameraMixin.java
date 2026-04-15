@@ -29,6 +29,8 @@ public abstract class CameraMixin {
     private static final FocusShoulderSurfingCameraSystem focus$cameraSystem = FocusShoulderSurfingCameraSystem.getInstance();
     @Unique
     private static final FocusCameraController focus$cameraController = FocusCameraController.getInstance();
+    @Unique
+    private boolean focus$wasThirdPersonBack;
 
     @Shadow
     private float yRot;
@@ -53,8 +55,12 @@ public abstract class CameraMixin {
         boolean detachedBackCamera = detached && !thirdPersonReverse;
         if (!(entity instanceof LocalPlayer player) || !detachedBackCamera) {
             focus$cameraSystem.reset();
+            focus$wasThirdPersonBack = false;
             return;
         }
+
+        boolean wasThirdPerson = focus$wasThirdPersonBack;
+        focus$wasThirdPersonBack = true;
 
         FocusCameraPose lockData = LockOnHandler.getActiveCameraData(player, partialTick);
         if (lockData == null) {
@@ -111,7 +117,8 @@ public abstract class CameraMixin {
                 LockOnHandler.getTargetSwapBlendToNormal(),
                 vanillaCameraPos,
                 vanillaCameraYaw,
-                vanillaCameraPitch);
+                vanillaCameraPitch,
+                wasThirdPerson);
 
         this.setPosition(pose.position());
         this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
