@@ -14,27 +14,26 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.Util;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 public final class LockOnCameraEditorScreen extends Screen {
     private static final int CONTROL_WIDTH = 220;
     private static final int CONTROL_LEFT_MARGIN = 14;
-    private static final int ROW_HEIGHT = 19;
-    private static final int HEADER_HEIGHT = 18;
+    private static final int ROW_HEIGHT = 20;
+    private static final int HEADER_HEIGHT = 26;
     private static final int HIDE_SHOW_BUTTON_WIDTH = 72;
     private static final int PRESETS_TOGGLE_BUTTON_WIDTH = 96;
     private static final int ACTION_BUTTON_HEIGHT = 18;
     private static final int CONTROL_GAP = ROW_HEIGHT - ACTION_BUTTON_HEIGHT;
-    private static final int CONTROL_ROW_COUNT = 10;
-    private static final int STATUS_ROW_INDEX = 8;
+    private static final int GROUP_GAP = 6;
+    private static final int PANEL_PADDING = 8;
     private static final int PRESETS_PANEL_DEFAULT_WIDTH = 238;
-    private static final int PRESETS_PANEL_START_ROW = 3;
-    private static final int HEADER_TITLE_GAP_TO_FIRST_ROW = 23;
-    private static final int HEADER_HINT_GAP_TO_FIRST_ROW = 13;
-    private static final int VALUE_PRECISION = 1;
+    private static final int VALUE_PRECISION = 3;
     private static final int CONTROLS_BOTTOM_MARGIN = 10;
     private static final long STATUS_MESSAGE_DURATION_MS = 2500L;
+    private static final double KEY_ADJUST_STEP_MULTIPLIER = 5.0D;
 
     private final Screen parent;
     private final CameraType previousCameraType;
@@ -55,6 +54,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     private Button resetButton;
     private Button doneButton;
     private Button toggleUiButton;
+    private Button followRotationsButton;
     private boolean controlsVisible = true;
     private boolean presetsPanelExpanded;
     private int controlsX;
@@ -63,6 +63,14 @@ public final class LockOnCameraEditorScreen extends Screen {
     private int presetsPanelX;
     private int presetsPanelTop;
     private int presetsPanelWidth;
+    private int statusMessageY;
+    private int hideUiY;
+    private int panelBackdropLeft;
+    private int panelBackdropTop;
+    private int panelBackdropRight;
+    private int panelBackdropBottom;
+    private int headerHeight;
+    private int halfButtonWidth;
     private Component statusMessage = Component.empty();
     private long statusMessageUntilMs;
     private FocusClientConfig.Shoulder editedShoulder = FocusClientConfig.Shoulder.LEFT;
@@ -93,13 +101,40 @@ public final class LockOnCameraEditorScreen extends Screen {
         editedShoulder = LockOnHandler.getActiveShoulder();
         sliderWidth = Math.min(CONTROL_WIDTH, Math.max(170, this.width - 20));
         controlsX = CONTROL_LEFT_MARGIN;
-        controlsTop = Math.max(18, this.height - (ROW_HEIGHT * CONTROL_ROW_COUNT) - CONTROLS_BOTTOM_MARGIN);
+
+        // Compute dynamic header height — taller if hint text wraps within slider width
+        List<FormattedCharSequence> adjustHintLines = this.font.split(
+                Component.translatable("screen.focus.camera_editor.adjust_hint"), sliderWidth);
+        int extraHintLines = Math.max(0, adjustHintLines.size() - 1);
+        headerHeight = HEADER_HEIGHT + extraHintLines * (this.font.lineHeight + 1);
+
+        // Layout: header + 4 sliders + gap + 3 toggles + gap + actions + gap + hide-ui
+        int panelContentHeight = headerHeight + ROW_HEIGHT * 8 + GROUP_GAP * 2;
+        int totalContentHeight = panelContentHeight + GROUP_GAP + ROW_HEIGHT;
+        controlsTop = Math.max(4, this.height - totalContentHeight - CONTROLS_BOTTOM_MARGIN);
+
+        // Compute section Y positions
+        int firstRowY = controlsTop + headerHeight;
+        int sliderGroupY = firstRowY;
+        int toggleGroupY = sliderGroupY + ROW_HEIGHT * 4 + GROUP_GAP;
+        int actionGroupY = toggleGroupY + ROW_HEIGHT * 3 + GROUP_GAP;
+        hideUiY = actionGroupY + ROW_HEIGHT + GROUP_GAP;
+        statusMessageY = actionGroupY + ACTION_BUTTON_HEIGHT + 3;
+
+        // Panel backdrop bounds
+        panelBackdropLeft = controlsX - PANEL_PADDING;
+        panelBackdropTop = controlsTop - PANEL_PADDING + 2;
+        panelBackdropRight = controlsX + sliderWidth + PANEL_PADDING;
+        panelBackdropBottom = hideUiY + ACTION_BUTTON_HEIGHT + PANEL_PADDING;
+
         presetsPanelWidth = Math.min(PRESETS_PANEL_DEFAULT_WIDTH, Math.max(188, this.width - sliderWidth - CONTROL_LEFT_MARGIN - 28));
         presetsPanelX = this.width - presetsPanelWidth - CONTROL_LEFT_MARGIN;
-        presetsPanelTop = controlsTop + 50;
+        // Presets panel — bottom-aligned with main panel
+        int presetsPanelContentHeight = HEADER_HEIGHT + ROW_HEIGHT * 4;
+        presetsPanelTop = panelBackdropBottom - PANEL_PADDING - presetsPanelContentHeight;
 
         xSlider = addRenderableWidget(new Slider(
-                controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 0, sliderWidth,
+                controlsX, sliderGroupY, sliderWidth,
                 "screen.focus.camera_editor.offset_x",
                 FocusClientConfig.MIN_CAMERA_OFFSET_X, FocusClientConfig.MAX_CAMERA_OFFSET_X,
                 () -> FocusClientConfig.cameraOffsetX(editedShoulder),
@@ -109,7 +144,7 @@ public final class LockOnCameraEditorScreen extends Screen {
                 }));
 
         ySlider = addRenderableWidget(new Slider(
-                controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 1, sliderWidth,
+                controlsX, sliderGroupY + ROW_HEIGHT, sliderWidth,
                 "screen.focus.camera_editor.offset_y",
                 FocusClientConfig.MIN_CAMERA_OFFSET_Y, FocusClientConfig.MAX_CAMERA_OFFSET_Y,
                 () -> FocusClientConfig.cameraOffsetY(editedShoulder),
@@ -119,7 +154,7 @@ public final class LockOnCameraEditorScreen extends Screen {
                 }));
 
         zSlider = addRenderableWidget(new Slider(
-                controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 2, sliderWidth,
+                controlsX, sliderGroupY + ROW_HEIGHT * 2, sliderWidth,
                 "screen.focus.camera_editor.offset_z",
                 FocusClientConfig.MIN_CAMERA_OFFSET_Z, FocusClientConfig.MAX_CAMERA_OFFSET_Z,
                 () -> FocusClientConfig.cameraOffsetZ(editedShoulder),
@@ -129,7 +164,7 @@ public final class LockOnCameraEditorScreen extends Screen {
                 }));
 
         rotationSlider = addRenderableWidget(new Slider(
-                controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 3, sliderWidth,
+                controlsX, sliderGroupY + ROW_HEIGHT * 3, sliderWidth,
                 "screen.focus.camera_editor.rotation",
                 FocusClientConfig.MIN_CAMERA_ROTATION, FocusClientConfig.MAX_CAMERA_ROTATION,
                 () -> FocusClientConfig.cameraRotation(editedShoulder),
@@ -138,11 +173,11 @@ public final class LockOnCameraEditorScreen extends Screen {
                     FocusClientConfig.saveConfig();
                 }));
 
-        int swapButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 4;
-        int customValuesY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 5;
-        int buttonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 6;
-        int leftDualButtonWidth = (sliderWidth - CONTROL_GAP) / 2;
-        int rightDualButtonWidth = sliderWidth - leftDualButtonWidth - CONTROL_GAP;
+        int swapButtonY = toggleGroupY;
+        int customValuesY = toggleGroupY + ROW_HEIGHT;
+        int followRotationsY = toggleGroupY + ROW_HEIGHT * 2;
+        halfButtonWidth = (sliderWidth - CONTROL_GAP) / 2;
+        int rightHalfButtonWidth = sliderWidth - halfButtonWidth - CONTROL_GAP;
 
         swapShoulderButton = addRenderableWidget(Button.builder(Component.empty(), button -> swapEditedShoulder(true))
                 .bounds(controlsX, swapButtonY, sliderWidth, ACTION_BUTTON_HEIGHT)
@@ -150,16 +185,25 @@ public final class LockOnCameraEditorScreen extends Screen {
         customSwapValuesButton = addRenderableWidget(Button.builder(Component.empty(), button -> toggleCustomSwapValues())
                 .bounds(controlsX, customValuesY, sliderWidth, ACTION_BUTTON_HEIGHT)
                 .build());
+        followRotationsButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            FocusClientConfig.setFollowPlayerRotations(!FocusClientConfig.followPlayerRotations());
+            FocusClientConfig.saveConfig();
+            refreshAdvancedCameraButtons();
+            showStatus(FocusClientConfig.followPlayerRotations()
+                    ? "screen.focus.camera_editor.follow_rotations_enabled"
+                    : "screen.focus.camera_editor.follow_rotations_disabled");
+        }).bounds(controlsX, followRotationsY, sliderWidth, ACTION_BUTTON_HEIGHT).build());
+
         togglePresetsPanelButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
                     presetsPanelExpanded = !presetsPanelExpanded;
                     applyControlVisibility();
-                }).bounds(this.width - CONTROL_LEFT_MARGIN - PRESETS_TOGGLE_BUTTON_WIDTH, controlsTop - 20, PRESETS_TOGGLE_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT)
+                }).bounds(controlsX + halfButtonWidth + CONTROL_GAP, hideUiY, rightHalfButtonWidth, ACTION_BUTTON_HEIGHT)
                 .build());
 
-        int profileNameY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 0);
-        int profileCycleY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 1);
-        int profileActionY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 2);
-        int presetButtonY = controlsTop + HEADER_HEIGHT + ROW_HEIGHT * (PRESETS_PANEL_START_ROW + 3);
+        int profileNameY = presetsPanelTop + HEADER_HEIGHT;
+        int profileCycleY = profileNameY + ROW_HEIGHT;
+        int profileActionY = profileCycleY + ROW_HEIGHT;
+        int presetButtonY = profileActionY + ROW_HEIGHT;
         int panelTripleButtonWidth = (presetsPanelWidth - (CONTROL_GAP * 2)) / 3;
         int panelThirdButtonWidth = presetsPanelWidth - (panelTripleButtonWidth * 2) - (CONTROL_GAP * 2);
         int panelLeftDualButtonWidth = (presetsPanelWidth - CONTROL_GAP) / 2;
@@ -208,16 +252,16 @@ public final class LockOnCameraEditorScreen extends Screen {
             FocusClientConfig.saveConfig();
             refreshSlidersFromConfig();
             showStatus("screen.focus.camera_editor.preset_reset_defaults");
-        }).bounds(controlsX, buttonY, leftDualButtonWidth, ACTION_BUTTON_HEIGHT).build());
+        }).bounds(controlsX, actionGroupY, halfButtonWidth, ACTION_BUTTON_HEIGHT).build());
 
         doneButton = addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(controlsX + leftDualButtonWidth + CONTROL_GAP, buttonY, rightDualButtonWidth, ACTION_BUTTON_HEIGHT)
+                .bounds(controlsX + halfButtonWidth + CONTROL_GAP, actionGroupY, rightHalfButtonWidth, ACTION_BUTTON_HEIGHT)
                 .build());
 
         toggleUiButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
-        }).bounds(controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * 7, HIDE_SHOW_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT).build());
+        }).bounds(controlsX, hideUiY, halfButtonWidth, ACTION_BUTTON_HEIGHT).build());
 
         initializeProfileName();
         presetsPanelExpanded = false;
@@ -245,10 +289,25 @@ public final class LockOnCameraEditorScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (controlsVisible) {
-            int firstLeftRowY = controlsTop + HEADER_HEIGHT;
-            guiGraphics.drawString(this.font, this.title, controlsX, firstLeftRowY - HEADER_TITLE_GAP_TO_FIRST_ROW, 0xFFFFFF, true);
-            guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint"),
-                    controlsX, firstLeftRowY - HEADER_HINT_GAP_TO_FIRST_ROW, 0xD0D0D0, true);
+            // Semi-transparent panel backdrop for readability
+            guiGraphics.fill(panelBackdropLeft, panelBackdropTop, panelBackdropRight, panelBackdropBottom, 0x90101010);
+
+            if (presetsPanelExpanded) {
+                guiGraphics.fill(
+                        presetsPanelX - PANEL_PADDING,
+                        presetsPanelTop - PANEL_PADDING,
+                        presetsPanelX + presetsPanelWidth + PANEL_PADDING,
+                        panelBackdropBottom,
+                        0x90101010);
+            }
+
+            guiGraphics.drawString(this.font, this.title, controlsX, controlsTop + 2, 0xFFFFFF, true);
+            List<FormattedCharSequence> hintLines = this.font.split(
+                    Component.translatable("screen.focus.camera_editor.adjust_hint"), sliderWidth);
+            for (int i = 0; i < hintLines.size(); i++) {
+                guiGraphics.drawString(this.font, hintLines.get(i),
+                        controlsX, controlsTop + 14 + i * (this.font.lineHeight + 1), 0xB0B0B0, true);
+            }
             if (presetsPanelExpanded) {
                 guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.presets_panel_title"),
                         presetsPanelX, presetsPanelTop + 2, 0xFFFFFF, true);
@@ -256,7 +315,7 @@ public final class LockOnCameraEditorScreen extends Screen {
                         presetsPanelX, presetsPanelTop + 12, 0xCFCFCF, true);
             }
             if (isStatusVisible()) {
-                guiGraphics.drawString(this.font, statusMessage, controlsX, controlsTop + HEADER_HEIGHT + ROW_HEIGHT * STATUS_ROW_INDEX, 0xC8FACC, true);
+                guiGraphics.drawString(this.font, statusMessage, controlsX, statusMessageY, 0xC8FACC, true);
             }
         } else {
             guiGraphics.drawString(this.font, Component.translatable("screen.focus.camera_editor.preview_hint_minimized"),
@@ -276,6 +335,9 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (profileNameInput != null && profileNameInput.isFocused()) {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
+        if (handleEditorCameraAdjustmentKey(keyCode, modifiers)) {
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_H) {
             controlsVisible = !controlsVisible;
             applyControlVisibility();
@@ -288,13 +350,60 @@ public final class LockOnCameraEditorScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
+    private boolean handleEditorCameraAdjustmentKey(int keyCode, int modifiers) {
+        double step = FocusClientConfig.cameraStepSize();
+        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+            step *= KEY_ADJUST_STEP_MULTIPLIER;
+        }
+
+        boolean changed = switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT -> {
+                FocusClientConfig.adjustCameraLeft(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_RIGHT -> {
+                FocusClientConfig.adjustCameraRight(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_UP -> {
+                FocusClientConfig.adjustCameraIn(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_DOWN -> {
+                FocusClientConfig.adjustCameraOut(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_PAGE_UP -> {
+                FocusClientConfig.adjustCameraUp(editedShoulder, step);
+                yield true;
+            }
+            case GLFW.GLFW_KEY_PAGE_DOWN -> {
+                FocusClientConfig.adjustCameraDown(editedShoulder, step);
+                yield true;
+            }
+            default -> false;
+        };
+        if (!changed) {
+            return false;
+        }
+
+        FocusClientConfig.saveConfig();
+        refreshSlidersFromConfig();
+        return true;
+    }
+
     private void applyControlVisibility() {
         if (toggleUiButton != null) {
             toggleUiButton.setMessage(controlsVisible
                     ? Component.translatable("screen.focus.camera_editor.hide_ui")
                     : Component.translatable("screen.focus.camera_editor.show_ui"));
+            toggleUiButton.setY(controlsVisible ? hideUiY : this.height - CONTROLS_BOTTOM_MARGIN - ACTION_BUTTON_HEIGHT);
+            toggleUiButton.setWidth(controlsVisible ? halfButtonWidth : HIDE_SHOW_BUTTON_WIDTH);
         }
         if (togglePresetsPanelButton != null) {
+            if (!controlsVisible) {
+                presetsPanelExpanded = false;
+            }
             togglePresetsPanelButton.visible = controlsVisible;
             togglePresetsPanelButton.active = controlsVisible;
             togglePresetsPanelButton.setMessage(Component.translatable(
@@ -347,6 +456,10 @@ public final class LockOnCameraEditorScreen extends Screen {
         if (doneButton != null) {
             doneButton.visible = controlsVisible;
             doneButton.active = controlsVisible;
+        }
+        if (followRotationsButton != null) {
+            followRotationsButton.visible = controlsVisible;
+            followRotationsButton.active = controlsVisible;
         }
 
         refreshProfileControls();
@@ -604,6 +717,15 @@ public final class LockOnCameraEditorScreen extends Screen {
             customSwapValuesButton.setMessage(Component.translatable(
                     "screen.focus.camera_editor.custom_swap_values",
                     FocusClientConfig.useCustomSwappedShoulderValues() ? "x" : " "));
+        }
+        refreshAdvancedCameraButtons();
+    }
+
+    private void refreshAdvancedCameraButtons() {
+        if (followRotationsButton != null) {
+            followRotationsButton.setMessage(Component.translatable(
+                    "screen.focus.camera_editor.follow_rotations",
+                    FocusClientConfig.followPlayerRotations() ? "x" : " "));
         }
     }
 
