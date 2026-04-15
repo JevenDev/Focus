@@ -217,8 +217,8 @@ public final class LockOnHandler {
         float origForward = input.forwardImpulse;
         float origStrafe = input.leftImpulse;
 
-        input.forwardImpulse = origForward * cos;
-        input.leftImpulse = origStrafe - origForward * sin;
+        input.forwardImpulse = origForward * cos + origStrafe * sin;
+        input.leftImpulse = -(origStrafe * cos - origForward * sin);
     }
 
     @SubscribeEvent

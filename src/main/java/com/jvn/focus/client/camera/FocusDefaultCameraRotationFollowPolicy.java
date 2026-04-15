@@ -43,7 +43,8 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
             float desiredPitch,
             float swapFollowAlpha) {
         float yaw = Mth.rotLerp(swapFollowAlpha, player.getYRot(), desiredYaw);
-        if (!Minecraft.getInstance().options.getCameraType().isFirstPerson() && state.closeRangeHeadingLocked) {
+        if (!Minecraft.getInstance().options.getCameraType().isFirstPerson()
+                && state.closeRangeHeadingLocked && state.closeRangeProximityFactor < 1.0F) {
             float proximity = Mth.clamp(state.closeRangeProximityFactor, 0.0F, 1.0F);
             float maxYawStepPerTick = Mth.lerp(proximity, CLOSE_RANGE_TURN_MAX_YAW_STEP_NEAR, CLOSE_RANGE_TURN_MAX_YAW_STEP_FAR);
             float maxYawStep = maxYawStepPerTick * Math.max(0.01F, context.deltaTicks());
