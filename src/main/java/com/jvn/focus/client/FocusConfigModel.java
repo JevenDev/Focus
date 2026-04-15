@@ -170,7 +170,7 @@ public class FocusConfigModel {
 
     public static class Crosshair {
         public FocusClientConfig.CrosshairCorrectionMode crosshairCorrectionMode = FocusClientConfig.CrosshairCorrectionMode.HYBRID;
-        public boolean renderCorrectedCrosshair = true;
+        public boolean renderCorrectedCrosshair = false;
         public boolean correctBlockPlacementRay = true;
         public boolean correctEntityHitRay = true;
         public boolean correctCrosshairOnlyWhileLockedOn = false;

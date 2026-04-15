@@ -205,15 +205,15 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
         double sourceSign = state.activeShoulder == FocusClientConfig.Shoulder.LEFT ? -1.0D : 1.0D;
         double targetSign = -sourceSign;
         double offsetXSign = Mth.lerp(blend, sourceSign, targetSign);
-        double offsetX = clamp(
+        double offsetX = Mth.clamp(
                 presetOffsetX + offsetXSign * DYNAMIC_EXTRA_OFFSET_X_NEAR * nearFactor,
                 FocusClientConfig.MIN_CAMERA_OFFSET_X,
                 FocusClientConfig.MAX_CAMERA_OFFSET_X);
-        double offsetY = clamp(
+        double offsetY = Mth.clamp(
                 presetOffsetY + DYNAMIC_EXTRA_OFFSET_Y_NEAR * nearFactor,
                 FocusClientConfig.MIN_CAMERA_OFFSET_Y,
                 FocusClientConfig.MAX_CAMERA_OFFSET_Y);
-        double offsetZ = clamp(
+        double offsetZ = Mth.clamp(
                 presetOffsetZ + DYNAMIC_EXTRA_OFFSET_Z_NEAR * nearFactor,
                 FocusClientConfig.MIN_CAMERA_OFFSET_Z,
                 FocusClientConfig.MAX_CAMERA_OFFSET_Z);
@@ -272,9 +272,5 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
         }
         state.previousDynamicTargetOffset = currentOffset;
         state.dynamicSwapReferenceInitialized = true;
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
     }
 }

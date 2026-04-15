@@ -68,7 +68,6 @@ public final class LockOnIndicatorHudOverlay {
         drawCenteredIndicator(guiGraphics, projectedPoint, style);
     }
 
-    @SuppressWarnings("unused")
     private static void drawCenteredIndicator(
             GuiGraphics guiGraphics,
             FocusScreenProjectionUtil.ScreenPoint center,

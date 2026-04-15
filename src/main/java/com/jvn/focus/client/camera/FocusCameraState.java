@@ -23,8 +23,6 @@ public final class FocusCameraState {
     int targetSwapSmoothingDurationTicks;
     int initialLockCameraSnapTicks;
     int playerFollowDelayTicks;
-    int occlusionGraceTicks;
-    int outOfRangeGraceTicks;
 
     float previewOrbitYaw;
     float previewOrbitPitch;
@@ -62,8 +60,6 @@ public final class FocusCameraState {
         targetSwapSmoothingDurationTicks = 0;
         initialLockCameraSnapTicks = 0;
         playerFollowDelayTicks = 0;
-        occlusionGraceTicks = 0;
-        outOfRangeGraceTicks = 0;
         previewOrbitYaw = 0.0F;
         previewOrbitPitch = 0.0F;
         previewOrbitActive = false;
