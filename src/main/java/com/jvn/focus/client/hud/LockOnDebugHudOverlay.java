@@ -54,7 +54,8 @@ public final class LockOnDebugHudOverlay {
         Font font = minecraft.font;
         int leftY = BASE_Y;
         int rightY = BASE_Y;
-        FocusClientConfig.Shoulder activeShoulder = LockOnHandler.getDisplayedShoulder();
+        FocusClientConfig.Shoulder activeShoulder = LockOnHandler.getActiveShoulder();
+        FocusClientConfig.Shoulder displayedShoulder = LockOnHandler.getDisplayedShoulder();
         FocusClientConfig.PerspectivePreset leftPreset = FocusClientConfig.currentPreset(FocusClientConfig.Shoulder.LEFT);
         FocusClientConfig.PerspectivePreset rightPreset = FocusClientConfig.currentPreset(FocusClientConfig.Shoulder.RIGHT);
         float distance = player.distanceTo(target);
@@ -75,6 +76,9 @@ public final class LockOnDebugHudOverlay {
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_front_facing_third_person", onOff(FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.editor_preview", onOff(LockOnHandler.isCameraEditorPreviewActive())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.shoulder", activeShoulder.displayName()), leftY);
+        if (activeShoulder != displayedShoulder) {
+            leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.displayed_shoulder", displayedShoulder.displayName()), leftY);
+        }
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.can_hit", yesNo(canHitNow)), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.in_range", yesNo(inHitRange)), leftY);
         drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.has_line_of_sight", yesNo(hasLineOfSight)), leftY);
@@ -86,8 +90,15 @@ public final class LockOnDebugHudOverlay {
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_smoothness", format(FocusClientConfig.cameraSwapSmoothness())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_speed", format(FocusClientConfig.dynamicCameraSwapSpeed())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_swap_smoothness", format(FocusClientConfig.dynamicCameraSwapSmoothness())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.camera_step_size", formatPrecise(FocusClientConfig.cameraStepSize())), rightY);
+        rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_offsets", onOff(FocusClientConfig.dynamicallyAdjustOffsets())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_player_follow", format(FocusClientConfig.targetSwapPlayerLookFollow())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_blend", format(LockOnHandler.getTargetSwapBlendToNormal())), rightY);
+        if (FocusClientConfig.cameraMode() == FocusClientConfig.CameraMode.DYNAMIC) {
+            rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.dynamic_blend", format(LockOnHandler.getDynamicAutoCurrentBlend())), rightY);
+        } else {
+            rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.static_blend", format(LockOnHandler.getStaticSwapBlend())), rightY);
+        }
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_camera_pos_factor", format(LockOnHandler.getTargetSwapCameraPositionFactor())), rightY);
         rightY = drawRightLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.swap_camera_rot_factor", format(LockOnHandler.getTargetSwapCameraRotationFactor())), rightY);
         rightY = drawShoulderAwareRightValue(guiGraphics, font, rightY,
@@ -154,5 +165,9 @@ public final class LockOnDebugHudOverlay {
 
     private static String format(double value) {
         return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    private static String formatPrecise(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 }

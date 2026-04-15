@@ -29,12 +29,16 @@ sourceSets.main.resources {
 repositories {
     mavenCentral()
     maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
+        name = "WispForest"
+        url = "https://maven.wispforest.io/releases/"
     }
     maven {
-        name = "KotlinForForge"
-        url = "https://thedarkcolour.github.io/KotlinForForge/"
+        name = "JitPack"
+        url = "https://jitpack.io"
+    }
+    maven {
+        name = "Sinytra"
+        url = "https://maven.su5ed.dev/releases/"
     }
 }
 
@@ -126,7 +130,8 @@ configurations {
 }
 
 dependencies {
-    implementation "maven.modrinth:midnightlib:${project.midnightlib_version}"
+    implementation "io.wispforest:owo-lib-neoforge:${project.owo_version}"
+    annotationProcessor "io.wispforest:owo-lib-neoforge:${project.owo_version}"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
