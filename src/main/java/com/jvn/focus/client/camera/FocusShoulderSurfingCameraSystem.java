@@ -26,6 +26,25 @@ public final class FocusShoulderSurfingCameraSystem {
     private boolean hasSmoothedOrbitRotation;
     private boolean wasActive;
 
+    // Entry transition state: blends from the vanilla/SS camera to the Focus lock-on camera.
+    private Vec3 transitionStartOffset = Vec3.ZERO;
+    private float transitionStartYaw;
+    private float transitionStartPitch;
+    private float transitionBlend = 1.0F;
+    private boolean inTransition;
+
+    // Return transition state: blends from the Focus lock-on camera back to vanilla/SS on deactivation.
+    private Vec3 returnStartOffset = Vec3.ZERO;
+    private float returnStartYaw;
+    private float returnStartPitch;
+    private float returnBlend = 1.0F;
+    private boolean inReturnTransition;
+
+    // Last output pose, used as the starting point for the return transition.
+    private Vec3 lastOutputPosition = Vec3.ZERO;
+    private float lastOutputYaw;
+    private float lastOutputPitch;
+
     private FocusShoulderSurfingCameraSystem() {}
 
     public static FocusShoulderSurfingCameraSystem getInstance() {
@@ -40,6 +59,84 @@ public final class FocusShoulderSurfingCameraSystem {
         hasSmoothedRotation = false;
         hasSmoothedOrbitRotation = false;
         wasActive = false;
+        transitionStartOffset = Vec3.ZERO;
+        transitionStartYaw = 0.0F;
+        transitionStartPitch = 0.0F;
+        transitionBlend = 1.0F;
+        inTransition = false;
+        returnStartOffset = Vec3.ZERO;
+        returnStartYaw = 0.0F;
+        returnStartPitch = 0.0F;
+        returnBlend = 1.0F;
+        inReturnTransition = false;
+        lastOutputPosition = Vec3.ZERO;
+        lastOutputYaw = 0.0F;
+        lastOutputPitch = 0.0F;
+    }
+
+    public boolean wasActive() {
+        return wasActive;
+    }
+
+    public boolean isInReturnTransition() {
+        return inReturnTransition;
+    }
+
+    /**
+     * Begins a smooth return transition from the last Focus camera pose back to vanilla.
+     * Resets the main lock-on state but preserves the return transition.
+     */
+    public void beginReturnTransition(Vec3 pivotPoint) {
+        if (wasActive && FocusClientConfig.smoothCameraTransition()) {
+            returnStartOffset = lastOutputPosition.subtract(pivotPoint);
+            returnStartYaw = lastOutputYaw;
+            returnStartPitch = lastOutputPitch;
+            returnBlend = 0.0F;
+            inReturnTransition = true;
+        }
+        // Reset the main lock-on state.
+        smoothedOffset = Vec3.ZERO;
+        hasOffsetState = false;
+        maxCameraDistance = 0.0D;
+        maxCameraDistancePrevious = 0.0D;
+        hasSmoothedRotation = false;
+        hasSmoothedOrbitRotation = false;
+        wasActive = false;
+        transitionStartOffset = Vec3.ZERO;
+        transitionStartYaw = 0.0F;
+        transitionStartPitch = 0.0F;
+        transitionBlend = 1.0F;
+        inTransition = false;
+    }
+
+    /**
+     * Advances the return transition, blending from the captured Focus pose toward the vanilla camera.
+     * Returns the blended pose, or the vanilla pose once the transition completes.
+     */
+    public CameraPose updateReturnTransition(Vec3 vanillaPos, float vanillaYaw, float vanillaPitch, Vec3 pivotPoint, float deltaTicks) {
+        double transitionSpeed = Mth.clamp(
+                FocusClientConfig.cameraTransitionSpeed(),
+                FocusClientConfig.MIN_CAMERA_TRANSITION_SPEED,
+                FocusClientConfig.MAX_CAMERA_TRANSITION_SPEED);
+        float alpha = 1.0F - (float) Math.pow(1.0D - transitionSpeed, deltaTicks);
+        returnBlend = returnBlend + (1.0F - returnBlend) * alpha;
+
+        if (returnBlend >= 0.999F) {
+            returnBlend = 1.0F;
+            inReturnTransition = false;
+            return new CameraPose(vanillaPos, vanillaYaw, Mth.clamp(vanillaPitch, -90.0F, 90.0F));
+        }
+
+        float t = returnBlend;
+        float easedBlend = t * t * (3.0F - 2.0F * t);
+
+        Vec3 vanillaOffset = vanillaPos.subtract(pivotPoint);
+        Vec3 blendedOffset = returnStartOffset.lerp(vanillaOffset, easedBlend);
+        Vec3 blendedPosition = pivotPoint.add(blendedOffset);
+        float blendedYaw = Mth.rotLerp(easedBlend, returnStartYaw, vanillaYaw);
+        float blendedPitch = Mth.lerp(easedBlend, returnStartPitch, vanillaPitch);
+
+        return new CameraPose(blendedPosition, blendedYaw, Mth.clamp(blendedPitch, -90.0F, 90.0F));
     }
 
     public CameraPose update(
@@ -54,7 +151,10 @@ public final class FocusShoulderSurfingCameraSystem {
             double positionLerpAlpha,
             float rotationLerpAlpha,
             boolean forceSnap,
-            float targetSwapBlendToNormal) {
+            float targetSwapBlendToNormal,
+            Vec3 vanillaCameraPos,
+            float vanillaCameraYaw,
+            float vanillaCameraPitch) {
         float swapBlendToNormal = Mth.clamp(targetSwapBlendToNormal, 0.0F, 1.0F);
         boolean targetSwapActive = swapBlendToNormal < 0.999F;
         // Convert per-tick lerp factors to FPS-independent equivalents.
@@ -65,6 +165,13 @@ public final class FocusShoulderSurfingCameraSystem {
         float targetOrbitYaw = pivotRotation.yaw() + lockData.rotationDegrees();
         float targetOrbitPitch = pivotRotation.pitch();
         boolean snapNow = forceSnap || !wasActive || !hasOffsetState;
+        boolean previouslyActive = wasActive;
+
+        // Cancel any ongoing return transition since lock-on is active again.
+        if (inReturnTransition) {
+            inReturnTransition = false;
+            returnBlend = 1.0F;
+        }
         if (snapNow || !hasSmoothedOrbitRotation) {
             smoothedOrbitYaw = targetOrbitYaw;
             smoothedOrbitPitch = targetOrbitPitch;
@@ -150,7 +257,55 @@ public final class FocusShoulderSurfingCameraSystem {
         }
 
         wasActive = true;
-        return new CameraPose(cameraPosition, smoothedYaw, Mth.clamp(smoothedPitch, -90.0F, 90.0F));
+
+        Vec3 focusPosition = cameraPosition;
+        float focusYaw = smoothedYaw;
+        float focusPitch = Mth.clamp(smoothedPitch, -90.0F, 90.0F);
+
+        boolean smoothTransition = FocusClientConfig.smoothCameraTransition();
+        if (smoothTransition && snapNow && !previouslyActive) {
+            // First frame of lock-on with smooth transition: begin blending from the vanilla camera.
+            transitionStartOffset = vanillaCameraPos.subtract(pivotPoint);
+            transitionStartYaw = vanillaCameraYaw;
+            transitionStartPitch = vanillaCameraPitch;
+            transitionBlend = 0.0F;
+            inTransition = true;
+        }
+
+        if (inTransition) {
+            double transitionSpeed = Mth.clamp(
+                    FocusClientConfig.cameraTransitionSpeed(),
+                    FocusClientConfig.MIN_CAMERA_TRANSITION_SPEED,
+                    FocusClientConfig.MAX_CAMERA_TRANSITION_SPEED);
+            float alpha = 1.0F - (float) Math.pow(1.0D - transitionSpeed, deltaTicks);
+            transitionBlend = transitionBlend + (1.0F - transitionBlend) * alpha;
+
+            if (transitionBlend >= 0.999F) {
+                transitionBlend = 1.0F;
+                inTransition = false;
+            }
+
+            // Smoothstep easing for natural acceleration and deceleration.
+            float t = transitionBlend;
+            float easedBlend = t * t * (3.0F - 2.0F * t);
+
+            Vec3 focusOffset = focusPosition.subtract(pivotPoint);
+            Vec3 blendedOffset = transitionStartOffset.lerp(focusOffset, easedBlend);
+            Vec3 blendedPosition = pivotPoint.add(blendedOffset);
+            float blendedYaw = Mth.rotLerp(easedBlend, transitionStartYaw, focusYaw);
+            float blendedPitch = Mth.lerp(easedBlend, transitionStartPitch, focusPitch);
+
+            return storeLastOutput(new CameraPose(blendedPosition, blendedYaw, Mth.clamp(blendedPitch, -90.0F, 90.0F)));
+        }
+
+        return storeLastOutput(new CameraPose(focusPosition, focusYaw, focusPitch));
+    }
+
+    private CameraPose storeLastOutput(CameraPose pose) {
+        lastOutputPosition = pose.position();
+        lastOutputYaw = pose.yaw();
+        lastOutputPitch = pose.pitch();
+        return pose;
     }
 
     private static Vec3 applyDynamicOffsetCollision(BlockGetter level, Entity entity, Vec3 eyePosition, FocusCameraBasisUtil.CameraBasis basis, Vec3 desiredOffset) {

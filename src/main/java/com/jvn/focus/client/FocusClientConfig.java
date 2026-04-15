@@ -40,6 +40,8 @@ public final class FocusClientConfig {
     public static final double DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 0.12D;
     public static final double DEFAULT_CAMERA_STEP_SIZE = 0.025D;
     public static final boolean DEFAULT_DYNAMICALLY_ADJUST_OFFSETS = true;
+    public static final boolean DEFAULT_SMOOTH_CAMERA_TRANSITION = true;
+    public static final double DEFAULT_CAMERA_TRANSITION_SPEED = 0.12D;
     public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
     public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
     public static final boolean DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES = false;
@@ -107,6 +109,8 @@ public final class FocusClientConfig {
     public static final double MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS = 1.0D;
     public static final double MIN_CAMERA_STEP_SIZE = 0.001D;
     public static final double MAX_CAMERA_STEP_SIZE = 1.0D;
+    public static final double MIN_CAMERA_TRANSITION_SPEED = 0.02D;
+    public static final double MAX_CAMERA_TRANSITION_SPEED = 1.0D;
     public static final double MIN_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
     public static final double MAX_FOLLOW_PLAYER_ROTATIONS_DELAY = 40.0D;
     public static final double MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.01D;
@@ -387,6 +391,14 @@ public final class FocusClientConfig {
 
     public static boolean dynamicallyAdjustOffsets() {
         return config().cameraBehavior.dynamicallyAdjustOffsets();
+    }
+
+    public static boolean smoothCameraTransition() {
+        return config().cameraBehavior.smoothCameraTransition();
+    }
+
+    public static double cameraTransitionSpeed() {
+        return config().cameraBehavior.cameraTransitionSpeed();
     }
 
     public static boolean followPlayerRotations() {
@@ -775,6 +787,8 @@ public final class FocusClientConfig {
                 dynamicCameraSwapSmoothness(),
                 cameraStepSize(),
                 dynamicallyAdjustOffsets(),
+                smoothCameraTransition(),
+                cameraTransitionSpeed(),
                 followPlayerRotations(),
                 config().cameraFollowing.followPlayerRotationsDelay(),
                 config().cameraFollowing.cameraHeadFollowResponsiveness(),
@@ -840,6 +854,8 @@ public final class FocusClientConfig {
         config().dynamicCameraSwapSmoothness(setup.dynamicCameraSwapSmoothness());
         config().cameraBehavior.cameraStepSize(setup.cameraStepSize());
         config().cameraBehavior.dynamicallyAdjustOffsets(setup.dynamicallyAdjustOffsets());
+        config().cameraBehavior.smoothCameraTransition(setup.smoothCameraTransition());
+        config().cameraBehavior.cameraTransitionSpeed(setup.cameraTransitionSpeed());
         config().cameraFollowing.followPlayerRotations(setup.followPlayerRotations());
         config().cameraFollowing.followPlayerRotationsDelay(setup.followPlayerRotationsDelay());
         config().cameraFollowing.cameraHeadFollowResponsiveness(setup.cameraHeadFollowResponsiveness());
@@ -1238,6 +1254,8 @@ public final class FocusClientConfig {
                 clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
                 DEFAULT_CAMERA_STEP_SIZE,
                 DEFAULT_DYNAMICALLY_ADJUST_OFFSETS,
+                DEFAULT_SMOOTH_CAMERA_TRANSITION,
+                DEFAULT_CAMERA_TRANSITION_SPEED,
                 DEFAULT_FOLLOW_PLAYER_ROTATIONS,
                 DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY,
                 DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
@@ -1421,6 +1439,8 @@ public final class FocusClientConfig {
         object.addProperty("dynamicCameraSwapSmoothness", setup.dynamicCameraSwapSmoothness());
         object.addProperty("cameraStepSize", setup.cameraStepSize());
         object.addProperty("dynamicallyAdjustOffsets", setup.dynamicallyAdjustOffsets());
+        object.addProperty("smoothCameraTransition", setup.smoothCameraTransition());
+        object.addProperty("cameraTransitionSpeed", setup.cameraTransitionSpeed());
         object.addProperty("followPlayerRotations", setup.followPlayerRotations());
         object.addProperty("followPlayerRotationsDelay", setup.followPlayerRotationsDelay());
         object.addProperty("cameraHeadFollowResponsiveness", setup.cameraHeadFollowResponsiveness());
@@ -1520,6 +1540,10 @@ public final class FocusClientConfig {
                 MIN_CAMERA_STEP_SIZE,
                 MAX_CAMERA_STEP_SIZE);
         boolean dynamicallyAdjustOffsets = readOptionalBoolean(object, "dynamicallyAdjustOffsets", DEFAULT_DYNAMICALLY_ADJUST_OFFSETS);
+        boolean smoothCameraTransition = readOptionalBoolean(object, "smoothCameraTransition", DEFAULT_SMOOTH_CAMERA_TRANSITION);
+        double cameraTransitionSpeed = clamp(
+                readOptionalDouble(object, "cameraTransitionSpeed", DEFAULT_CAMERA_TRANSITION_SPEED),
+                MIN_CAMERA_TRANSITION_SPEED, MAX_CAMERA_TRANSITION_SPEED);
         boolean followPlayerRotations = readOptionalBoolean(object, "followPlayerRotations", DEFAULT_FOLLOW_PLAYER_ROTATIONS);
         double followPlayerRotationsDelay = clamp(
                 readOptionalDouble(object, "followPlayerRotationsDelay", DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY),
@@ -1643,6 +1667,8 @@ public final class FocusClientConfig {
                 dynamicCameraSwapSmoothness,
                 cameraStepSize,
                 dynamicallyAdjustOffsets,
+                smoothCameraTransition,
+                cameraTransitionSpeed,
                 followPlayerRotations,
                 followPlayerRotationsDelay,
                 cameraHeadFollowResponsiveness,
@@ -1850,6 +1876,8 @@ public final class FocusClientConfig {
             double dynamicCameraSwapSmoothness,
             double cameraStepSize,
             boolean dynamicallyAdjustOffsets,
+            boolean smoothCameraTransition,
+            double cameraTransitionSpeed,
             boolean followPlayerRotations,
             double followPlayerRotationsDelay,
             double cameraHeadFollowResponsiveness,
