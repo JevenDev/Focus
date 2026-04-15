@@ -59,9 +59,6 @@ public final class FocusCorrectedCrosshairOverlay {
         }
 
         LivingEntity lockedTarget = LockOnHandler.getLockedTarget();
-        if (FocusClientConfig.hideVanillaCrosshair()) {
-            return;
-        }
         if (FocusClientConfig.correctCrosshairOnlyWhileLockedOn() && lockedTarget == null) {
             return;
         }

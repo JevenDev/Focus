@@ -345,11 +345,7 @@ public final class FocusCameraController {
 
     public void setPreviewOrbitActive(boolean active) {
         state.previewOrbitActive = active;
-        if (active) {
-            state.previewOrbitRecentering = false;
-        } else {
-            state.previewOrbitRecentering = true;
-        }
+        state.previewOrbitRecentering = !active;
     }
 
     public float playerTransparencyAlpha() {

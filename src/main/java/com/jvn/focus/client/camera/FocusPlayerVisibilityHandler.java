@@ -12,7 +12,7 @@ import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 
 @EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
 public final class FocusPlayerVisibilityHandler {
-    private static boolean focus$alphaApplied;
+    private static boolean alphaApplied;
 
     private FocusPlayerVisibilityHandler() {}
 
@@ -28,7 +28,7 @@ public final class FocusPlayerVisibilityHandler {
         if (alpha >= 0.999F) {
             return;
         }
-        focus$alphaApplied = true;
+        alphaApplied = true;
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
@@ -36,10 +36,10 @@ public final class FocusPlayerVisibilityHandler {
 
     @SubscribeEvent
     public static void onRenderPlayerPost(RenderPlayerEvent.Post event) {
-        if (!focus$alphaApplied) {
+        if (!alphaApplied) {
             return;
         }
-        focus$alphaApplied = false;
+        alphaApplied = false;
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

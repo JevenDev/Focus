@@ -276,16 +276,13 @@ public final class LockOnHandler {
     }
 
     private static void restoreCamera(Minecraft minecraft) {
-        clearLockState(true, minecraft);
-    }
-
-    private static void clearLockState(boolean restorePreviousCameraType, Minecraft minecraft) {
-        if (restorePreviousCameraType && previousCameraType != null) {
-            if (minecraft == null) {
-                minecraft = Minecraft.getInstance();
-            }
+        if (previousCameraType != null) {
             minecraft.options.setCameraType(previousCameraType);
         }
+        clearLockState();
+    }
+
+    private static void clearLockState() {
         previousCameraType = null;
         lastEnforcedCameraType = null;
         occlusionGraceTicks = 0;

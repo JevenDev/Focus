@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.util.Mth;
 import io.wispforest.owo.config.ui.ConfigScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -61,7 +62,7 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON = false;
     public static final boolean DEFAULT_CINEMATIC_BARS_UNDER_HUD = false;
     public static final CrosshairCorrectionMode DEFAULT_CROSSHAIR_CORRECTION_MODE = CrosshairCorrectionMode.HYBRID;
-    public static final boolean DEFAULT_RENDER_CORRECTED_CROSSHAIR = true;
+    public static final boolean DEFAULT_RENDER_CORRECTED_CROSSHAIR = false;
     public static final boolean DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY = true;
     public static final boolean DEFAULT_CORRECT_ENTITY_HIT_RAY = true;
     public static final boolean DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON = false;
@@ -1046,16 +1047,12 @@ public final class FocusClientConfig {
         return CONFIG;
     }
 
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
     private static double normalizeDynamicShoulderVisibilityWeight(double visibilityWeight, double screenPlacementWeight) {
-        double clampedVisibility = clamp(
+        double clampedVisibility = Mth.clamp(
                 visibilityWeight,
                 MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
                 MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
-        double clampedScreenPlacement = clamp(
+        double clampedScreenPlacement = Mth.clamp(
                 screenPlacementWeight,
                 MIN_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT,
                 MAX_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT);
@@ -1063,7 +1060,7 @@ public final class FocusClientConfig {
         if (total <= 0.000001D) {
             return DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT;
         }
-        return clamp(
+        return Mth.clamp(
                 clampedVisibility / total,
                 MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
                 MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
@@ -1121,16 +1118,16 @@ public final class FocusClientConfig {
 
     private static PerspectivePreset sanitizePreset(PerspectivePreset preset) {
         return new PerspectivePreset(
-                clamp(roundForCamera(preset.offsetX()), MIN_CAMERA_OFFSET_X, MAX_CAMERA_OFFSET_X),
-                clamp(roundForCamera(preset.offsetY()), MIN_CAMERA_OFFSET_Y, MAX_CAMERA_OFFSET_Y),
-                clamp(roundForCamera(preset.offsetZ()), MIN_CAMERA_OFFSET_Z, MAX_CAMERA_OFFSET_Z),
-                clamp(roundForCamera(preset.rotation()), MIN_CAMERA_ROTATION, MAX_CAMERA_ROTATION));
+                Mth.clamp(roundForCamera(preset.offsetX()), MIN_CAMERA_OFFSET_X, MAX_CAMERA_OFFSET_X),
+                Mth.clamp(roundForCamera(preset.offsetY()), MIN_CAMERA_OFFSET_Y, MAX_CAMERA_OFFSET_Y),
+                Mth.clamp(roundForCamera(preset.offsetZ()), MIN_CAMERA_OFFSET_Z, MAX_CAMERA_OFFSET_Z),
+                Mth.clamp(roundForCamera(preset.rotation()), MIN_CAMERA_ROTATION, MAX_CAMERA_ROTATION));
     }
 
     private static void setRawCameraOffsetX(Shoulder shoulder, double value) {
         PerspectivePreset current = currentPreset(shoulder);
         setPresetFor(shoulder, new PerspectivePreset(
-                clamp(roundForCamera(value), MIN_CAMERA_OFFSET_X, MAX_CAMERA_OFFSET_X),
+                Mth.clamp(roundForCamera(value), MIN_CAMERA_OFFSET_X, MAX_CAMERA_OFFSET_X),
                 current.offsetY(),
                 current.offsetZ(),
                 current.rotation()));
@@ -1140,7 +1137,7 @@ public final class FocusClientConfig {
         PerspectivePreset current = currentPreset(shoulder);
         setPresetFor(shoulder, new PerspectivePreset(
                 current.offsetX(),
-                clamp(roundForCamera(value), MIN_CAMERA_OFFSET_Y, MAX_CAMERA_OFFSET_Y),
+                Mth.clamp(roundForCamera(value), MIN_CAMERA_OFFSET_Y, MAX_CAMERA_OFFSET_Y),
                 current.offsetZ(),
                 current.rotation()));
     }
@@ -1150,7 +1147,7 @@ public final class FocusClientConfig {
         setPresetFor(shoulder, new PerspectivePreset(
                 current.offsetX(),
                 current.offsetY(),
-                clamp(roundForCamera(value), MIN_CAMERA_OFFSET_Z, MAX_CAMERA_OFFSET_Z),
+                Mth.clamp(roundForCamera(value), MIN_CAMERA_OFFSET_Z, MAX_CAMERA_OFFSET_Z),
                 current.rotation()));
     }
 
@@ -1160,7 +1157,7 @@ public final class FocusClientConfig {
                 current.offsetX(),
                 current.offsetY(),
                 current.offsetZ(),
-                clamp(roundForCamera(value), MIN_CAMERA_ROTATION, MAX_CAMERA_ROTATION)));
+                Mth.clamp(roundForCamera(value), MIN_CAMERA_ROTATION, MAX_CAMERA_ROTATION)));
     }
 
     private static PerspectivePreset presetFor(Shoulder shoulder) {
@@ -1246,12 +1243,12 @@ public final class FocusClientConfig {
                 DEFAULT_CINEMATIC_BARS_UNDER_HUD,
                 LockOnIndicatorStyle.OOT_16X,
                 cameraMode,
-                clamp(cameraFloatiness, MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS),
-                clamp(cameraDrag, MIN_CAMERA_DRAG, MAX_CAMERA_DRAG),
-                clamp(cameraSwapSpeed, MIN_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED),
-                clamp(cameraSwapSmoothness, MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS),
-                clamp(dynamicCameraSwapSpeed, MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED),
-                clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
+                Mth.clamp(cameraFloatiness, MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS),
+                Mth.clamp(cameraDrag, MIN_CAMERA_DRAG, MAX_CAMERA_DRAG),
+                Mth.clamp(cameraSwapSpeed, MIN_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED),
+                Mth.clamp(cameraSwapSmoothness, MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS),
+                Mth.clamp(dynamicCameraSwapSpeed, MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED),
+                Mth.clamp(dynamicCameraSwapSmoothness, MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
                 DEFAULT_CAMERA_STEP_SIZE,
                 DEFAULT_DYNAMICALLY_ADJUST_OFFSETS,
                 DEFAULT_SMOOTH_CAMERA_TRANSITION,
@@ -1517,70 +1514,70 @@ public final class FocusClientConfig {
                 DEFAULT_CINEMATIC_BARS_UNDER_HUD);
         LockOnIndicatorStyle lockOnIndicatorStyle = readOptionalLockOnIndicatorStyle(object, "lockOnIndicatorStyle", LockOnIndicatorStyle.OOT_16X);
         CameraMode cameraMode = readOptionalCameraMode(object, "cameraMode", CameraMode.DYNAMIC);
-        double cameraFloatiness = clamp(
+        double cameraFloatiness = Mth.clamp(
                 readOptionalDouble(object, "cameraFloatiness", DEFAULT_CAMERA_FLOATINESS),
                 MIN_CAMERA_FLOATINESS, MAX_CAMERA_FLOATINESS);
-        double cameraDrag = clamp(
+        double cameraDrag = Mth.clamp(
                 readOptionalDouble(object, "cameraDrag", DEFAULT_CAMERA_DRAG),
                 MIN_CAMERA_DRAG, MAX_CAMERA_DRAG);
-        double cameraSwapSpeed = clamp(
+        double cameraSwapSpeed = Mth.clamp(
                 readOptionalDouble(object, "cameraSwapSpeed", DEFAULT_CAMERA_SWAP_SPEED),
                 MIN_CAMERA_SWAP_SPEED, MAX_CAMERA_SWAP_SPEED);
-        double cameraSwapSmoothness = clamp(
+        double cameraSwapSmoothness = Mth.clamp(
                 readOptionalDouble(object, "cameraSwapSmoothness", DEFAULT_CAMERA_SWAP_SMOOTHNESS),
                 MIN_CAMERA_SWAP_SMOOTHNESS, MAX_CAMERA_SWAP_SMOOTHNESS);
-        double dynamicCameraSwapSpeed = clamp(
+        double dynamicCameraSwapSpeed = Mth.clamp(
                 readOptionalDouble(object, "dynamicCameraSwapSpeed", DEFAULT_DYNAMIC_CAMERA_SWAP_SPEED),
                 MIN_DYNAMIC_CAMERA_SWAP_SPEED, MAX_DYNAMIC_CAMERA_SWAP_SPEED);
-        double dynamicCameraSwapSmoothness = clamp(
+        double dynamicCameraSwapSmoothness = Mth.clamp(
                 readOptionalDouble(object, "dynamicCameraSwapSmoothness", DEFAULT_DYNAMIC_CAMERA_SWAP_SMOOTHNESS),
                 MIN_DYNAMIC_CAMERA_SWAP_SMOOTHNESS, MAX_DYNAMIC_CAMERA_SWAP_SMOOTHNESS);
-        double cameraStepSize = clamp(
+        double cameraStepSize = Mth.clamp(
                 readOptionalDouble(object, "cameraStepSize", DEFAULT_CAMERA_STEP_SIZE),
                 MIN_CAMERA_STEP_SIZE,
                 MAX_CAMERA_STEP_SIZE);
         boolean dynamicallyAdjustOffsets = readOptionalBoolean(object, "dynamicallyAdjustOffsets", DEFAULT_DYNAMICALLY_ADJUST_OFFSETS);
         boolean smoothCameraTransition = readOptionalBoolean(object, "smoothCameraTransition", DEFAULT_SMOOTH_CAMERA_TRANSITION);
-        double cameraTransitionSpeed = clamp(
+        double cameraTransitionSpeed = Mth.clamp(
                 readOptionalDouble(object, "cameraTransitionSpeed", DEFAULT_CAMERA_TRANSITION_SPEED),
                 MIN_CAMERA_TRANSITION_SPEED, MAX_CAMERA_TRANSITION_SPEED);
         boolean followPlayerRotations = readOptionalBoolean(object, "followPlayerRotations", DEFAULT_FOLLOW_PLAYER_ROTATIONS);
-        double followPlayerRotationsDelay = clamp(
+        double followPlayerRotationsDelay = Mth.clamp(
                 readOptionalDouble(object, "followPlayerRotationsDelay", DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY),
                 MIN_FOLLOW_PLAYER_ROTATIONS_DELAY,
                 MAX_FOLLOW_PLAYER_ROTATIONS_DELAY);
-        double cameraHeadFollowResponsiveness = clamp(
+        double cameraHeadFollowResponsiveness = Mth.clamp(
                 readOptionalDouble(object, "cameraHeadFollowResponsiveness", DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS),
                 MIN_CAMERA_HEAD_FOLLOW_RESPONSIVENESS,
                 MAX_CAMERA_HEAD_FOLLOW_RESPONSIVENESS);
-        double cameraBodyFollowResponsiveness = clamp(
+        double cameraBodyFollowResponsiveness = Mth.clamp(
                 readOptionalDouble(object, "cameraBodyFollowResponsiveness", DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS),
                 MIN_CAMERA_BODY_FOLLOW_RESPONSIVENESS,
                 MAX_CAMERA_BODY_FOLLOW_RESPONSIVENESS);
         boolean fullBodyFollowEnabled = readOptionalBoolean(object, "fullBodyFollowEnabled", DEFAULT_FULL_BODY_FOLLOW_ENABLED);
         boolean dynamicShoulderAutoSwapEnabled = readOptionalBoolean(object, "dynamicShoulderAutoSwapEnabled", DEFAULT_DYNAMIC_SHOULDER_AUTO_SWAP_ENABLED);
-        double dynamicShoulderSwitchThreshold = clamp(
+        double dynamicShoulderSwitchThreshold = Mth.clamp(
                 readOptionalDouble(object, "dynamicShoulderSwitchThreshold", DEFAULT_DYNAMIC_SHOULDER_SWITCH_THRESHOLD),
                 MIN_DYNAMIC_SHOULDER_SWITCH_THRESHOLD,
                 MAX_DYNAMIC_SHOULDER_SWITCH_THRESHOLD);
-        double dynamicShoulderVisibilityWeight = clamp(
+        double dynamicShoulderVisibilityWeight = Mth.clamp(
                 readOptionalDouble(object, "dynamicShoulderVisibilityWeight", DEFAULT_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT),
                 MIN_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT,
                 MAX_DYNAMIC_SHOULDER_VISIBILITY_WEIGHT);
-        double dynamicShoulderScreenPlacementWeight = clamp(
+        double dynamicShoulderScreenPlacementWeight = Mth.clamp(
                 readOptionalDouble(object, "dynamicShoulderScreenPlacementWeight", DEFAULT_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT),
                 MIN_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT,
                 MAX_DYNAMIC_SHOULDER_SCREEN_PLACEMENT_WEIGHT);
-        double dynamicShoulderManualOverrideCooldownTicks = clamp(
+        double dynamicShoulderManualOverrideCooldownTicks = Mth.clamp(
                 readOptionalDouble(object, "dynamicShoulderManualOverrideCooldownTicks", DEFAULT_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS),
                 MIN_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS,
                 MAX_DYNAMIC_SHOULDER_MANUAL_OVERRIDE_COOLDOWN_TICKS);
         boolean adjustPlayerTransparency = readOptionalBoolean(object, "adjustPlayerTransparency", DEFAULT_ADJUST_PLAYER_TRANSPARENCY);
-        double playerTransparencyMinAlpha = clamp(
+        double playerTransparencyMinAlpha = Mth.clamp(
                 readOptionalDouble(object, "playerTransparencyMinAlpha", DEFAULT_PLAYER_TRANSPARENCY_MIN_ALPHA),
                 MIN_PLAYER_TRANSPARENCY_MIN_ALPHA,
                 MAX_PLAYER_TRANSPARENCY_MIN_ALPHA);
-        double playerTransparencyFadeSpeed = clamp(
+        double playerTransparencyFadeSpeed = Mth.clamp(
                 readOptionalDouble(object, "playerTransparencyFadeSpeed", DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED),
                 MIN_PLAYER_TRANSPARENCY_FADE_SPEED,
                 MAX_PLAYER_TRANSPARENCY_FADE_SPEED);
@@ -1602,43 +1599,43 @@ public final class FocusClientConfig {
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON);
         boolean hideVanillaCrosshair = readOptionalBoolean(object, "hideVanillaCrosshair", DEFAULT_HIDE_VANILLA_CROSSHAIR);
         boolean hideVanillaCrosshairOutOfRange = readOptionalBoolean(object, "hideVanillaCrosshairOutOfRange", DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE);
-        double targetSwapMouseDeadzone = clamp(
+        double targetSwapMouseDeadzone = Mth.clamp(
                 readOptionalDouble(object, "targetSwapMouseDeadzone", DEFAULT_TARGET_SWAP_MOUSE_DEADZONE),
                 MIN_TARGET_SWAP_MOUSE_DEADZONE, MAX_TARGET_SWAP_MOUSE_DEADZONE);
-        double targetSwapMouseActivation = clamp(
+        double targetSwapMouseActivation = Mth.clamp(
                 readOptionalDouble(object, "targetSwapMouseActivation", DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION),
                 MIN_TARGET_SWAP_MOUSE_ACTIVATION, MAX_TARGET_SWAP_MOUSE_ACTIVATION);
-        double targetSwapDirectionThreshold = clamp(
+        double targetSwapDirectionThreshold = Mth.clamp(
                 readOptionalDouble(object, "targetSwapDirectionThreshold", DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD),
                 MIN_TARGET_SWAP_DIRECTION_THRESHOLD, MAX_TARGET_SWAP_DIRECTION_THRESHOLD);
-        double targetSwapMinScreenSeparation = clamp(
+        double targetSwapMinScreenSeparation = Mth.clamp(
                 readOptionalDouble(object, "targetSwapMinScreenSeparation", DEFAULT_TARGET_SWAP_MIN_SCREEN_SEPARATION),
                 MIN_TARGET_SWAP_MIN_SCREEN_SEPARATION, MAX_TARGET_SWAP_MIN_SCREEN_SEPARATION);
-        double targetSwapInputDecay = clamp(
+        double targetSwapInputDecay = Mth.clamp(
                 readOptionalDouble(object, "targetSwapInputDecay", DEFAULT_TARGET_SWAP_INPUT_DECAY),
                 MIN_TARGET_SWAP_INPUT_DECAY, MAX_TARGET_SWAP_INPUT_DECAY);
-        double targetSwapCooldownTicks = clamp(
+        double targetSwapCooldownTicks = Mth.clamp(
                 readOptionalDouble(object, "targetSwapCooldownTicks", DEFAULT_TARGET_SWAP_COOLDOWN_TICKS),
                 MIN_TARGET_SWAP_COOLDOWN_TICKS, MAX_TARGET_SWAP_COOLDOWN_TICKS);
-        double targetSwapSmoothTicks = clamp(
+        double targetSwapSmoothTicks = Mth.clamp(
                 readOptionalDouble(object, "targetSwapSmoothTicks", DEFAULT_TARGET_SWAP_SMOOTH_TICKS),
                 MIN_TARGET_SWAP_SMOOTH_TICKS, MAX_TARGET_SWAP_SMOOTH_TICKS);
-        double targetSwapLookYawResponsiveness = clamp(
+        double targetSwapLookYawResponsiveness = Mth.clamp(
                 readOptionalDouble(object, "targetSwapLookYawResponsiveness", DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW),
                 MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW, MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_YAW);
-        double targetSwapLookPitchResponsiveness = clamp(
+        double targetSwapLookPitchResponsiveness = Mth.clamp(
                 readOptionalDouble(object, "targetSwapLookPitchResponsiveness", DEFAULT_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH),
                 MIN_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH, MAX_TARGET_SWAP_LOOK_RESPONSIVENESS_PITCH);
-        double targetSwapLookMaxYawStepPerTick = clamp(
+        double targetSwapLookMaxYawStepPerTick = Mth.clamp(
                 readOptionalDouble(object, "targetSwapLookMaxYawStepPerTick", DEFAULT_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK),
                 MIN_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK, MAX_TARGET_SWAP_LOOK_MAX_YAW_STEP_PER_TICK);
-        double targetSwapLookMaxPitchStepPerTick = clamp(
+        double targetSwapLookMaxPitchStepPerTick = Mth.clamp(
                 readOptionalDouble(object, "targetSwapLookMaxPitchStepPerTick", DEFAULT_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK),
                 MIN_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK, MAX_TARGET_SWAP_LOOK_MAX_PITCH_STEP_PER_TICK);
-        double targetSwapTargetPointResponsiveness = clamp(
+        double targetSwapTargetPointResponsiveness = Mth.clamp(
                 readOptionalDouble(object, "targetSwapTargetPointResponsiveness", DEFAULT_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS),
                 MIN_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS, MAX_TARGET_SWAP_TARGET_POINT_RESPONSIVENESS);
-        double targetSwapPlayerLookFollow = clamp(
+        double targetSwapPlayerLookFollow = Mth.clamp(
                 readOptionalDouble(object, "targetSwapPlayerLookFollow", DEFAULT_TARGET_SWAP_PLAYER_LOOK_FOLLOW),
                 MIN_TARGET_SWAP_PLAYER_LOOK_FOLLOW, MAX_TARGET_SWAP_PLAYER_LOOK_FOLLOW);
         boolean enableTargetFilters = readOptionalBoolean(object, "enableTargetFilters", DEFAULT_TARGET_FILTERS_ENABLED);
