@@ -1,11 +1,11 @@
 modLoader="javafml"
-loaderVersion="[1,)"
-license="GNU General Public License v3.0"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
 
 [[mods]]
-modId="focus"
-version="1.0.0"
-displayName="Focus"
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
 description='''
 Lock-on combat camera and targeting tools.
 '''
@@ -13,21 +13,21 @@ Lock-on combat camera and targeting tools.
 [[mixins]]
 config="focus.mixins.json"
 
-[[dependencies.focus]]
+[[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
-versionRange="[21.0.167,)"
+versionRange="[${neo_version},)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.focus]]
+[[dependencies.${mod_id}]]
 modId="minecraft"
 type="required"
-versionRange="[1.21]"
+versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.focus]]
+[[dependencies.${mod_id}]]
 modId="owo"
 type="required"
 versionRange="[0.12.15,)"
