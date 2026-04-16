@@ -1,11 +1,14 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
+issueTrackerURL = "https://github.com/JevenDev/Focus/issues"
 
 [[mods]]
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+logoFile="logo.png"
+authors="jvn"
 description='''
 Lock-on combat camera and targeting tools.
 '''
@@ -31,5 +34,12 @@ side="BOTH"
 modId="owo"
 type="required"
 versionRange="[0.12.15,)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.${mod_id}]]
+modId="shouldersurfing"
+type="optional"
+versionRange="[1.21.1-4.21,)"
 ordering="NONE"
 side="CLIENT"
