@@ -18,7 +18,9 @@ Focus adds a proper **lock-on system** for **third-person combat**, with a camer
   - rotation
   - shoulder behavior
 
-![Gameplay footage 1: showcasing z-targeting indoors, player fighting skeletons from a spawner](https://i.imgur.com/eZVekT9.gif)
+<div align="center">
+  <img src="https://i.imgur.com/eZVekT9.gif" alt="Gameplay footage 1: showcasing z-targeting indoors, player fighting skeletons from a spawner" />
+</div>
 
 ![features](https://cdn.modrinth.com/data/cached_images/ec0e4dc78ec1a652eb11b233dd2926f7461fe770.png)
 
@@ -30,6 +32,10 @@ On top of that, you can also:
 - choose between different **lock-on indicator styles**
 - enable **cinematic bars**
 - make your player **fade out** when they get in the way of the camera
+
+<div align="center">
+  <img src="https://i.imgur.com/wjYIE2b.gif" alt="Gameplay footage 2: player switching between two targets, the spider and the skeleton (spider jockey), using mouse direction flicks" />
+</div>
 
 ![keybinds](https://cdn.modrinth.com/data/cached_images/201d5ce49ba16974e3c3b0b562c392e03f38e35f.png)
 
@@ -59,6 +65,10 @@ On top of that, you can also:
   - **Move camera left** - `Left Arrow`
   - **Move camera right** - `Right Arrow`
 
+<div align="center">
+  <img src="https://i.imgur.com/Kx3ewj5.gif" alt="Gameplay footage 3: player swapping between shoulders while targeting" />
+</div>
+
 ![compatibility](https://cdn.modrinth.com/data/cached_images/1252c11050b7daf8b8621712b58dd1005e7ba982.png)
 
 Focus currently has **native compatibility** with **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)** as an **optional dependency**.
@@ -71,7 +81,7 @@ Support for other mods is also planned, including:
 If there's a specific mod you would like compatibility with, open an issue in the GitHub repo.
 
 <div align="center">
-  <p><strong><em>Note: These mods have NOT been tested yet.<br>Please don't report issues to those developers. Report any bugs to the <a href="https://github.com/JevenDev/Focus/issues">GitHub</a> or via Discord DM (ijvn).</em></strong></p>
+  <p><strong><em>Note: These mods have NOT been tested yet.<br>Please don’t report issues to those developers. Report any bugs to the <a href="https://github.com/JevenDev/Focus/issues">GitHub</a> or via Discord DM (ijvn).</em></strong></p>
 </div>
 
 ![roadmap](https://cdn.modrinth.com/data/cached_images/04825ea0e2e5462ffa075e783ca38b0c63a36d34.png)
