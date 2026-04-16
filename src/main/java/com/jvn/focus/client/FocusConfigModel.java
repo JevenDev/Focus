@@ -18,8 +18,12 @@ public class FocusConfigModel {
     public boolean allowFrontFacingThirdPersonWhileTargeting = false;
     public boolean showLockOnStatusMessages = false;
     public boolean showLockOnDebugText = false;
-    public boolean cinematicBarsWhileLockedOn = false;
-    public boolean cinematicBarsUnderHud = false;
+
+    // [EXPERIMENTAL] — may cause issues; disabled by default
+    public boolean experimentalPersistentWalkthroughBackwardsWalking = false;
+
+    public boolean cinematicBarsWhileLockedOn = true;
+    public boolean cinematicBarsUnderHud = true;
     public FocusClientConfig.LockOnIndicatorStyle lockOnIndicatorStyle = FocusClientConfig.LockOnIndicatorStyle.OOT_16X;
 
     // ── Camera ───────────────────────────────────────────────────────────────
