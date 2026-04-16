@@ -46,6 +46,7 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_FOLLOW_PLAYER_ROTATIONS = true;
     public static final double DEFAULT_FOLLOW_PLAYER_ROTATIONS_DELAY = 0.0D;
     public static final boolean DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES = false;
+    public static final boolean DEFAULT_EXPERIMENTAL_PERSISTENT_WALKTHROUGH_BACKWARDS_WALKING = false;
     public static final double DEFAULT_CAMERA_HEAD_FOLLOW_RESPONSIVENESS = 0.45D;
     public static final double DEFAULT_CAMERA_BODY_FOLLOW_RESPONSIVENESS = 0.25D;
     public static final boolean DEFAULT_FULL_BODY_FOLLOW_ENABLED = true;
@@ -59,8 +60,8 @@ public final class FocusClientConfig {
     public static final double DEFAULT_PLAYER_TRANSPARENCY_FADE_SPEED = 0.2D;
     public static final boolean DEFAULT_PLAYER_TRANSPARENCY_WHEN_TARGET_OBSCURED_ONLY = true;
     public static final boolean DEFAULT_PLAYER_TRANSPARENCY_IN_PREVIEW = false;
-    public static final boolean DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON = false;
-    public static final boolean DEFAULT_CINEMATIC_BARS_UNDER_HUD = false;
+    public static final boolean DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON = true;
+    public static final boolean DEFAULT_CINEMATIC_BARS_UNDER_HUD = true;
     public static final CrosshairCorrectionMode DEFAULT_CROSSHAIR_CORRECTION_MODE = CrosshairCorrectionMode.HYBRID;
     public static final boolean DEFAULT_RENDER_CORRECTED_CROSSHAIR = false;
     public static final boolean DEFAULT_CORRECT_BLOCK_PLACEMENT_RAY = true;
@@ -172,7 +173,7 @@ public final class FocusClientConfig {
 
     private FocusClientConfig() {}
 
-    // â”€â”€ Enums â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Enums
 
     public enum Shoulder {
         LEFT("focus.shoulder.left"),
@@ -288,7 +289,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ Initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Initialization
 
     public static void init() {
         if (initialized) {
@@ -320,7 +321,7 @@ public final class FocusClientConfig {
         return ConfigScreen.create(CONFIG, parent);
     }
 
-    // â”€â”€ Getters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Getters
 
     public static boolean autoSwitchToThirdPerson() {
         return config().autoSwitchToThirdPerson();
@@ -340,6 +341,10 @@ public final class FocusClientConfig {
 
     public static boolean showLockOnDebugText() {
         return config().showLockOnDebugText();
+    }
+
+    public static boolean experimentalPersistentWalkthroughBackwardsWalking() {
+        return config().experimentalPersistentWalkthroughBackwardsWalking();
     }
 
     public static boolean cinematicBarsWhileLockedOn() {
@@ -579,7 +584,7 @@ public final class FocusClientConfig {
     }
 
 
-    // â”€â”€ Setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Setters
 
     public static void setFollowPlayerRotations(boolean value) {
         config().cameraFollowing.followPlayerRotations(value);
@@ -592,7 +597,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ Camera offset accessors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Camera offset accessors
 
     public static double cameraOffsetX() {
         return cameraOffsetX(Shoulder.LEFT);
@@ -662,7 +667,7 @@ public final class FocusClientConfig {
         syncMirroredShoulderIfNeeded(shoulder);
     }
 
-    // â”€â”€ Camera adjustment methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Camera adjustment methods
 
     public static void adjustCameraLeft() {
         adjustCameraLeft(Shoulder.LEFT, cameraStepSize());
@@ -748,7 +753,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ Preset accessors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Preset accessors
 
     public static PerspectivePreset currentPreset() {
         return currentPreset(Shoulder.LEFT);
@@ -767,7 +772,7 @@ public final class FocusClientConfig {
         syncMirroredShoulderIfNeeded(shoulder);
     }
 
-    // â”€â”€ Camera setup presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Camera setup presets
 
     public static CameraSetupPreset currentCameraSetupPreset() {
         return new CameraSetupPreset(
@@ -776,6 +781,7 @@ public final class FocusClientConfig {
                 allowFrontFacingThirdPersonWhileTargeting(),
                 showLockOnStatusMessages(),
                 showLockOnDebugText(),
+                experimentalPersistentWalkthroughBackwardsWalking(),
                 cinematicBarsWhileLockedOn(),
                 cinematicBarsUnderHud(),
                 lockOnIndicatorStyle(),
@@ -843,6 +849,7 @@ public final class FocusClientConfig {
         config().allowFrontFacingThirdPersonWhileTargeting(setup.allowFrontFacingThirdPersonWhileTargeting());
         config().showLockOnStatusMessages(setup.showLockOnStatusMessages());
         config().showLockOnDebugText(setup.showLockOnDebugText());
+        config().experimentalPersistentWalkthroughBackwardsWalking(setup.experimentalPersistentWalkthroughBackwardsWalking());
         config().cinematicBarsWhileLockedOn(setup.cinematicBarsWhileLockedOn());
         config().cinematicBarsUnderHud(setup.cinematicBarsUnderHud());
         config().lockOnIndicatorStyle(setup.lockOnIndicatorStyle());
@@ -912,7 +919,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ Profile management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Profile management
 
     public static List<String> cameraProfileNames() {
         config();
@@ -979,7 +986,7 @@ public final class FocusClientConfig {
         return true;
     }
 
-    // â”€â”€ Serialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Serialization
 
     public static String serializePreset(PerspectivePreset preset) {
         return presetToJson(sanitizePreset(preset)).toString();
@@ -1024,7 +1031,7 @@ public final class FocusClientConfig {
         saveCameraPresets();
     }
 
-    // â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Utility
 
     public static String sanitizeCameraProfileName(String profileName) {
         if (profileName == null) {
@@ -1038,7 +1045,7 @@ public final class FocusClientConfig {
         return sanitized;
     }
 
-    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Private helpers
 
     private static FocusConfig config() {
         if (!initialized) {
@@ -1180,7 +1187,7 @@ public final class FocusClientConfig {
                 DEFAULT_CAMERA_ROTATION);
     }
 
-    // â”€â”€ Built-in camera setup profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Built-in camera setup profiles
 
     private static Map<String, CameraSetupPreset> createBuiltInCameraSetupProfiles() {
         Map<String, CameraSetupPreset> profiles = new LinkedHashMap<>();
@@ -1239,6 +1246,7 @@ public final class FocusClientConfig {
                 false,
                 DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES,
                 false,
+                DEFAULT_EXPERIMENTAL_PERSISTENT_WALKTHROUGH_BACKWARDS_WALKING,
                 DEFAULT_CINEMATIC_BARS_WHILE_LOCKED_ON,
                 DEFAULT_CINEMATIC_BARS_UNDER_HUD,
                 LockOnIndicatorStyle.OOT_16X,
@@ -1308,7 +1316,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ Camera preset persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Camera preset persistence
 
     private static void loadCameraPresets() {
         CAMERA_SETUP_PROFILES.clear();
@@ -1415,7 +1423,7 @@ public final class FocusClientConfig {
         }
     }
 
-    // â”€â”€ JSON serialization helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // JSON serialization helpers
 
     private static JsonObject cameraSetupToJson(CameraSetupPreset setup) {
         JsonObject object = new JsonObject();
@@ -1424,6 +1432,7 @@ public final class FocusClientConfig {
         object.addProperty("allowFrontFacingThirdPersonWhileTargeting", setup.allowFrontFacingThirdPersonWhileTargeting());
         object.addProperty("showLockOnStatusMessages", setup.showLockOnStatusMessages());
         object.addProperty("showLockOnDebugText", setup.showLockOnDebugText());
+        object.addProperty("experimentalPersistentWalkthroughBackwardsWalking", setup.experimentalPersistentWalkthroughBackwardsWalking());
         object.addProperty("cinematicBarsWhileLockedOn", setup.cinematicBarsWhileLockedOn());
         object.addProperty("cinematicBarsUnderHud", setup.cinematicBarsUnderHud());
         object.addProperty("lockOnIndicatorStyle", setup.lockOnIndicatorStyle().name());
@@ -1504,6 +1513,10 @@ public final class FocusClientConfig {
         boolean allowFrontFacingThirdPersonWhileTargeting = readOptionalBoolean(object, "allowFrontFacingThirdPersonWhileTargeting", false);
         boolean showLockOnStatusMessages = readOptionalBoolean(object, "showLockOnStatusMessages", DEFAULT_SHOW_LOCK_ON_STATUS_MESSAGES);
         boolean showLockOnDebugText = readOptionalBoolean(object, "showLockOnDebugText", false);
+        boolean experimentalPersistentWalkthroughBackwardsWalking = readOptionalBoolean(
+                object,
+                "experimentalPersistentWalkthroughBackwardsWalking",
+                DEFAULT_EXPERIMENTAL_PERSISTENT_WALKTHROUGH_BACKWARDS_WALKING);
         boolean cinematicBarsWhileLockedOn = readOptionalBoolean(
                 object,
                 "cinematicBarsWhileLockedOn",
@@ -1652,6 +1665,7 @@ public final class FocusClientConfig {
                 allowFrontFacingThirdPersonWhileTargeting,
                 showLockOnStatusMessages,
                 showLockOnDebugText,
+                experimentalPersistentWalkthroughBackwardsWalking,
                 cinematicBarsWhileLockedOn,
                 cinematicBarsUnderHud,
                 lockOnIndicatorStyle,
@@ -1730,7 +1744,7 @@ public final class FocusClientConfig {
                 readRequiredDouble(object, "rotation")));
     }
 
-    // â”€â”€ JSON read helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // JSON read helpers
 
     private static double readRequiredDouble(JsonObject object, String key) {
         JsonElement element = object.get(key);
@@ -1847,7 +1861,7 @@ public final class FocusClientConfig {
         return BigDecimal.valueOf(value).setScale(CAMERA_VALUE_SCALE, RoundingMode.HALF_UP).doubleValue();
     }
 
-    // â”€â”€ Records â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Records
 
     public record PerspectivePreset(double offsetX, double offsetY, double offsetZ, double rotation) {
         public PerspectivePreset mirroredForOppositeShoulder() {
@@ -1861,6 +1875,7 @@ public final class FocusClientConfig {
             boolean allowFrontFacingThirdPersonWhileTargeting,
             boolean showLockOnStatusMessages,
             boolean showLockOnDebugText,
+            boolean experimentalPersistentWalkthroughBackwardsWalking,
             boolean cinematicBarsWhileLockedOn,
             boolean cinematicBarsUnderHud,
             LockOnIndicatorStyle lockOnIndicatorStyle,
