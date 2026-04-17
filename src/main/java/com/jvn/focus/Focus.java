@@ -1,18 +1,15 @@
 package com.jvn.focus;
 
-import org.slf4j.Logger;
-
 import com.jvn.focus.client.FocusClientConfig;
-import com.jvn.focus.client.compat.FocusShoulderSurfingCompat;
 import com.mojang.logging.LogUtils;
-
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import net.neoforged.bus.api.IEventBus;
+import org.slf4j.Logger;
 
 @Mod(Focus.MOD_ID)
 public final class Focus {
@@ -31,6 +28,5 @@ public final class Focus {
 
     private void onClientSetup(FMLClientSetupEvent event) {
         FocusClientConfig.init();
-        FocusShoulderSurfingCompat.initialize();
     }
 }
