@@ -3,6 +3,7 @@ package com.jvn.focus.client;
 import com.jvn.focus.Focus;
 import com.jvn.focus.client.camera.FocusCameraController;
 import com.jvn.focus.client.camera.FocusCameraPose;
+import com.jvn.focus.client.compat.FocusShoulderSurfingCompat;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -283,12 +284,14 @@ public final class LockOnHandler {
     }
 
     private static void clearLockState() {
+        Minecraft minecraft = Minecraft.getInstance();
         previousCameraType = null;
         lastEnforcedCameraType = null;
         occlusionGraceTicks = 0;
         outOfRangeGraceTicks = 0;
         CAMERA_CONTROLLER.onLockEnded();
         resetTargetSwapInput();
+        FocusShoulderSurfingCompat.syncCameraToPlayer(minecraft.player);
     }
 
     private static void setLockedTarget(LocalPlayer player, LivingEntity nextTarget, boolean applySwapSmoothing) {
@@ -345,11 +348,12 @@ public final class LockOnHandler {
     }
 
     public static void stopCameraEditorPreview(CameraType previousCameraType) {
+        Minecraft minecraft = Minecraft.getInstance();
         CAMERA_CONTROLLER.stopCameraEditorPreview();
         if (lockedTarget == null && previousCameraType != null) {
-            Minecraft minecraft = Minecraft.getInstance();
             minecraft.options.setCameraType(previousCameraType);
         }
+        FocusShoulderSurfingCompat.syncCameraToPlayer(minecraft.player);
     }
 
     public static boolean isCameraEditorPreviewActive() {
