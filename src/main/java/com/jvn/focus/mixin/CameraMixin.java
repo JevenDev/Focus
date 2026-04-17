@@ -6,6 +6,7 @@ import com.jvn.focus.client.camera.FocusCameraController;
 import com.jvn.focus.client.camera.FocusCameraPose;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem;
 import com.jvn.focus.client.camera.FocusShoulderSurfingCameraSystem.CameraPose;
+import com.jvn.focus.client.compat.FocusShoulderSurfingCompat;
 import net.minecraft.client.Camera;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
@@ -77,6 +78,7 @@ public abstract class CameraMixin {
                         vanillaPos, this.yRot, this.xRot, pivotPoint, deltaTicks);
                 this.setPosition(pose.position());
                 this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
+                FocusShoulderSurfingCompat.syncCameraRotation(pose.yaw(), pose.pitch());
             }
             return;
         }
@@ -122,5 +124,6 @@ public abstract class CameraMixin {
 
         this.setPosition(pose.position());
         this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
+        FocusShoulderSurfingCompat.syncCameraRotation(pose.yaw(), pose.pitch());
     }
 }

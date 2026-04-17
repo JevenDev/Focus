@@ -3,6 +3,7 @@ package com.jvn.focus;
 import org.slf4j.Logger;
 
 import com.jvn.focus.client.FocusClientConfig;
+import com.jvn.focus.client.compat.FocusShoulderSurfingCompat;
 import com.mojang.logging.LogUtils;
 
 import net.neoforged.api.distmarker.Dist;
@@ -30,5 +31,6 @@ public final class Focus {
 
     private void onClientSetup(FMLClientSetupEvent event) {
         FocusClientConfig.init();
+        FocusShoulderSurfingCompat.initialize();
     }
 }
