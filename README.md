@@ -18,9 +18,7 @@ Focus adds a proper **lock-on system** for **third-person combat**, with a camer
   - rotation
   - shoulder behavior
 
-<div align="center">
-  <img src="https://i.imgur.com/eZVekT9.gif" alt="Gameplay footage 1: showcasing z-targeting indoors, player fighting skeletons from a spawner" />
-</div>
+![Gameplay footage 1: showcasing z-targeting indoors, player fighting skeletons from a spawner](https://i.imgur.com/eZVekT9.gif)
 
 ![features](https://cdn.modrinth.com/data/cached_images/ec0e4dc78ec1a652eb11b233dd2926f7461fe770.png)
 
@@ -33,9 +31,7 @@ On top of that, you can also:
 - enable **cinematic bars**
 - make your player **fade out** when they get in the way of the camera
 
-<div align="center">
-  <img src="https://i.imgur.com/wjYIE2b.gif" alt="Gameplay footage 2: player switching between two targets, the spider and the skeleton (spider jockey), using mouse direction flicks" />
-</div>
+![Gameplay footage 2: player switching between two targets, the spider and the skeleton (spider jockey), using mouse direction flicks](https://i.imgur.com/wjYIE2b.gif)
 
 ![keybinds](https://cdn.modrinth.com/data/cached_images/201d5ce49ba16974e3c3b0b562c392e03f38e35f.png)
 
@@ -65,13 +61,13 @@ On top of that, you can also:
   - **Move camera left** - `Left Arrow`
   - **Move camera right** - `Right Arrow`
 
-<div align="center">
-  <img src="https://i.imgur.com/Kx3ewj5.gif" alt="Gameplay footage 3: player swapping between shoulders while targeting" />
-</div>
+![Gameplay footage 3: player swapping between shoulders while targeting](https://i.imgur.com/Kx3ewj5.gif)
 
 ![compatibility](https://cdn.modrinth.com/data/cached_images/1252c11050b7daf8b8621712b58dd1005e7ba982.png)
 
 Focus currently has **native compatibility** with **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)** as an **optional dependency**.
+
+`Disable "Decoupled camera" in the 'Camera' section of the client config for **SHOULDER SURFING**. As of [1.0.0-beta.2], the decoupled camera doesn't play well with focus. I'm working on proper integration for this :P`
 
 Support for other mods is also planned, including:
 
