@@ -78,9 +78,6 @@ public abstract class CameraMixin {
                         vanillaPos, this.yRot, this.xRot, pivotPoint, deltaTicks);
                 this.setPosition(pose.position());
                 this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
-                if (!FocusShoulderSurfingCompat.isShoulderSurfingActive()) {
-                    FocusShoulderSurfingCompat.syncCameraRotation(pose.yaw(), pose.pitch());
-                }
             }
             return;
         }

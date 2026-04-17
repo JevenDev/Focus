@@ -2,13 +2,16 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.jvn.focus.mixin",
+  "plugin": "com.jvn.focus.mixin.FocusMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
     "CameraMixin",
     "GameRendererMixin",
     "MinecraftMixin",
-    "MouseHandlerMixin"
+    "MouseHandlerMixin",
+    "compat.shouldersurfing.ShoulderSurfingImplMixin",
+    "compat.shouldersurfing.ShoulderSurfingInputHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

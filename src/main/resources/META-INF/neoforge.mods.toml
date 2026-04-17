@@ -9,6 +9,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 logoFile="logo.png"
 authors="jvn"
+displayURL="https://modrinth.com/mod/focus/"
 description='''
 Lock-on combat camera and targeting tools.
 '''
