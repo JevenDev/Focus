@@ -406,6 +406,10 @@ public final class FocusCameraController {
     private void initializeSmoothing(LocalPlayer player, Vec3 targetPoint) {
         state.smoothedLookYaw = player.getYRot();
         state.smoothedLookPitch = player.getXRot();
+        state.previousSmoothedHeadYaw = player.getYHeadRot();
+        state.smoothedHeadYaw = player.getYHeadRot();
+        state.previousSmoothedBodyYaw = player.yBodyRot;
+        state.smoothedBodyYaw = player.yBodyRot;
         state.smoothedBodyYawOffset = 0.0F;
         state.smoothedTargetPoint = targetPoint;
         state.smoothingInitialized = true;

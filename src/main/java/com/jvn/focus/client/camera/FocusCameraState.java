@@ -6,6 +6,10 @@ import net.minecraft.world.phys.Vec3;
 public final class FocusCameraState {
     float smoothedLookYaw;
     float smoothedLookPitch;
+    float previousSmoothedHeadYaw;
+    float smoothedHeadYaw;
+    float previousSmoothedBodyYaw;
+    float smoothedBodyYaw;
     float smoothedBodyYawOffset;
     Vec3 smoothedTargetPoint = Vec3.ZERO;
     boolean smoothingInitialized;
@@ -48,6 +52,10 @@ public final class FocusCameraState {
 
     public void resetForLockEnd() {
         smoothingInitialized = false;
+        previousSmoothedHeadYaw = 0.0F;
+        smoothedHeadYaw = 0.0F;
+        previousSmoothedBodyYaw = 0.0F;
+        smoothedBodyYaw = 0.0F;
         smoothedBodyYawOffset = 0.0F;
         smoothedTargetPoint = Vec3.ZERO;
         staticSwapSourceShoulder = activeShoulder;

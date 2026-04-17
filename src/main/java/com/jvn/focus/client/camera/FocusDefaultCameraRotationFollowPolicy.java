@@ -19,10 +19,15 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
         float clampedPitch = Mth.clamp(desiredPitch, -90.0F, 90.0F);
         if (!followRotations) {
             if (FocusClientConfig.fullBodyFollowEnabled()) {
-                player.setYBodyRot(Mth.rotLerp(
+                float previousBodyYaw = state.smoothedBodyYaw;
+                float bodyYaw = Mth.rotLerp(
                         FocusClientConfig.cameraBodyFollowResponsiveness(),
-                        player.getYRot(),
-                        player.getYHeadRot()));
+                        state.smoothedBodyYaw,
+                        player.getYHeadRot());
+                state.previousSmoothedBodyYaw = previousBodyYaw;
+                state.smoothedBodyYaw = bodyYaw;
+                player.yBodyRotO = previousBodyYaw;
+                player.setYBodyRot(bodyYaw);
             }
             return;
         }
@@ -54,7 +59,7 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
         }
         float pitch = Mth.lerp(swapFollowAlpha, player.getXRot(), desiredPitch);
         float headFollowAlpha = Mth.clamp(swapFollowAlpha + TARGET_SWAP_HEAD_FOLLOW_BONUS, 0.0F, 1.0F);
-        float headYaw = Mth.rotLerp(headFollowAlpha, player.getYHeadRot(), desiredYaw);
+        float headYaw = Mth.rotLerp(headFollowAlpha, state.smoothedHeadYaw, desiredYaw);
         applyPlayerRotation(player, state, yaw, pitch, headYaw);
     }
 
@@ -62,19 +67,35 @@ final class FocusDefaultCameraRotationFollowPolicy implements FocusCameraRotatio
         // Heading lock state is managed in LockOnHandler.onMovementInput using the raw
         // (pre-rotation) input, so we don't read player.input here.
 
+        float clampedPitch = Mth.clamp(pitch, -90.0F, 90.0F);
+        float previousHeadYaw = state.smoothedHeadYaw;
+        state.previousSmoothedHeadYaw = previousHeadYaw;
+        state.smoothedHeadYaw = headYaw;
+        player.yRotO = yaw;
+        player.xRotO = clampedPitch;
+        player.yHeadRotO = previousHeadYaw;
         player.setYRot(yaw);
-        player.setXRot(Mth.clamp(pitch, -90.0F, 90.0F));
+        player.setXRot(clampedPitch);
         player.setYHeadRot(headYaw);
         if (FocusClientConfig.fullBodyFollowEnabled()) {
+            float desiredBodyYaw = yaw + state.smoothedBodyYawOffset;
             float bodyResponsiveness = FocusClientConfig.cameraBodyFollowResponsiveness();
             if (state.closeRangeProximityFactor < 1.0F) {
                 bodyResponsiveness *= CLOSE_RANGE_BODY_SMOOTHING_FACTOR
                         + (1.0F - CLOSE_RANGE_BODY_SMOOTHING_FACTOR) * state.closeRangeProximityFactor;
             }
-            float desiredBodyYaw = yaw + state.smoothedBodyYawOffset;
-            player.setYBodyRot(Mth.rotLerp(bodyResponsiveness, player.yBodyRot, desiredBodyYaw));
+            float previousBodyYaw = state.smoothedBodyYaw;
+            float bodyYaw = Mth.rotLerp(bodyResponsiveness, state.smoothedBodyYaw, desiredBodyYaw);
+            state.previousSmoothedBodyYaw = previousBodyYaw;
+            state.smoothedBodyYaw = bodyYaw;
+            player.yBodyRotO = previousBodyYaw;
+            player.setYBodyRot(bodyYaw);
         } else {
-            player.setYBodyRot(yaw + state.smoothedBodyYawOffset);
+            float bodyYaw = yaw + state.smoothedBodyYawOffset;
+            state.previousSmoothedBodyYaw = state.smoothedBodyYaw;
+            state.smoothedBodyYaw = bodyYaw;
+            player.yBodyRotO = state.previousSmoothedBodyYaw;
+            player.setYBodyRot(bodyYaw);
         }
     }
 
