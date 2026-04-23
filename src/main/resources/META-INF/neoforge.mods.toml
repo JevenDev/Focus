@@ -41,6 +41,6 @@ side="CLIENT"
 [[dependencies.${mod_id}]]
 modId="shouldersurfing"
 type="optional"
-versionRange="[1.21.1-4.21,)"
+versionRange="[1.21.1,)"
 ordering="NONE"
 side="CLIENT"
