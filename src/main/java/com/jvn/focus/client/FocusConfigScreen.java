@@ -3,6 +3,7 @@ package com.jvn.focus.client;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ public final class FocusConfigScreen extends Screen {
     private final List<Runnable> messageRefreshers = new ArrayList<>();
 
     public FocusConfigScreen(Screen parent) {
-        super(Component.literal("Focus Settings"));
+        super(Component.translatable("text.config.focus-config.title"));
         this.parent = parent;
     }
 
@@ -27,45 +28,45 @@ public final class FocusConfigScreen extends Screen {
         int y = this.height / 6;
 
         this.addRenderableWidget(Button.builder(
-                        Component.literal("Open Camera Editor"),
+                        Component.translatable("key.focus.open_camera_editor"),
                         button -> LockOnCameraEditorScreen.openFromCurrentScreen())
                 .bounds(left, y, buttonWidth, 20)
                 .build());
         y += 24;
 
-        addToggle(left, y, buttonWidth, "Auto Third Person",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.autoSwitchToThirdPerson"),
                 FocusClientConfig::autoSwitchToThirdPerson,
                 value -> FocusClientConfig.configInstance().autoSwitchToThirdPerson(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Allow First Person",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.allowFirstPersonWhileTargeting"),
                 FocusClientConfig::allowFirstPersonWhileTargeting,
                 value -> FocusClientConfig.configInstance().allowFirstPersonWhileTargeting(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Allow Front Third Person",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.allowFrontFacingThirdPersonWhileTargeting"),
                 FocusClientConfig::allowFrontFacingThirdPersonWhileTargeting,
                 value -> FocusClientConfig.configInstance().allowFrontFacingThirdPersonWhileTargeting(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Status Messages",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.showLockOnStatusMessages"),
                 FocusClientConfig::showLockOnStatusMessages,
                 value -> FocusClientConfig.configInstance().showLockOnStatusMessages(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Debug Overlay",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.showLockOnDebugText"),
                 FocusClientConfig::showLockOnDebugText,
                 value -> FocusClientConfig.configInstance().showLockOnDebugText(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Cinematic Bars",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.cinematicBarsWhileLockedOn"),
                 FocusClientConfig::cinematicBarsWhileLockedOn,
                 value -> FocusClientConfig.configInstance().cinematicBarsWhileLockedOn(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Render Corrected Crosshair",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.crosshair.renderCorrectedCrosshair"),
                 FocusClientConfig::renderCorrectedCrosshair,
                 value -> FocusClientConfig.configInstance().crosshair.renderCorrectedCrosshair(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Hide Vanilla Crosshair",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.crosshair.hideVanillaCrosshair"),
                 FocusClientConfig::hideVanillaCrosshair,
                 value -> FocusClientConfig.configInstance().crosshair.hideVanillaCrosshair(value));
         y += 24;
-        addToggle(left, y, buttonWidth, "Enable Target Filters",
+        addToggle(left, y, buttonWidth, Component.translatable("text.config.focus-config.option.enableTargetFilters"),
                 FocusClientConfig::enableTargetFilters,
                 value -> FocusClientConfig.configInstance().enableTargetFilters(value));
         y += 24;
@@ -75,14 +76,14 @@ public final class FocusConfigScreen extends Screen {
                 .build());
     }
 
-    private void addToggle(int x, int y, int width, String label, Supplier<Boolean> getter, Consumer<Boolean> setter) {
+    private void addToggle(int x, int y, int width, Component label, Supplier<Boolean> getter, Consumer<Boolean> setter) {
         Button button = Button.builder(Component.empty(), clicked -> {
             setter.accept(!getter.get());
             FocusClientConfig.saveConfig();
             refreshMessages();
         }).bounds(x, y, width, 20).build();
         this.addRenderableWidget(button);
-        messageRefreshers.add(() -> button.setMessage(Component.literal(label + ": " + onOff(getter.get()))));
+        messageRefreshers.add(() -> button.setMessage(CommonComponents.optionNameValue(label, onOff(getter.get()))));
         refreshMessages();
     }
 
@@ -92,16 +93,16 @@ public final class FocusConfigScreen extends Screen {
         }
     }
 
-    private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+    private static Component onOff(boolean value) {
+        return value ? Component.translatable("options.on") : Component.translatable("options.off");
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
-        guiGraphics.drawCenteredString(this.font, Component.literal("Focus Settings"), this.width / 2, this.height / 6 - 16, 0xFFFFFF);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, this.height / 6 - 16, 0xFFFFFF);
         guiGraphics.drawCenteredString(this.font,
-                Component.literal("Use the camera editor for offset and shoulder tuning"),
+                Component.translatable("screen.focus.config.hint"),
                 this.width / 2, this.height / 6 - 4, 0xA0A0A0);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }

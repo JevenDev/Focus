@@ -19,6 +19,7 @@
   "focus.shoulder.right": "Right",
 
   "text.config.focus-config.title": "Focus Settings",
+  "screen.focus.config.hint": "Use the camera editor for offset and shoulder tuning",
 
   "text.config.focus-config.section.general": "Core",
   "text.config.focus-config.section.camera": "Camera",

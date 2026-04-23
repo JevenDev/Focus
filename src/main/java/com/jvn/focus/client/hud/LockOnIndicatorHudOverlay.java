@@ -23,6 +23,9 @@ public final class LockOnIndicatorHudOverlay {
     private static final String INDICATOR_LAYER = "lock_on_indicator";
     private static final int SOURCE_TEXTURE_SIZE = 32;
     private static final float TARGET_HEIGHT_FACTOR = 0.75F;
+    private static final String TEXTURES_PREFIX = "textures/";
+    private static ResourceLocation cachedConfiguredTexture;
+    private static ResourceLocation cachedResolvedTexture;
 
     private LockOnIndicatorHudOverlay() {}
 
@@ -50,6 +53,7 @@ public final class LockOnIndicatorHudOverlay {
         }
 
         FocusClientConfig.LockOnIndicatorStyle style = FocusClientConfig.lockOnIndicatorStyle();
+        ResourceLocation texture = resolveTextureResource(minecraft, style.texture());
         if (style.usesOotTriangleOrbit()) {
             float animationTicks = minecraft.level.getGameTime() + partialTick;
             RenderSystem.enableBlend();
@@ -58,21 +62,21 @@ public final class LockOnIndicatorHudOverlay {
                     guiGraphics,
                     projectedPoint.x(),
                     projectedPoint.y(),
-                    style.texture(),
+                    texture,
                     style.drawSize(),
                     animationTicks,
                     SOURCE_TEXTURE_SIZE);
             RenderSystem.disableBlend();
             return;
         }
-        drawCenteredIndicator(guiGraphics, projectedPoint, style);
+        drawCenteredIndicator(guiGraphics, projectedPoint, style, texture);
     }
 
     private static void drawCenteredIndicator(
             GuiGraphics guiGraphics,
             FocusScreenProjectionUtil.ScreenPoint center,
-            FocusClientConfig.LockOnIndicatorStyle style) {
-        ResourceLocation texture = style.texture();
+            FocusClientConfig.LockOnIndicatorStyle style,
+            ResourceLocation texture) {
         int drawSize = style.drawSize();
         float halfSize = drawSize * 0.5F;
         RenderSystem.enableBlend();
@@ -93,5 +97,29 @@ public final class LockOnIndicatorHudOverlay {
                 SOURCE_TEXTURE_SIZE);
         guiGraphics.pose().popPose();
         RenderSystem.disableBlend();
+    }
+
+    private static ResourceLocation resolveTextureResource(Minecraft minecraft, ResourceLocation configuredTexture) {
+        if (configuredTexture.equals(cachedConfiguredTexture) && cachedResolvedTexture != null) {
+            return cachedResolvedTexture;
+        }
+
+        ResourceLocation resolvedTexture = configuredTexture;
+        if (minecraft.getResourceManager().getResource(configuredTexture).isPresent()) {
+            resolvedTexture = configuredTexture;
+        } else {
+            String configuredPath = configuredTexture.getPath();
+            ResourceLocation alternateTexture = configuredPath.startsWith(TEXTURES_PREFIX)
+                    ? new ResourceLocation(configuredTexture.getNamespace(), configuredPath.substring(TEXTURES_PREFIX.length()))
+                    : new ResourceLocation(configuredTexture.getNamespace(), TEXTURES_PREFIX + configuredPath);
+
+            if (minecraft.getResourceManager().getResource(alternateTexture).isPresent()) {
+                resolvedTexture = alternateTexture;
+            }
+        }
+
+        cachedConfiguredTexture = configuredTexture;
+        cachedResolvedTexture = resolvedTexture;
+        return resolvedTexture;
     }
 }
