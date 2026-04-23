@@ -15,7 +15,7 @@ public final class FocusConfigScreen extends Screen {
     private final List<Runnable> messageRefreshers = new ArrayList<>();
 
     public FocusConfigScreen(Screen parent) {
-        super(Component.translatable("screen.focus.settings.title"));
+        super(Component.literal("Focus Settings"));
         this.parent = parent;
     }
 
@@ -27,7 +27,7 @@ public final class FocusConfigScreen extends Screen {
         int y = this.height / 6;
 
         this.addRenderableWidget(Button.builder(
-                        Component.translatable("screen.focus.settings.open_camera_editor"),
+                        Component.literal("Open Camera Editor"),
                         button -> LockOnCameraEditorScreen.openFromCurrentScreen())
                 .bounds(left, y, buttonWidth, 20)
                 .build());
