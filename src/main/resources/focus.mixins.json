@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.jvn.focus.mixin",
+  "refmap": "focus.refmap.json",
   "plugin": "com.jvn.focus.mixin.FocusMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [],

@@ -20,7 +20,7 @@ public abstract class MinecraftMixin {
     @Nullable
     public Screen screen;
 
-    @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"), cancellable = true)
     private void focus$showMultiplayerWarningOnce(@Nullable Screen nextScreen, CallbackInfo ci) {
         if (nextScreen == null || nextScreen instanceof MultiplayerWarningScreen || MultiplayerWarningState.isAcknowledged()) {
             return;
