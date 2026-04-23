@@ -88,8 +88,8 @@ If there's a specific mod you would like compatibility with, open an issue in th
 
 ## Version and Loaders
 
-- ✅ **NeoForge 1.21.1** [Active development]
-- 🚧 **NeoForge 1.20.1** [Planned backport]
+- ✅ **Forge 1.20.1** [Current backport target]
+- ✅ **NeoForge 1.21.1** [Source/origin version]
 - 🚧 **Fabric 1.21.1** [Planned port]
 - 🚧 **Fabric 1.20.1** [Planned port]
 
