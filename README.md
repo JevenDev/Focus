@@ -85,7 +85,9 @@ If there's a specific mod you would like compatibility with, open an issue in th
 ## Version and Loaders
 
 - ✅ **NeoForge 1.21.1** [Active development]
-- 🚧 **NeoForge 1.20.1** [Planned backport]
+- ⛔ **NeoForge 1.20.1** [Not planned]
+- ⛔ **Forge 1.21.1** [Not planned]
+- ✅ **Forge 1.20.1** [Active development]
 - 🚧 **Fabric 1.21.1** [Planned port]
 - 🚧 **Fabric 1.20.1** [Planned port]
 
@@ -114,6 +116,6 @@ For any general queries/unlisted questions, DM me on Twitter (@prodbyjvn) / Disc
 
 <div align="center">
   
-  <p><strong>⚠ <em>This mod ONLY exists on Modrinth as of April 2026. Any sites hosting this mod outside of Modrinth are not official releases. I will eventually upload the mod to CurseForge once it is in a more polished state.</em> ⚠</strong></p>
+  <p><strong>⚠ <em>This mod ONLY exists on Modrinth & CurseForge as of April 2026. Any sites hosting this mod outside of Modrinth/CurseForge are not official releases.</em> ⚠</strong></p>
   
 </div>
