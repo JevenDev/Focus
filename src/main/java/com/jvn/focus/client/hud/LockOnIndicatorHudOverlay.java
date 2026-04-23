@@ -5,33 +5,33 @@ import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 @SuppressWarnings("removal")
-@EventBusSubscriber(modid = Focus.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class LockOnIndicatorHudOverlay {
-    private static final ResourceLocation INDICATOR_LAYER = ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "lock_on_indicator");
+    private static final String INDICATOR_LAYER = "lock_on_indicator";
     private static final int SOURCE_TEXTURE_SIZE = 32;
     private static final float TARGET_HEIGHT_FACTOR = 0.75F;
 
     private LockOnIndicatorHudOverlay() {}
 
     @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.CROSSHAIR, INDICATOR_LAYER, LockOnIndicatorHudOverlay::render);
+    public static void onRegisterGuiLayers(RegisterGuiOverlaysEvent event) {
+        event.registerAbove(VanillaGuiOverlay.CROSSHAIR.id(), INDICATOR_LAYER, LockOnIndicatorHudOverlay::render);
     }
 
-    private static void render(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
+    private static void render(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int width, int height) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui) {
             return;
@@ -42,9 +42,9 @@ public final class LockOnIndicatorHudOverlay {
             return;
         }
 
-        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(minecraft.level.tickRateManager().runsNormally());
         Vec3 targetPoint = target.getPosition(partialTick).add(0.0D, target.getBbHeight() * TARGET_HEIGHT_FACTOR, 0.0D);
-        FocusScreenProjectionUtil.ScreenPoint projectedPoint = FocusScreenProjectionUtil.projectToScreen(minecraft, targetPoint, partialTick, guiGraphics.guiWidth(), guiGraphics.guiHeight());
+        FocusScreenProjectionUtil.ScreenPoint projectedPoint =
+                FocusScreenProjectionUtil.projectToScreen(minecraft, targetPoint, partialTick, width, height);
         if (projectedPoint == null) {
             return;
         }

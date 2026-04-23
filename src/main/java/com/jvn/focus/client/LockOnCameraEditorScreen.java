@@ -326,7 +326,7 @@ public final class LockOnCameraEditorScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void renderBackground(GuiGraphics guiGraphics) {
         // Intentionally no background layer so the world stays fully visible for live camera preview.
     }
 

@@ -9,18 +9,18 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 @SuppressWarnings("removal")
-@EventBusSubscriber(modid = Focus.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class LockOnDebugHudOverlay {
-    private static final ResourceLocation DEBUG_LAYER = ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "lock_on_debug");
+    private static final String DEBUG_LAYER = "lock_on_debug";
     private static final int TEXT_COLOR = 0xFFFFFF;
     private static final int BASE_LEFT_MARGIN = 8;
     private static final int BASE_RIGHT_MARGIN = 8;
@@ -31,11 +31,11 @@ public final class LockOnDebugHudOverlay {
     private LockOnDebugHudOverlay() {}
 
     @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.HOTBAR, DEBUG_LAYER, (guiGraphics, partialTick) -> render(guiGraphics));
+    public static void onRegisterGuiLayers(RegisterGuiOverlaysEvent event) {
+        event.registerAbove(VanillaGuiOverlay.HOTBAR.id(), DEBUG_LAYER, LockOnDebugHudOverlay::render);
     }
 
-    private static void render(GuiGraphics guiGraphics) {
+    private static void render(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int width, int height) {
         if (!FocusClientConfig.showLockOnDebugText()) {
             return;
         }

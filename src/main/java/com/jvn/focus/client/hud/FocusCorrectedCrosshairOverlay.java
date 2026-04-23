@@ -7,7 +7,6 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
@@ -17,33 +16,27 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@EventBusSubscriber(modid = Focus.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class FocusCorrectedCrosshairOverlay {
-    private static final ResourceLocation CORRECTED_CROSSHAIR_LAYER =
-            ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "corrected_crosshair");
-    private static final ResourceLocation CROSSHAIR_SPRITE = ResourceLocation.withDefaultNamespace("hud/crosshair");
-    private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE =
-            ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_full");
-    private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE =
-            ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_background");
-    private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE =
-            ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
+    private static final String CORRECTED_CROSSHAIR_LAYER = "corrected_crosshair";
+    private static final ResourceLocation GUI_ICONS_LOCATION = new ResourceLocation("textures/gui/icons.png");
     private static final double CAMERA_RAY_DISTANCE = 64.0D;
 
     private FocusCorrectedCrosshairOverlay() {}
 
     @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.CROSSHAIR, CORRECTED_CROSSHAIR_LAYER, FocusCorrectedCrosshairOverlay::render);
+    public static void onRegisterGuiLayers(RegisterGuiOverlaysEvent event) {
+        event.registerAbove(VanillaGuiOverlay.CROSSHAIR.id(), CORRECTED_CROSSHAIR_LAYER, FocusCorrectedCrosshairOverlay::render);
     }
 
-    private static void render(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
+    private static void render(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int width, int height) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || minecraft.player == null || minecraft.options.hideGui) {
             return;
@@ -67,8 +60,6 @@ public final class FocusCorrectedCrosshairOverlay {
             return;
         }
 
-        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(minecraft.level.tickRateManager().runsNormally());
-
         Vec3 correctedPoint;
         if (FocusClientConfig.hideVanillaCrosshairOutOfRange() && lockedTarget != null) {
             // Snap directly to the target center so the crosshair appears on the
@@ -83,7 +74,8 @@ public final class FocusCorrectedCrosshairOverlay {
             return;
         }
 
-        FocusScreenProjectionUtil.ScreenPoint projected = FocusScreenProjectionUtil.projectToScreen(minecraft, correctedPoint, partialTick, guiGraphics.guiWidth(), guiGraphics.guiHeight());
+        FocusScreenProjectionUtil.ScreenPoint projected =
+                FocusScreenProjectionUtil.projectToScreen(minecraft, correctedPoint, partialTick, width, height);
         if (projected == null) {
             return;
         }
@@ -122,7 +114,7 @@ public final class FocusCorrectedCrosshairOverlay {
 
         int crosshairX = Mth.floor(point.x() - 7.5F);
         int crosshairY = Mth.floor(point.y() - 7.5F);
-        guiGraphics.blitSprite(CROSSHAIR_SPRITE, crosshairX, crosshairY, 15, 15);
+        guiGraphics.blit(GUI_ICONS_LOCATION, crosshairX, crosshairY, 0, 0, 15, 15);
 
         if (minecraft.options.attackIndicator().get() == AttackIndicatorStatus.CROSSHAIR) {
             float attackStrength = minecraft.player.getAttackStrengthScale(0.0F);
@@ -137,20 +129,11 @@ public final class FocusCorrectedCrosshairOverlay {
             int indicatorY = centerY - 7 + 16;
             int indicatorX = centerX - 8;
             if (showFullIndicator) {
-                guiGraphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE, indicatorX, indicatorY, 16, 16);
+                guiGraphics.blit(GUI_ICONS_LOCATION, indicatorX, indicatorY, 68, 94, 16, 16);
             } else if (attackStrength < 1.0F) {
                 int progressWidth = (int) (attackStrength * 17.0F);
-                guiGraphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE, indicatorX, indicatorY, 16, 4);
-                guiGraphics.blitSprite(
-                        CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE,
-                        16,
-                        4,
-                        0,
-                        0,
-                        indicatorX,
-                        indicatorY,
-                        progressWidth,
-                        4);
+                guiGraphics.blit(GUI_ICONS_LOCATION, indicatorX, indicatorY, 36, 94, 16, 4);
+                guiGraphics.blit(GUI_ICONS_LOCATION, indicatorX, indicatorY, 52, 94, progressWidth, 4);
             }
         }
 

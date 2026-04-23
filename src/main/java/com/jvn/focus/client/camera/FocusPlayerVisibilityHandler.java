@@ -5,12 +5,12 @@ import com.jvn.focus.client.LockOnHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
 public final class FocusPlayerVisibilityHandler {
     private static boolean alphaApplied;
 

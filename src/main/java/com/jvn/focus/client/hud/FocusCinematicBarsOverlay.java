@@ -3,23 +3,20 @@ package com.jvn.focus.client.hud;
 import com.jvn.focus.Focus;
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@EventBusSubscriber(modid = Focus.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class FocusCinematicBarsOverlay {
-    private static final ResourceLocation CINEMATIC_BARS_LAYER_ABOVE =
-            ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "cinematic_bars_above_hud");
-    private static final ResourceLocation CINEMATIC_BARS_LAYER_UNDER =
-            ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, "cinematic_bars_under_hud");
+    private static final String CINEMATIC_BARS_LAYER_ABOVE = "cinematic_bars_above_hud";
+    private static final String CINEMATIC_BARS_LAYER_UNDER = "cinematic_bars_under_hud";
     private static final float MAX_BAR_HEIGHT_FACTOR = 0.12F;
     private static final float VISIBILITY_STEP = 0.12F;
     private static float visibilityProgress;
@@ -27,20 +24,20 @@ public final class FocusCinematicBarsOverlay {
     private FocusCinematicBarsOverlay() {}
 
     @SubscribeEvent
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
+    public static void onRegisterGuiLayers(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll(CINEMATIC_BARS_LAYER_ABOVE, FocusCinematicBarsOverlay::renderAboveHud);
-        event.registerBelow(VanillaGuiLayers.HOTBAR, CINEMATIC_BARS_LAYER_UNDER, FocusCinematicBarsOverlay::renderUnderHud);
+        event.registerBelow(VanillaGuiOverlay.HOTBAR.id(), CINEMATIC_BARS_LAYER_UNDER, FocusCinematicBarsOverlay::renderUnderHud);
     }
 
-    private static void renderAboveHud(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
-        render(guiGraphics, false);
+    private static void renderAboveHud(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int width, int height) {
+        render(guiGraphics, width, height, false);
     }
 
-    private static void renderUnderHud(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
-        render(guiGraphics, true);
+    private static void renderUnderHud(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int width, int height) {
+        render(guiGraphics, width, height, true);
     }
 
-    private static void render(GuiGraphics guiGraphics, boolean underHudPass) {
+    private static void render(GuiGraphics guiGraphics, int width, int height, boolean underHudPass) {
         Minecraft minecraft = Minecraft.getInstance();
         if (FocusClientConfig.cinematicBarsUnderHud() != underHudPass) {
             return;
@@ -69,8 +66,6 @@ public final class FocusCinematicBarsOverlay {
             return;
         }
 
-        int width = guiGraphics.guiWidth();
-        int height = guiGraphics.guiHeight();
         int barHeight = Math.max(1, Math.round(height * MAX_BAR_HEIGHT_FACTOR * eased));
         int color = alpha << 24;
         guiGraphics.fill(0, 0, width, barHeight, color);

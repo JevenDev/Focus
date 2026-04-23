@@ -6,7 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.fml.ModList;
+import net.minecraftforge.fml.ModList;
 
 /**
  * Shoulder Surfing Reloaded bridge used for state checks and camera alignment while Focus owns the

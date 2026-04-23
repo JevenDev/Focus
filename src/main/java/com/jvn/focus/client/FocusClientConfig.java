@@ -20,12 +20,11 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.util.Mth;
-import io.wispforest.owo.config.ui.ConfigScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraft.util.Mth;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 public final class FocusClientConfig {
 
@@ -257,7 +256,7 @@ public final class FocusClientConfig {
 
         LockOnIndicatorStyle(String translationKey, String texturePath, int drawSize, IndicatorType indicatorType) {
             this.translationKey = translationKey;
-            this.texture = ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, texturePath);
+            this.texture = new ResourceLocation(Focus.MOD_ID, texturePath);
             this.drawSize = drawSize;
             this.indicatorType = indicatorType;
         }
@@ -318,7 +317,7 @@ public final class FocusClientConfig {
 
     public static Screen createConfigScreen(Screen parent) {
         config();
-        return ConfigScreen.create(CONFIG, parent);
+        return new FocusConfigScreen(parent);
     }
 
     // Getters

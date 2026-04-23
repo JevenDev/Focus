@@ -43,10 +43,7 @@ public abstract class CameraMixin {
     protected abstract void setPosition(Vec3 pos);
 
     @Shadow
-    protected abstract void setRotation(float yRot, float xRot, float roll);
-
-    @Shadow
-    public abstract float getRoll();
+    protected abstract void setRotation(float yRot, float xRot);
 
     @Shadow
     public abstract Vec3 getPosition();
@@ -77,7 +74,7 @@ public abstract class CameraMixin {
                 CameraPose pose = focus$cameraSystem.updateReturnTransition(
                         vanillaPos, this.yRot, this.xRot, pivotPoint, deltaTicks);
                 this.setPosition(pose.position());
-                this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
+                this.setRotation(pose.yaw(), pose.pitch());
             }
             return;
         }
@@ -122,7 +119,7 @@ public abstract class CameraMixin {
                 wasThirdPerson);
 
         this.setPosition(pose.position());
-        this.setRotation(pose.yaw(), pose.pitch(), this.getRoll());
+        this.setRotation(pose.yaw(), pose.pitch());
         FocusShoulderSurfingCompat.syncCameraRotation(pose.yaw(), pose.pitch());
     }
 }

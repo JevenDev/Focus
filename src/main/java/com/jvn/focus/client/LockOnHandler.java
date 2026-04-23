@@ -12,15 +12,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.MovementInputUpdateEvent;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
 public final class LockOnHandler {
     private static final int TARGET_SWAP_MIN_COOLDOWN_TICKS = 8;
     private static final int OCCLUDED_GRACE_TICKS = 15;
@@ -42,7 +41,11 @@ public final class LockOnHandler {
     private LockOnHandler() {}
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
@@ -165,8 +168,12 @@ public final class LockOnHandler {
     }
 
     @SubscribeEvent
-    public static void onRenderFrame(RenderFrameEvent.Pre event) {
-        float deltaTicks = Math.max(0.01F, event.getPartialTick().getRealtimeDeltaTicks());
+    public static void onRenderFrame(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            return;
+        }
+
+        float deltaTicks = Math.max(0.01F, Minecraft.getInstance().getDeltaFrameTime());
         // Always store frame timing for FPS-independent smoothing, even when not locked on.
         CAMERA_CONTROLLER.storeRenderDeltaTicks(deltaTicks);
 
@@ -180,7 +187,7 @@ public final class LockOnHandler {
             return;
         }
 
-        float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(true);
+        float partialTick = event.getPartialTick();
         CAMERA_CONTROLLER.onRenderFrame(player, lockedTarget, partialTick, deltaTicks);
     }
 
@@ -220,13 +227,6 @@ public final class LockOnHandler {
 
         input.forwardImpulse = origForward * cos + origStrafe * sin;
         input.leftImpulse = -(origStrafe * cos - origForward * sin);
-    }
-
-    @SubscribeEvent
-    public static void onDetachedCameraDistance(CalculateDetachedCameraDistanceEvent event) {
-        if (lockedTarget != null || isCameraEditorPreviewActive()) {
-            event.setDistance((float) Math.max(CAMERA_CONTROLLER.currentDetachedCameraDistance(lockedTarget != null), 4.0D));
-        }
     }
 
     private static void toggleLockOn(Minecraft minecraft, LocalPlayer player) {
@@ -365,7 +365,13 @@ public final class LockOnHandler {
     }
 
     public static boolean isLockedTargetWithinHitRange(LocalPlayer player) {
-        return lockedTarget != null && player != null && player.canInteractWithEntity(lockedTarget, 0.0D);
+        if (lockedTarget == null || player == null) {
+            return false;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        double entityReach = minecraft.gameMode != null && minecraft.gameMode.hasFarPickRange() ? 6.0D : 3.0D;
+        return player.distanceToSqr(lockedTarget) <= entityReach * entityReach;
     }
 
     public static boolean canHitLockedTarget(LocalPlayer player) {

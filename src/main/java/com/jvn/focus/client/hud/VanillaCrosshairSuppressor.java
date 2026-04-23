@@ -5,20 +5,20 @@ import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
 public final class VanillaCrosshairSuppressor {
 
     private VanillaCrosshairSuppressor() {}
 
     @SubscribeEvent
-    public static void onPreRenderGuiLayer(RenderGuiLayerEvent.Pre event) {
-        if (!event.getName().equals(VanillaGuiLayers.CROSSHAIR)) {
+    public static void onPreRenderGuiLayer(RenderGuiOverlayEvent.Pre event) {
+        if (!event.getOverlay().id().equals(VanillaGuiOverlay.CROSSHAIR.id())) {
             return;
         }
 

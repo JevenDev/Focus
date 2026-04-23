@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 public final class MultiplayerWarningState {
     private static final Path STATE_PATH = FMLPaths.CONFIGDIR.get().resolve(Focus.MOD_ID + "_multiplayer_warning.json");
