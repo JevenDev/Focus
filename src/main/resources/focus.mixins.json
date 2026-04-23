@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "com.jvn.focus.mixin",
   "plugin": "com.jvn.focus.mixin.FocusMixinPlugin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
   "mixins": [],
   "client": [
     "CameraMixin",
