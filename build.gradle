@@ -14,7 +14,7 @@ version = mod_version
 group = mod_group_id
 
 base {
-    archivesName = mod_id
+    archivesName = "${mod_id}-forge-${minecraft_version}"
 }
 
 sourceSets.main.resources {
@@ -115,6 +115,9 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // The Mixin annotation processor emits refmap files into build/tmp, which are
+    // not reliably restored from Gradle build cache snapshots.
+    outputs.cacheIf { false }
 }
 
 tasks.withType(ProcessResources).configureEach {
