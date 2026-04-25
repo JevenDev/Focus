@@ -53,8 +53,8 @@ public abstract class GameRendererMixin {
         // range match first-person behaviour.  The camera position is behind/above the player
         // and would shorten the effective interaction distance.
         Vec3 from = minecraft.player.getEyePosition(partialTick);
-        // 1.20.1 Forge does not expose the 1.21 interaction-range accessors on LocalPlayer.
-        // Keep vanilla-equivalent behavior by reading pick range from game mode and using
+        // Forge 1.20.1 exposes pick range through game mode rather than LocalPlayer.
+        // Keep vanilla-equivalent behavior by reading that range directly and using
         // the standard entity reach values (3.0 survival / 6.0 creative-style far reach).
         double blockReach = minecraft.gameMode != null ? minecraft.gameMode.getPickRange() : 4.5D;
         double entityReach = minecraft.gameMode != null && minecraft.gameMode.hasFarPickRange() ? 6.0D : 3.0D;

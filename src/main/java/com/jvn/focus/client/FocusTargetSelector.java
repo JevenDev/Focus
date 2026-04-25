@@ -7,7 +7,6 @@ import java.util.Set;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,6 +24,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * Target selection, filtering, and directional-swap logic for the lock-on system.
@@ -291,7 +291,7 @@ final class FocusTargetSelector {
         // Fences (thin posts) and chests (smaller than full cube) fail this check,
         // while solid blocks and stairs (full bottom face) pass.
         for (Direction direction : Direction.values()) {
-            if (Block.isFaceFull(collisionShape, direction)) {
+            if (Block.isShapeFullBlock(collisionShape.getFaceShape(direction))) {
                 return true;
             }
         }
@@ -392,7 +392,7 @@ final class FocusTargetSelector {
             return true;
         }
         if (!filterSettings.entityTypeIds().isEmpty()) {
-            ResourceLocation entityTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
+            ResourceLocation entityTypeId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType());
             if (entityTypeId != null && filterSettings.entityTypeIds().contains(entityTypeId)) {
                 return true;
             }
