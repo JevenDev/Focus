@@ -1,6 +1,16 @@
 <div align="center">
-  
+
   <h2><strong><em>DO NOT</em> USE THIS ON PUBLIC SERVERS WITHOUT ADMIN PERMISSION, YOU ARE VERY LIKELY TO BE BANNED.</strong></h2>
+  
+</div>
+
+<div align="center">
+  
+<a href="https://modrinth.com/mod/focus/settings/versions?l=neoforge"><img src="https://raw.githubusercontent.com/intergrav/devins-badges/refs/heads/v3/assets/cozy/supported/neoforge_64h.png" alt="Available for NeoForge"></a>
+<a href="https://modrinth.com/mod/focus/settings/versions?l=forge"><img src="https://raw.githubusercontent.com/intergrav/devins-badges/refs/heads/v3/assets/cozy/supported/forge_64h.png" alt="Available for Forge"></a><br>
+<a href="https://modrinth.com/mod/focus" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/intergrav/devins-badges/refs/heads/v3/assets/compact-minimal/available/modrinth_46h.png" alt="Available on Modrinth"></a>
+<a href="https://www.curseforge.com/minecraft/mc-mods/focus" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/intergrav/devins-badges/refs/heads/v3/assets/compact-minimal/available/curseforge_46h.png" alt="Available on CurseForge"></a>
+<a href="https://github.com/JevenDev/Focus" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/intergrav/devins-badges/refs/heads/v3/assets/compact-minimal/available/github_46h.png" alt="Available on GitHub"></a>
   
 </div>
 
