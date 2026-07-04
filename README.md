@@ -41,6 +41,12 @@ On top of that, you can also:
 - enable **cinematic bars**
 - make your player **fade out** when they get in the way of the camera
 
+## Server admin policy
+
+When Focus is installed server-side, admins can use the generated `focus-server.toml` config to force or disable selected client features for players using Focus.
+
+The server can control lock-on availability, first-person/front third-person while locked on, target filtering, player targeting through filters, and corrected crosshair/hit-ray behavior. To disable locking onto players, set `targetFiltersEnabled=FORCE_ON`, `targetFilterMode=EXCLUDE`, and `filterPlayers=FORCE_ON`.
+
 ![Gameplay footage 2: player switching between two targets, the spider and the skeleton (spider jockey), using mouse direction flicks](https://i.imgur.com/wjYIE2b.gif)
 
 ![keybinds](https://cdn.modrinth.com/data/cached_images/201d5ce49ba16974e3c3b0b562c392e03f38e35f.png)
@@ -105,7 +111,7 @@ If there's a specific mod you would like compatibility with, open an issue in th
 - Controller support through Controlify & MidnightControls 
 - Overhaul of the entire camera editor screen
 - Custom indicator icon creator; colour, size, position, texture, etc.
-- Server-side admin control commands/config to prevent certain features for users
+- Server-side admin commands for live policy editing
 
 ![credits & license](https://cdn.modrinth.com/data/cached_images/5fd3ad80e342e6985dd6ebda1f7afd9c48749fce.png)
 

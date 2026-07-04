@@ -11,6 +11,7 @@
   "key.focus.adjust_camera_down": "Adjust Camera Down",
   "message.focus.lock_on.enabled": "Locked on: %s",
   "message.focus.lock_on.disabled": "Lock-on disabled",
+  "message.focus.lock_on.disabled_by_server": "Lock-on disabled by server",
   "message.focus.lock_on.no_target": "No valid target",
   "message.focus.lock_on.lost": "Target lost",
   "message.focus.lock_on.obstructed": "Target lost (out of sight)",

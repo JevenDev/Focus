@@ -17,6 +17,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.MovementInputUpdateEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
@@ -57,8 +58,19 @@ public final class LockOnHandler {
             return;
         }
 
-        while (FocusKeyMappings.LOCK_ON.consumeClick()) {
-            toggleLockOn(minecraft, player);
+        if (!FocusClientConfig.lockOnAllowed()) {
+            if (lockedTarget != null) {
+                lockedTarget = null;
+                restoreCamera(minecraft);
+                showLockOnBlockedByServerMessage(player);
+            }
+            while (FocusKeyMappings.LOCK_ON.consumeClick()) {
+                showLockOnBlockedByServerMessage(player);
+            }
+        } else {
+            while (FocusKeyMappings.LOCK_ON.consumeClick()) {
+                toggleLockOn(minecraft, player);
+            }
         }
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
             boolean showMessage = lockedTarget != null
@@ -227,6 +239,11 @@ public final class LockOnHandler {
         if (lockedTarget != null || isCameraEditorPreviewActive()) {
             event.setDistance((float) Math.max(CAMERA_CONTROLLER.currentDetachedCameraDistance(lockedTarget != null), 4.0D));
         }
+    }
+
+    @SubscribeEvent
+    public static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        FocusClientConfig.clearServerPolicy();
     }
 
     private static void toggleLockOn(Minecraft minecraft, LocalPlayer player) {
@@ -469,6 +486,12 @@ public final class LockOnHandler {
     private static void showLockOnStatusMessage(LocalPlayer player, Component message) {
         if (player != null && FocusClientConfig.showLockOnStatusMessages()) {
             player.displayClientMessage(message, true);
+        }
+    }
+
+    private static void showLockOnBlockedByServerMessage(LocalPlayer player) {
+        if (player != null) {
+            player.displayClientMessage(Component.translatable("message.focus.lock_on.disabled_by_server"), true);
         }
     }
 

@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jvn.focus.Focus;
 import com.jvn.focus.client.FocusConfig;
+import com.jvn.focus.network.FocusServerPolicyPayload;
+import com.jvn.focus.network.FocusServerPolicyPayload.BooleanSetting;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -170,6 +172,7 @@ public final class FocusClientConfig {
     private static PerspectivePreset rightShoulderPreset = defaultLeftPreset().mirroredForOppositeShoulder();
     private static final Map<String, CameraSetupPreset> CAMERA_SETUP_PROFILES = new LinkedHashMap<>();
     private static final Map<String, CameraSetupPreset> BUILT_IN_CAMERA_SETUP_PROFILES = createBuiltInCameraSetupProfiles();
+    private static FocusServerPolicyPayload serverPolicy = FocusServerPolicyPayload.empty();
 
     private FocusClientConfig() {}
 
@@ -321,18 +324,36 @@ public final class FocusClientConfig {
         return ConfigScreen.create(CONFIG, parent);
     }
 
+    public static void applyServerPolicy(FocusServerPolicyPayload policy) {
+        serverPolicy = policy == null ? FocusServerPolicyPayload.empty() : policy;
+    }
+
+    public static void clearServerPolicy() {
+        serverPolicy = FocusServerPolicyPayload.empty();
+    }
+
+    public static boolean lockOnAllowed() {
+        return serverPolicy.lockOnAllowed();
+    }
+
+    private static boolean serverBoolean(BooleanSetting setting, boolean fallback) {
+        return serverPolicy.booleanValue(setting, fallback);
+    }
+
     // Getters
 
     public static boolean autoSwitchToThirdPerson() {
-        return config().autoSwitchToThirdPerson();
+        return serverBoolean(BooleanSetting.AUTO_SWITCH_TO_THIRD_PERSON, config().autoSwitchToThirdPerson());
     }
 
     public static boolean allowFirstPersonWhileTargeting() {
-        return config().allowFirstPersonWhileTargeting();
+        return serverBoolean(BooleanSetting.ALLOW_FIRST_PERSON_WHILE_TARGETING, config().allowFirstPersonWhileTargeting());
     }
 
     public static boolean allowFrontFacingThirdPersonWhileTargeting() {
-        return config().allowFrontFacingThirdPersonWhileTargeting();
+        return serverBoolean(
+                BooleanSetting.ALLOW_FRONT_FACING_THIRD_PERSON_WHILE_TARGETING,
+                config().allowFrontFacingThirdPersonWhileTargeting());
     }
 
     public static boolean showLockOnStatusMessages() {
@@ -468,31 +489,38 @@ public final class FocusClientConfig {
     }
 
     public static CrosshairCorrectionMode crosshairCorrectionMode() {
+        if (serverPolicy.hasCrosshairCorrectionModeOverride()) {
+            try {
+                return CrosshairCorrectionMode.valueOf(serverPolicy.crosshairCorrectionModeOverride());
+            } catch (IllegalArgumentException ignored) {
+                Focus.LOGGER.warn("Ignoring invalid server crosshair correction mode: {}", serverPolicy.crosshairCorrectionModeOverride());
+            }
+        }
         return config().crosshair.crosshairCorrectionMode();
     }
 
     public static boolean renderCorrectedCrosshair() {
-        return config().crosshair.renderCorrectedCrosshair();
+        return serverBoolean(BooleanSetting.RENDER_CORRECTED_CROSSHAIR, config().crosshair.renderCorrectedCrosshair());
     }
 
     public static boolean correctBlockPlacementRay() {
-        return config().crosshair.correctBlockPlacementRay();
+        return serverBoolean(BooleanSetting.CORRECT_BLOCK_PLACEMENT_RAY, config().crosshair.correctBlockPlacementRay());
     }
 
     public static boolean correctEntityHitRay() {
-        return config().crosshair.correctEntityHitRay();
+        return serverBoolean(BooleanSetting.CORRECT_ENTITY_HIT_RAY, config().crosshair.correctEntityHitRay());
     }
 
     public static boolean correctCrosshairOnlyWhileLockedOn() {
-        return config().crosshair.correctCrosshairOnlyWhileLockedOn();
+        return serverBoolean(BooleanSetting.CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON, config().crosshair.correctCrosshairOnlyWhileLockedOn());
     }
 
     public static boolean hideVanillaCrosshair() {
-        return config().crosshair.hideVanillaCrosshair();
+        return serverBoolean(BooleanSetting.HIDE_VANILLA_CROSSHAIR, config().crosshair.hideVanillaCrosshair());
     }
 
     public static boolean hideVanillaCrosshairOutOfRange() {
-        return config().crosshair.hideVanillaCrosshairOutOfRange();
+        return serverBoolean(BooleanSetting.HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE, config().crosshair.hideVanillaCrosshairOutOfRange());
     }
 
     public static double targetSwapMouseDeadzone() {
@@ -548,30 +576,40 @@ public final class FocusClientConfig {
     }
 
     public static boolean enableTargetFilters() {
-        return config().enableTargetFilters();
+        return serverBoolean(BooleanSetting.ENABLE_TARGET_FILTERS, config().enableTargetFilters());
     }
 
     public static TargetFilterMode targetFilterMode() {
+        if (serverPolicy.hasTargetFilterModeOverride()) {
+            try {
+                return TargetFilterMode.valueOf(serverPolicy.targetFilterModeOverride());
+            } catch (IllegalArgumentException ignored) {
+                Focus.LOGGER.warn("Ignoring invalid server target filter mode: {}", serverPolicy.targetFilterModeOverride());
+            }
+        }
         return config().targetFilterMode();
     }
 
     public static boolean filterPlayers() {
-        return config().filterPlayers();
+        return serverBoolean(BooleanSetting.FILTER_PLAYERS, config().filterPlayers());
     }
 
     public static boolean filterPassiveMobs() {
-        return config().filterPassiveMobs();
+        return serverBoolean(BooleanSetting.FILTER_PASSIVE_MOBS, config().filterPassiveMobs());
     }
 
     public static boolean filterNeutralMobs() {
-        return config().filterNeutralMobs();
+        return serverBoolean(BooleanSetting.FILTER_NEUTRAL_MOBS, config().filterNeutralMobs());
     }
 
     public static boolean filterHostileMobs() {
-        return config().filterHostileMobs();
+        return serverBoolean(BooleanSetting.FILTER_HOSTILE_MOBS, config().filterHostileMobs());
     }
 
     public static List<String> targetFilterEntityIds() {
+        if (serverPolicy.overrideTargetFilterEntityIds()) {
+            return sanitizeTargetFilterEntityIds(serverPolicy.targetFilterEntityIds());
+        }
         return sanitizeTargetFilterEntityIds(config().targetFilterEntityIds());
     }
 
@@ -833,10 +871,10 @@ public final class FocusClientConfig {
                 config().targetSwapPlayerLookFollow(),
                 enableTargetFilters(),
                 targetFilterMode(),
-                config().filterPlayers(),
-                config().filterPassiveMobs(),
-                config().filterNeutralMobs(),
-                config().filterHostileMobs(),
+                filterPlayers(),
+                filterPassiveMobs(),
+                filterNeutralMobs(),
+                filterHostileMobs(),
                 targetFilterEntityIds(),
                 currentPreset(Shoulder.LEFT),
                 currentPreset(Shoulder.RIGHT),
