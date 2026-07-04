@@ -8,7 +8,8 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 public final class FocusMixinPlugin implements IMixinConfigPlugin {
     private static final String SSR_INPUT_HANDLER = "com.github.exopandora.shouldersurfing.client.InputHandler";
-    private static final String SSR_IMPL = "com.github.exopandora.shouldersurfing.client.ShoulderSurfingImpl";
+    private static final String SSR_IMPL_LEGACY = "com.github.exopandora.shouldersurfing.client.ShoulderSurfingImpl";
+    private static final String SSR_IMPL = "com.github.exopandora.shouldersurfing.client.ShoulderSurfing";
     private static final String SSR_MIXIN_PACKAGE = "com.jvn.focus.mixin.compat.shouldersurfing.";
 
     @Override
@@ -27,7 +28,8 @@ public final class FocusMixinPlugin implements IMixinConfigPlugin {
 
         return switch (mixinClassName.substring(SSR_MIXIN_PACKAGE.length())) {
             case "ShoulderSurfingInputHandlerMixin" -> classExists(SSR_INPUT_HANDLER);
-            case "ShoulderSurfingImplMixin" -> classExists(SSR_IMPL);
+            case "ShoulderSurfingImplMixin" -> classExists(SSR_IMPL_LEGACY);
+            case "ShoulderSurfingMixin" -> classExists(SSR_IMPL);
             default -> true;
         };
     }
@@ -47,11 +49,8 @@ public final class FocusMixinPlugin implements IMixinConfigPlugin {
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
 
     private static boolean classExists(String className) {
-        try {
-            Class.forName(className, false, FocusMixinPlugin.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException exception) {
-            return false;
-        }
+        String resourceName = className.replace('.', '/') + ".class";
+        ClassLoader classLoader = FocusMixinPlugin.class.getClassLoader();
+        return classLoader.getResource(resourceName) != null;
     }
 }

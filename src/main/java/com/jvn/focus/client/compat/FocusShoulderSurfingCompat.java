@@ -14,15 +14,47 @@ import net.minecraftforge.fml.ModList;
  */
 public final class FocusShoulderSurfingCompat {
     private static final String SSR_MOD_ID = "shouldersurfing";
+    private static final String SSR_IMPL_CLASS = "com.github.exopandora.shouldersurfing.client.ShoulderSurfingImpl";
+    private static final String SSR_CLASS = "com.github.exopandora.shouldersurfing.client.ShoulderSurfing";
     @Nullable
     private static final Bridge BRIDGE = createBridge();
+    private static int cameraDecoupledSuppressions;
+    private static int movementInputBypasses;
 
     private FocusShoulderSurfingCompat() {}
 
     public static boolean isControllingShoulderSurfing() {
-        return LockOnHandler.shouldSuppressVanillaMouseTurn()
-                && BRIDGE != null
-                && BRIDGE.isShoulderSurfingActive();
+        if (!LockOnHandler.isLockOnActive()) {
+            return false;
+        }
+        if (BRIDGE != null) {
+            Boolean active = BRIDGE.isShoulderSurfingActive();
+            if (active != null) {
+                return active;
+            }
+        }
+        return ModList.get().isLoaded(SSR_MOD_ID);
+    }
+
+    public static void recordCameraDecoupledSuppression() {
+        cameraDecoupledSuppressions++;
+    }
+
+    public static void recordMovementInputBypass() {
+        movementInputBypasses++;
+    }
+
+    public static void resetDebugCounters() {
+        cameraDecoupledSuppressions = 0;
+        movementInputBypasses = 0;
+    }
+
+    public static int cameraDecoupledSuppressions() {
+        return cameraDecoupledSuppressions;
+    }
+
+    public static int movementInputBypasses() {
+        return movementInputBypasses;
     }
 
     public static void syncCameraRotation(float yaw, float pitch) {
@@ -44,7 +76,7 @@ public final class FocusShoulderSurfingCompat {
         }
 
         try {
-            Class<?> implClass = Class.forName("com.github.exopandora.shouldersurfing.client.ShoulderSurfingImpl");
+            Class<?> implClass = findClass(SSR_IMPL_CLASS, SSR_CLASS);
             Method getInstance = implClass.getMethod("getInstance");
             Method isShoulderSurfing = implClass.getMethod("isShoulderSurfing");
             Method getCamera = implClass.getMethod("getCamera");
@@ -58,6 +90,18 @@ public final class FocusShoulderSurfingCompat {
             Focus.LOGGER.warn("Failed to initialize Shoulder Surfing Reloaded compatibility bridge", exception);
             return null;
         }
+    }
+
+    private static Class<?> findClass(String... classNames) throws ClassNotFoundException {
+        ClassNotFoundException lastException = null;
+        for (String className : classNames) {
+            try {
+                return Class.forName(className);
+            } catch (ClassNotFoundException exception) {
+                lastException = exception;
+            }
+        }
+        throw lastException != null ? lastException : new ClassNotFoundException("No class names supplied");
     }
 
     private static final class Bridge {
@@ -100,9 +144,10 @@ public final class FocusShoulderSurfingCompat {
             }
         }
 
-        private boolean isShoulderSurfingActive() {
+        @Nullable
+        private Boolean isShoulderSurfingActive() {
             if (failed) {
-                return false;
+                return null;
             }
 
             try {
@@ -111,7 +156,7 @@ public final class FocusShoulderSurfingCompat {
             } catch (IllegalAccessException | InvocationTargetException exception) {
                 failed = true;
                 Focus.LOGGER.warn("Disabling Shoulder Surfing Reloaded compatibility after reflection failure", exception);
-                return false;
+                return null;
             }
         }
     }

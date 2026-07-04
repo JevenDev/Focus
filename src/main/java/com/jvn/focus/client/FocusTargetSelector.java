@@ -36,6 +36,8 @@ final class FocusTargetSelector {
     private static final double OCCLUDED_LOCK_DISTANCE = 8.0D;
     static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
+    private static final double TARGET_SCORE_EPSILON = 1.0E-4D;
+    private static final float TARGET_SWAP_SCORE_EPSILON = 1.0E-4F;
     private static final int MAX_SIGHT_ITERATIONS = 48;
 
     private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
@@ -54,7 +56,7 @@ final class FocusTargetSelector {
                 LivingEntity.class,
                 player.getBoundingBox().inflate(MAX_LOCK_DISTANCE),
                 candidate -> candidate != player && candidate.isAlive() && isTargetAllowed(candidate, filterSettings))) {
-            if (!isValidNewLockCandidate(player, entity)) {
+            if (!passesNewLockCandidateBaseline(player, entity)) {
                 continue;
             }
 
@@ -64,12 +66,15 @@ final class FocusTargetSelector {
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            if (alignment > bestAlignment + 1.0E-4D
-                    || (Math.abs(alignment - bestAlignment) <= 1.0E-4D && distanceSqr < bestDistanceSqr)) {
-                bestAlignment = alignment;
-                bestDistanceSqr = distanceSqr;
-                bestTarget = entity;
+            boolean canBeatCurrent = alignment > bestAlignment + TARGET_SCORE_EPSILON
+                    || (Math.abs(alignment - bestAlignment) <= TARGET_SCORE_EPSILON && distanceSqr < bestDistanceSqr);
+            if (!canBeatCurrent || !hasTargetingSight(player, entity)) {
+                continue;
             }
+
+            bestAlignment = alignment;
+            bestDistanceSqr = distanceSqr;
+            bestTarget = entity;
         }
 
         return bestTarget;
@@ -87,15 +92,17 @@ final class FocusTargetSelector {
                         && candidate.isAlive()
                         && candidate != excludedTarget
                         && isTargetAllowed(candidate, filterSettings))) {
-            if (!isValidNewLockCandidate(player, entity)) {
+            if (!passesNewLockCandidateBaseline(player, entity)) {
                 continue;
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            if (distanceSqr < bestDistanceSqr) {
-                bestDistanceSqr = distanceSqr;
-                bestTarget = entity;
+            if (distanceSqr >= bestDistanceSqr || !hasTargetingSight(player, entity)) {
+                continue;
             }
+
+            bestDistanceSqr = distanceSqr;
+            bestTarget = entity;
         }
 
         return bestTarget;
@@ -146,7 +153,7 @@ final class FocusTargetSelector {
                         && candidate.isAlive()
                         && candidate != currentTarget
                         && isTargetAllowed(candidate, filterSettings))) {
-            if (!isValidNewLockCandidate(player, entity)) {
+            if (!passesNewLockCandidateBaseline(player, entity)) {
                 continue;
             }
 
@@ -170,17 +177,20 @@ final class FocusTargetSelector {
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            if (candidateScreenDistance < bestScreenDistance - 1.0E-4F
-                    || (Math.abs(candidateScreenDistance - bestScreenDistance) <= 1.0E-4F
-                            && directionalAlignment > bestAlignment + 1.0E-4F)
-                    || (Math.abs(candidateScreenDistance - bestScreenDistance) <= 1.0E-4F
-                            && Math.abs(directionalAlignment - bestAlignment) <= 1.0E-4F
-                            && distanceSqr < bestDistanceSqr)) {
-                bestScreenDistance = candidateScreenDistance;
-                bestAlignment = directionalAlignment;
-                bestDistanceSqr = distanceSqr;
-                bestTarget = entity;
+            boolean canBeatCurrent = directionalAlignment > bestAlignment + TARGET_SWAP_SCORE_EPSILON
+                    || (Math.abs(directionalAlignment - bestAlignment) <= TARGET_SWAP_SCORE_EPSILON
+                            && candidateScreenDistance < bestScreenDistance - TARGET_SWAP_SCORE_EPSILON)
+                    || (Math.abs(directionalAlignment - bestAlignment) <= TARGET_SWAP_SCORE_EPSILON
+                            && Math.abs(candidateScreenDistance - bestScreenDistance) <= TARGET_SWAP_SCORE_EPSILON
+                            && distanceSqr < bestDistanceSqr);
+            if (!canBeatCurrent || !hasTargetingSight(player, entity)) {
+                continue;
             }
+
+            bestScreenDistance = candidateScreenDistance;
+            bestAlignment = directionalAlignment;
+            bestDistanceSqr = distanceSqr;
+            bestTarget = entity;
         }
 
         return bestTarget;
@@ -247,21 +257,17 @@ final class FocusTargetSelector {
     // --- Private helpers: targeting sight ---
 
     /**
-     * Checks if a candidate entity passes all requirements for new lock-on acquisition.
-     * Requires the target to be not hidden, within max lock distance, and to have clear
-     * targeting sight (no real walls between player and target).
+     * Checks cheap candidate requirements before expensive raycasts.
+     * Requires the target to be not hidden and within max lock distance.
      * <p>
      * Note: {@code isAlive()} and target-filter checks should be done before calling this
      * method (typically in the entity-class filter passed to {@code getEntitiesOfClass}).
      */
-    private static boolean isValidNewLockCandidate(LocalPlayer player, LivingEntity candidate) {
+    private static boolean passesNewLockCandidateBaseline(LocalPlayer player, LivingEntity candidate) {
         if (isLockOnHiddenFromPlayer(player, candidate)) {
             return false;
         }
-        if (player.distanceToSqr(candidate) > MAX_LOCK_DISTANCE_SQR) {
-            return false;
-        }
-        return hasTargetingSight(player, candidate);
+        return player.distanceToSqr(candidate) <= MAX_LOCK_DISTANCE_SQR;
     }
 
     /**

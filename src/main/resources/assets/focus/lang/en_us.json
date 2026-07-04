@@ -142,7 +142,7 @@
   "text.config.focus-config.option.crosshair.correctCrosshairOnlyWhileLockedOn": "Correct Crosshair Only While Locked-On",
   "text.config.focus-config.option.crosshair.correctCrosshairOnlyWhileLockedOn.tooltip": "Limit corrected reticle rendering to active lock-on state.",
   "text.config.focus-config.option.crosshair.hideVanillaCrosshair": "Hide Vanilla Crosshair",
-  "text.config.focus-config.option.crosshair.hideVanillaCrosshair.tooltip": "Suppress the vanilla crosshair while in third-person view.",
+  "text.config.focus-config.option.crosshair.hideVanillaCrosshair.tooltip": "Suppress the vanilla crosshair while locked on or while the corrected reticle is rendered.",
   "text.config.focus-config.option.crosshair.hideVanillaCrosshairOutOfRange": "Hide Crosshair Out of Range",
   "text.config.focus-config.option.crosshair.hideVanillaCrosshairOutOfRange.tooltip": "Hide the crosshair when locked on but the target is out of attack range.",
 
@@ -274,6 +274,9 @@
   "debug.focus.lock_on.allow_first_person": "Allow 1P: %s",
   "debug.focus.lock_on.allow_front_facing_third_person": "Allow Front 3P: %s",
   "debug.focus.lock_on.editor_preview": "Editor Preview: %s",
+  "debug.focus.lock_on.shoulder_surfing_control": "SSR Control: %s",
+  "debug.focus.lock_on.ssr_camera_suppressed": "SSR Camera Suppressed: %s",
+  "debug.focus.lock_on.ssr_movement_bypassed": "SSR Movement Bypassed: %s",
   "debug.focus.lock_on.shoulder": "Shoulder: %s",
   "debug.focus.lock_on.displayed_shoulder": "Displayed Shoulder: %s",
   "debug.focus.lock_on.custom_swap_values": "Custom Swap Values: %s",

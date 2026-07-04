@@ -50,12 +50,8 @@ final class FocusCameraMath {
         return Mth.clamp(desired, -bodyMaxStrafeOffset, bodyMaxStrafeOffset);
     }
 
-    static double smoothTowards(double current, double target, double speed, double minSpeed, double maxSpeed) {
-        return Mth.lerp(Mth.clamp(speed, minSpeed, maxSpeed), current, target);
-    }
-
     /**
-     * Frame-rate-independent variant of {@link #smoothTowards}.
+     * Frame-rate-independent smoothing helper.
      * Uses exponential decay so the convergence rate is stable across refresh rates.
      * {@code deltaTicks} is in game ticks (1.0 = 50 ms at 20 TPS).
      */

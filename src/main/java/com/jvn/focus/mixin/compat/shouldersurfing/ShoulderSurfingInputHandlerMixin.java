@@ -13,6 +13,7 @@ public abstract class ShoulderSurfingInputHandlerMixin {
     @Inject(method = "updateMovementInput", at = @At("HEAD"), cancellable = true, remap = false)
     private void focus$bypassShoulderSurfingMovementRemap(CallbackInfo ci) {
         if (FocusShoulderSurfingCompat.isControllingShoulderSurfing()) {
+            FocusShoulderSurfingCompat.recordMovementInputBypass();
             ci.cancel();
         }
     }

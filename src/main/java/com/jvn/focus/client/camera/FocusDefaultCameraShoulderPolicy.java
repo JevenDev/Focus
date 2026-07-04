@@ -157,25 +157,21 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
 
         double lateral = computeTargetLateral(context.player(), context.targetPoint());
         FocusClientConfig.Shoulder currentDisplayed = dynamicDisplayedShoulder(state, state.dynamicAutoCurrentBlend);
-        FocusCameraCandidateEvaluation leftCandidate = candidateEvaluation(
-                context,
+        double leftScore = candidateScore(
                 FocusClientConfig.Shoulder.LEFT,
-                leftCandidatePose,
                 occlusionResult.leftShoulderVisibilityScore(),
                 lateral,
                 currentDisplayed);
-        FocusCameraCandidateEvaluation rightCandidate = candidateEvaluation(
-                context,
+        double rightScore = candidateScore(
                 FocusClientConfig.Shoulder.RIGHT,
-                rightCandidatePose,
                 occlusionResult.rightShoulderVisibilityScore(),
                 lateral,
                 currentDisplayed);
 
         double threshold = FocusClientConfig.dynamicShoulderSwitchThreshold();
-        if (leftCandidate.totalScore() > rightCandidate.totalScore() + threshold) {
+        if (leftScore > rightScore + threshold) {
             state.dynamicAutoTargetBlend = state.activeShoulder == FocusClientConfig.Shoulder.LEFT ? 0.0D : 1.0D;
-        } else if (rightCandidate.totalScore() > leftCandidate.totalScore() + threshold) {
+        } else if (rightScore > leftScore + threshold) {
             state.dynamicAutoTargetBlend = state.activeShoulder == FocusClientConfig.Shoulder.RIGHT ? 0.0D : 1.0D;
         }
     }
@@ -220,10 +216,8 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
         return new FocusCameraPose(context.targetPoint(), offsetX, offsetY, offsetZ, (float) presetRotation);
     }
 
-    private FocusCameraCandidateEvaluation candidateEvaluation(
-            FocusCameraTargetContext context,
+    private double candidateScore(
             FocusClientConfig.Shoulder shoulder,
-            FocusCameraPose pose,
             double visibilityScore,
             double targetLateral,
             FocusClientConfig.Shoulder currentDisplayedShoulder) {
@@ -231,16 +225,9 @@ final class FocusDefaultCameraShoulderPolicy implements FocusCameraShoulderPolic
                 ? (targetLateral + 1.0D) * 0.5D
                 : (1.0D - targetLateral) * 0.5D;
         double continuityPenalty = shoulder == currentDisplayedShoulder ? 0.0D : CONTINUITY_PENALTY;
-        double totalScore = (visibilityScore * FocusClientConfig.dynamicShoulderVisibilityWeight())
+        return (visibilityScore * FocusClientConfig.dynamicShoulderVisibilityWeight())
                 + (screenPlacementScore * FocusClientConfig.dynamicShoulderScreenPlacementWeight())
                 - continuityPenalty;
-        return new FocusCameraCandidateEvaluation(
-                shoulder,
-                FocusCameraOcclusionEvaluator.computeCameraPosition(context.player().getEyePosition(context.partialTick()), pose.targetPoint(), pose),
-                visibilityScore,
-                screenPlacementScore,
-                continuityPenalty,
-                totalScore);
     }
 
     private double computeTargetLateral(LocalPlayer player, Vec3 targetPoint) {
