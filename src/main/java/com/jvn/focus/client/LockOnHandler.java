@@ -244,6 +244,7 @@ public final class LockOnHandler {
         }
 
         lockedTarget = nextTarget;
+        FocusShoulderSurfingCompat.resetDebugCounters();
         previousCameraType = minecraft.options.getCameraType();
         if (FocusClientConfig.autoSwitchToThirdPerson()) {
             CameraType currentType = previousCameraType;
@@ -317,6 +318,10 @@ public final class LockOnHandler {
 
     public static LivingEntity getLockedTarget() {
         return lockedTarget;
+    }
+
+    public static boolean isLockOnActive() {
+        return lockedTarget != null;
     }
 
     public static FocusCameraPose getActiveCameraData(LocalPlayer player, float partialTick) {

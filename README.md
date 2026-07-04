@@ -76,8 +76,7 @@ On top of that, you can also:
 ![compatibility](https://cdn.modrinth.com/data/cached_images/1252c11050b7daf8b8621712b58dd1005e7ba982.png)
 
 Focus currently has **native compatibility** with **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)** as an **optional dependency**.
-
-`Disable "Decoupled camera" in the 'Camera' section of the client config for **SHOULDER SURFING**. As of [1.0.0-beta.2], the decoupled camera doesn't play well with focus. I'm working on proper integration for this :P`
+When locked on, Focus temporarily owns the camera so Shoulder Surfing's Decoupled Camera state cannot fight the lock-on movement and body rotation.
 
 Support for other mods is also planned, including:
 

@@ -3,6 +3,7 @@ package com.jvn.focus.client.hud;
 import com.jvn.focus.Focus;
 import com.jvn.focus.client.FocusClientConfig;
 import com.jvn.focus.client.LockOnHandler;
+import com.jvn.focus.client.compat.FocusShoulderSurfingCompat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -75,6 +76,9 @@ public final class LockOnDebugHudOverlay {
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_first_person", onOff(FocusClientConfig.allowFirstPersonWhileTargeting())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.allow_front_facing_third_person", onOff(FocusClientConfig.allowFrontFacingThirdPersonWhileTargeting())), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.editor_preview", onOff(LockOnHandler.isCameraEditorPreviewActive())), leftY);
+        leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.shoulder_surfing_control", onOff(FocusShoulderSurfingCompat.isControllingShoulderSurfing())), leftY);
+        leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.ssr_camera_suppressed", FocusShoulderSurfingCompat.cameraDecoupledSuppressions()), leftY);
+        leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.ssr_movement_bypassed", FocusShoulderSurfingCompat.movementInputBypasses()), leftY);
         leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.shoulder", activeShoulder.displayName()), leftY);
         if (activeShoulder != displayedShoulder) {
             leftY = drawLeftLine(guiGraphics, font, Component.translatable("debug.focus.lock_on.displayed_shoulder", displayedShoulder.displayName()), leftY);
