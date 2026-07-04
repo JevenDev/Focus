@@ -133,6 +133,13 @@ dependencies {
     implementation "io.wispforest:owo-lib-neoforge:${project.owo_version}"
     annotationProcessor "io.wispforest:owo-lib-neoforge:${project.owo_version}"
 
+    compileOnly("dev.isxander:controlify:${project.controlify_version}") {
+        transitive = false
+    }
+    localRuntime("dev.isxander:controlify:${project.controlify_version}") {
+        transitive = false
+    }
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
@@ -185,7 +192,8 @@ tasks.withType(ProcessResources).configureEach {
             minecraft_version_range: minecraft_version_range,
             neo_version         : neo_version,
             loader_version_range: loader_version_range,
-            owo_version         : owo_version
+            owo_version         : owo_version,
+            controlify_version  : controlify_version
     ]
     inputs.properties replaceProperties
     filesMatching(['META-INF/neoforge.mods.toml']) {

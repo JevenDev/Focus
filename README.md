@@ -81,18 +81,23 @@ The server can control lock-on availability, first-person/front third-person whi
 
 ![compatibility](https://cdn.modrinth.com/data/cached_images/1252c11050b7daf8b8621712b58dd1005e7ba982.png)
 
-Focus currently has **native compatibility** with **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)** as an **optional dependency**.
+Focus currently has **native compatibility** with:
+
+- **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)**
+- **[Controlify](https://modrinth.com/mod/controlify)**
+
+Both integrations are optional dependencies.
 When locked on, Focus temporarily owns the camera so Shoulder Surfing's Decoupled Camera state cannot fight the lock-on movement and body rotation.
+With Controlify installed, Focus registers controller bindings for lock-on controls and uses Controlify's look-input API for right-stick target swapping while Focus owns the camera.
 
 Support for other mods is also planned, including:
 
-- **[Controlify](https://modrinth.com/mod/controlify)**
 - **[MidnightControls](https://modrinth.com/mod/midnightcontrols)**
 
 If there's a specific mod you would like compatibility with, open an issue in the GitHub repo.
 
 <div align="center">
-  <p><strong><em>Note: These mods have NOT been tested yet.<br>Please don’t report issues to those developers. Report any bugs to the <a href="https://github.com/JevenDev/Focus/issues">GitHub</a> or via Discord DM (ijvn).</em></strong></p>
+  <p><strong><em>Note: Planned integrations have NOT been tested yet.<br>Please don’t report issues to those developers. Report any bugs to the <a href="https://github.com/JevenDev/Focus/issues">GitHub</a> or via Discord DM (ijvn).</em></strong></p>
 </div>
 
 ![roadmap](https://cdn.modrinth.com/data/cached_images/04825ea0e2e5462ffa075e783ca38b0c63a36d34.png)

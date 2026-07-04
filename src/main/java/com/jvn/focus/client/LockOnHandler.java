@@ -58,25 +58,16 @@ public final class LockOnHandler {
             return;
         }
 
-        if (!FocusClientConfig.lockOnAllowed()) {
-            if (lockedTarget != null) {
-                lockedTarget = null;
-                restoreCamera(minecraft);
-                showLockOnBlockedByServerMessage(player);
-            }
-            while (FocusKeyMappings.LOCK_ON.consumeClick()) {
-                showLockOnBlockedByServerMessage(player);
-            }
-        } else {
-            while (FocusKeyMappings.LOCK_ON.consumeClick()) {
-                toggleLockOn(minecraft, player);
-            }
+        if (!FocusClientConfig.lockOnAllowed() && lockedTarget != null) {
+            lockedTarget = null;
+            restoreCamera(minecraft);
+            showLockOnBlockedByServerMessage(player);
+        }
+        while (FocusKeyMappings.LOCK_ON.consumeClick()) {
+            handleLockOnInput(minecraft, player);
         }
         while (FocusKeyMappings.SWAP_SHOULDER.consumeClick()) {
-            boolean showMessage = lockedTarget != null
-                    && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK
-                    && FocusClientConfig.showLockOnStatusMessages();
-            swapShoulder(player, showMessage);
+            handleSwapShoulderInput(minecraft, player);
         }
         handleOpenCameraEditorInput(minecraft);
         boolean previewOrbitActive = lockedTarget == null && isCameraEditorPreviewActive();
@@ -333,6 +324,36 @@ public final class LockOnHandler {
         pendingMouseDeltaY += deltaY;
     }
 
+    public static void onControlifyLookInput(float deltaX, float deltaY) {
+        onRawMouseInput(deltaX, deltaY);
+    }
+
+    public static void onControlifyLockOnPressed() {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        if (player == null || minecraft.level == null) {
+            return;
+        }
+        handleLockOnInput(minecraft, player);
+    }
+
+    public static void onControlifySwapShoulderPressed() {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        if (player == null || minecraft.level == null) {
+            return;
+        }
+        handleSwapShoulderInput(minecraft, player);
+    }
+
+    public static void onControlifyOpenCameraEditorPressed() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.level == null) {
+            return;
+        }
+        openCameraEditorScreen(minecraft);
+    }
+
     public static LivingEntity getLockedTarget() {
         return lockedTarget;
     }
@@ -481,6 +502,21 @@ public final class LockOnHandler {
         while (FocusKeyMappings.OPEN_CAMERA_EDITOR.consumeClick()) {
             openCameraEditorScreen(minecraft);
         }
+    }
+
+    private static void handleLockOnInput(Minecraft minecraft, LocalPlayer player) {
+        if (!FocusClientConfig.lockOnAllowed()) {
+            showLockOnBlockedByServerMessage(player);
+            return;
+        }
+        toggleLockOn(minecraft, player);
+    }
+
+    private static void handleSwapShoulderInput(Minecraft minecraft, LocalPlayer player) {
+        boolean showMessage = lockedTarget != null
+                && minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK
+                && FocusClientConfig.showLockOnStatusMessages();
+        swapShoulder(player, showMessage);
     }
 
     private static void showLockOnStatusMessage(LocalPlayer player, Component message) {
