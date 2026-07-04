@@ -24,14 +24,11 @@ public final class FocusCameraOcclusionEvaluator {
 
         double leftVisibility = visibilityScore(player, leftCamera, targetPoint);
         double rightVisibility = visibilityScore(player, rightCamera, targetPoint);
-        double leftDistance = safeDistanceToCamera(player, pivot, leftCamera);
-        double rightDistance = safeDistanceToCamera(player, pivot, rightCamera);
 
         Vec3 activeCamera = referenceShoulder == FocusClientConfig.Shoulder.LEFT ? leftCamera : rightCamera;
         boolean playerBlocksRay = playerBlocksSegment(player, activeCamera, targetPoint);
         boolean targetVisibilityCompromised = Math.max(leftVisibility, rightVisibility) < 0.35D;
-        double safeDistance = referenceShoulder == FocusClientConfig.Shoulder.LEFT ? leftDistance : rightDistance;
-        return new FocusCameraOcclusionResult(safeDistance, leftVisibility, rightVisibility, playerBlocksRay, targetVisibilityCompromised);
+        return new FocusCameraOcclusionResult(leftVisibility, rightVisibility, playerBlocksRay, targetVisibilityCompromised);
     }
 
     public static Vec3 computeCameraPosition(Vec3 pivot, Vec3 targetPoint, FocusCameraPose pose) {
@@ -60,20 +57,6 @@ public final class FocusCameraOcclusionEvaluator {
 
         double visibleDistance = hitResult.getLocation().distanceTo(cameraPosition);
         return Mth.clamp(visibleDistance / totalDistance, 0.0D, 1.0D);
-    }
-
-    private static double safeDistanceToCamera(LocalPlayer player, Vec3 pivot, Vec3 cameraPosition) {
-        double desiredDistance = cameraPosition.distanceTo(pivot);
-        if (desiredDistance <= EPSILON) {
-            return 0.0D;
-        }
-
-        BlockHitResult hitResult = player.level().clip(
-                new ClipContext(pivot, cameraPosition, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, player));
-        if (hitResult.getType() == HitResult.Type.MISS) {
-            return desiredDistance;
-        }
-        return Math.min(desiredDistance, hitResult.getLocation().distanceTo(pivot));
     }
 
     private static boolean playerBlocksSegment(LocalPlayer player, Vec3 from, Vec3 to) {

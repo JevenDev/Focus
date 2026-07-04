@@ -27,7 +27,7 @@ public final class VanillaCrosshairSuppressor {
             return;
         }
 
-        if (FocusClientConfig.hideVanillaCrosshair()) {
+        if (shouldHideVanillaCrosshair()) {
             event.setCanceled(true);
             return;
         }
@@ -38,5 +38,17 @@ public final class VanillaCrosshairSuppressor {
                 event.setCanceled(true);
             }
         }
+    }
+
+    private static boolean shouldHideVanillaCrosshair() {
+        if (!FocusClientConfig.hideVanillaCrosshair()) {
+            return false;
+        }
+        if (LockOnHandler.getLockedTarget() != null) {
+            return true;
+        }
+        return FocusClientConfig.renderCorrectedCrosshair()
+                && FocusClientConfig.crosshairCorrectionMode() != FocusClientConfig.CrosshairCorrectionMode.VANILLA
+                && !FocusClientConfig.correctCrosshairOnlyWhileLockedOn();
     }
 }
