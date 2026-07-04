@@ -10,6 +10,7 @@
     "GameRendererMixin",
     "MinecraftMixin",
     "MouseHandlerMixin",
+    "compat.midnightcontrols.MidnightInputMixin",
     "compat.shouldersurfing.ShoulderSurfingMixin",
     "compat.shouldersurfing.ShoulderSurfingImplMixin",
     "compat.shouldersurfing.ShoulderSurfingInputHandlerMixin"

@@ -85,14 +85,12 @@ Focus currently has **native compatibility** with:
 
 - **[Shoulder Surfing Reloaded](https://modrinth.com/mod/shoulder-surfing-reloaded)**
 - **[Controlify](https://modrinth.com/mod/controlify)**
+- **[MidnightControls](https://modrinth.com/mod/midnightcontrols)**
 
-Both integrations are optional dependencies.
+These integrations are optional dependencies.
 When locked on, Focus temporarily owns the camera so Shoulder Surfing's Decoupled Camera state cannot fight the lock-on movement and body rotation.
 With Controlify installed, Focus registers controller bindings for lock-on controls and uses Controlify's look-input API for right-stick target swapping while Focus owns the camera.
-
-Support for other mods is also planned, including:
-
-- **[MidnightControls](https://modrinth.com/mod/midnightcontrols)**
+With MidnightControls installed, Focus uses MidnightControls' automatic modded keybind support for lock-on controls and a native camera compatibility hook for right-stick target swapping while Focus owns the camera.
 
 If there's a specific mod you would like compatibility with, open an issue in the GitHub repo.
 
@@ -113,7 +111,7 @@ If there's a specific mod you would like compatibility with, open an issue in th
 
 ## Planned Features
 
-- Controller support through Controlify & MidnightControls 
+- Additional controller polish and default binding presets
 - Overhaul of the entire camera editor screen
 - Custom indicator icon creator; colour, size, position, texture, etc.
 - Server-side admin commands for live policy editing

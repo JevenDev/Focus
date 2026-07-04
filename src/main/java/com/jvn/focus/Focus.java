@@ -1,6 +1,7 @@
 package com.jvn.focus;
 
 import com.jvn.focus.client.FocusClientConfig;
+import com.jvn.focus.client.compat.midnightcontrols.FocusMidnightControlsCompatBootstrap;
 import com.jvn.focus.network.FocusNetworking;
 import com.jvn.focus.server.FocusServerConfig;
 import com.jvn.focus.server.FocusServerPolicySender;
@@ -37,5 +38,6 @@ public final class Focus {
 
     private void onClientSetup(FMLClientSetupEvent event) {
         FocusClientConfig.init();
+        FocusMidnightControlsCompatBootstrap.init();
     }
 }

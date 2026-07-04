@@ -46,6 +46,13 @@ ordering="AFTER"
 side="CLIENT"
 
 [[dependencies.${mod_id}]]
+modId="midnightcontrols"
+type="optional"
+versionRange="[1.10.0,2.0.0)"
+ordering="AFTER"
+side="CLIENT"
+
+[[dependencies.${mod_id}]]
 modId="shouldersurfing"
 type="optional"
 versionRange="[1.21.1,)"

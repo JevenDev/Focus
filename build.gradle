@@ -40,6 +40,10 @@ repositories {
         name = "Sinytra"
         url = "https://maven.su5ed.dev/releases/"
     }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
 }
 
 base {
@@ -140,6 +144,13 @@ dependencies {
         transitive = false
     }
 
+    compileOnly("maven.modrinth:midnightcontrols:${project.midnightcontrols_version}") {
+        transitive = false
+    }
+    localRuntime("maven.modrinth:midnightcontrols:${project.midnightcontrols_version}") {
+        transitive = false
+    }
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
@@ -193,7 +204,8 @@ tasks.withType(ProcessResources).configureEach {
             neo_version         : neo_version,
             loader_version_range: loader_version_range,
             owo_version         : owo_version,
-            controlify_version  : controlify_version
+            controlify_version  : controlify_version,
+            midnightcontrols_version: midnightcontrols_version
     ]
     inputs.properties replaceProperties
     filesMatching(['META-INF/neoforge.mods.toml']) {

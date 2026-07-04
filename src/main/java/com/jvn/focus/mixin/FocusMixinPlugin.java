@@ -10,7 +10,9 @@ public final class FocusMixinPlugin implements IMixinConfigPlugin {
     private static final String SSR_INPUT_HANDLER = "com.github.exopandora.shouldersurfing.client.InputHandler";
     private static final String SSR_IMPL_LEGACY = "com.github.exopandora.shouldersurfing.client.ShoulderSurfingImpl";
     private static final String SSR_IMPL = "com.github.exopandora.shouldersurfing.client.ShoulderSurfing";
+    private static final String MIDNIGHTCONTROLS_INPUT = "eu.midnightdust.midnightcontrols.client.MidnightInput";
     private static final String SSR_MIXIN_PACKAGE = "com.jvn.focus.mixin.compat.shouldersurfing.";
+    private static final String MIDNIGHTCONTROLS_MIXIN_PACKAGE = "com.jvn.focus.mixin.compat.midnightcontrols.";
 
     @Override
     public void onLoad(String mixinPackage) {}
@@ -22,16 +24,23 @@ public final class FocusMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (!mixinClassName.startsWith(SSR_MIXIN_PACKAGE)) {
-            return true;
+        if (mixinClassName.startsWith(MIDNIGHTCONTROLS_MIXIN_PACKAGE)) {
+            return switch (mixinClassName.substring(MIDNIGHTCONTROLS_MIXIN_PACKAGE.length())) {
+                case "MidnightInputMixin" -> classExists(MIDNIGHTCONTROLS_INPUT);
+                default -> true;
+            };
         }
 
-        return switch (mixinClassName.substring(SSR_MIXIN_PACKAGE.length())) {
-            case "ShoulderSurfingInputHandlerMixin" -> classExists(SSR_INPUT_HANDLER);
-            case "ShoulderSurfingImplMixin" -> classExists(SSR_IMPL_LEGACY);
-            case "ShoulderSurfingMixin" -> classExists(SSR_IMPL);
-            default -> true;
-        };
+        if (mixinClassName.startsWith(SSR_MIXIN_PACKAGE)) {
+            return switch (mixinClassName.substring(SSR_MIXIN_PACKAGE.length())) {
+                case "ShoulderSurfingInputHandlerMixin" -> classExists(SSR_INPUT_HANDLER);
+                case "ShoulderSurfingImplMixin" -> classExists(SSR_IMPL_LEGACY);
+                case "ShoulderSurfingMixin" -> classExists(SSR_IMPL);
+                default -> true;
+            };
+        }
+
+        return true;
     }
 
     @Override

@@ -328,6 +328,10 @@ public final class LockOnHandler {
         onRawMouseInput(deltaX, deltaY);
     }
 
+    public static void onMidnightControlsLookInput(double deltaX, double deltaY) {
+        onRawMouseInput(deltaX, deltaY);
+    }
+
     public static void onControlifyLockOnPressed() {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
