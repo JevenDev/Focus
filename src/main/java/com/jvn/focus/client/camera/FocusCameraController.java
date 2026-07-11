@@ -63,17 +63,12 @@ public final class FocusCameraController {
         state.initialLockCameraSnapTicks = INITIAL_LOCK_CAMERA_SNAP_TICKS;
     }
 
-    public void onTargetSet(LocalPlayer player, LivingEntity target, boolean applySwapSmoothing) {
+    public void onTargetSwitched(LocalPlayer player, LivingEntity target) {
         if (!state.smoothingInitialized) {
             initializeSmoothing(player, getTargetAimPoint(target, 1.0F));
         }
-        if (applySwapSmoothing) {
-            state.targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
-            state.targetSwapSmoothingTicks = state.targetSwapSmoothingDurationTicks;
-        } else {
-            state.targetSwapSmoothingTicks = 0;
-            state.targetSwapSmoothingDurationTicks = 0;
-        }
+        state.targetSwapSmoothingDurationTicks = FocusClientConfig.targetSwapSmoothTicks();
+        state.targetSwapSmoothingTicks = state.targetSwapSmoothingDurationTicks;
         state.previousDynamicTargetOffset = Vec3.ZERO;
         state.dynamicSwapReferenceInitialized = false;
         state.playerFollowDelayTicks = 0;

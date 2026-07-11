@@ -314,11 +314,6 @@ public final class FocusClientConfig {
         CONFIG.selectedCameraProfile(profileName);
     }
 
-    public static FocusConfig configInstance() {
-        config();
-        return CONFIG;
-    }
-
     public static Screen createConfigScreen(Screen parent) {
         config();
         return ConfigScreen.create(CONFIG, parent);
@@ -1026,27 +1021,8 @@ public final class FocusClientConfig {
 
     // Serialization
 
-    public static String serializePreset(PerspectivePreset preset) {
-        return presetToJson(sanitizePreset(preset)).toString();
-    }
-
     public static String serializeCameraSetup(CameraSetupPreset setup) {
         return cameraSetupToJson(setup).toString();
-    }
-
-    public static PerspectivePreset deserializePreset(String serialized) {
-        JsonElement element;
-        try {
-            element = JsonParser.parseString(serialized);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid preset JSON.", e);
-        }
-
-        if (!element.isJsonObject()) {
-            throw new IllegalArgumentException("Preset must be a JSON object.");
-        }
-
-        return readPreset(element.getAsJsonObject());
     }
 
     public static CameraSetupPreset deserializeCameraSetup(String serialized) {

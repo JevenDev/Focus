@@ -46,20 +46,12 @@ public final class LockOnHandler {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.level == null) {
-            lockedTarget = null;
-            previousCameraType = null;
-            lastEnforcedCameraType = null;
-            lockOnPreferredCameraType = null;
-            occlusionGraceTicks = 0;
-            outOfRangeGraceTicks = 0;
-            CAMERA_CONTROLLER.resetForWorldUnload();
-            resetTargetSwapInput();
+            resetForWorldUnload();
             return;
         }
 
         if (!FocusClientConfig.lockOnAllowed() && lockedTarget != null) {
-            lockedTarget = null;
-            restoreCamera(minecraft);
+            endLock(minecraft);
             showLockOnBlockedByServerMessage(player);
         }
         while (FocusKeyMappings.LOCK_ON.consumeClick()) {
@@ -94,7 +86,7 @@ public final class LockOnHandler {
             LivingEntity replacementTarget = FocusTargetSelector.findClosestTarget(player, lockedTarget);
             if (replacementTarget != null) {
                 resetTargetSwapInput();
-                setLockedTarget(player, replacementTarget, true);
+                switchTarget(player, replacementTarget);
                 occlusionGraceTicks = 0;
                 outOfRangeGraceTicks = 0;
             } else {
@@ -129,8 +121,7 @@ public final class LockOnHandler {
     }
 
     private static void unlockWithMessage(LocalPlayer player, Minecraft minecraft, String messageKey) {
-        lockedTarget = null;
-        restoreCamera(minecraft);
+        endLock(minecraft);
         showLockOnStatusMessage(player, Component.translatable(messageKey));
     }
 
@@ -235,8 +226,7 @@ public final class LockOnHandler {
 
     private static void toggleLockOn(Minecraft minecraft, LocalPlayer player) {
         if (lockedTarget != null) {
-            lockedTarget = null;
-            restoreCamera(minecraft);
+            endLock(minecraft);
             showLockOnStatusMessage(player, Component.translatable("message.focus.lock_on.disabled"));
             return;
         }
@@ -275,21 +265,16 @@ public final class LockOnHandler {
         lastEnforcedCameraType = minecraft.options.getCameraType();
         occlusionGraceTicks = 0;
         outOfRangeGraceTicks = 0;
-        CAMERA_CONTROLLER.onTargetSet(player, nextTarget, false);
         CAMERA_CONTROLLER.onLockStarted(player, nextTarget);
         resetTargetSwapInput();
         showLockOnStatusMessage(player, Component.translatable("message.focus.lock_on.enabled", nextTarget.getDisplayName()));
     }
 
-    private static void restoreCamera(Minecraft minecraft) {
+    private static void endLock(Minecraft minecraft) {
+        lockedTarget = null;
         if (previousCameraType != null) {
             minecraft.options.setCameraType(previousCameraType);
         }
-        clearLockState();
-    }
-
-    private static void clearLockState() {
-        Minecraft minecraft = Minecraft.getInstance();
         previousCameraType = null;
         lastEnforcedCameraType = null;
         occlusionGraceTicks = 0;
@@ -299,9 +284,20 @@ public final class LockOnHandler {
         FocusShoulderSurfingCompat.syncCameraToPlayer(minecraft.player);
     }
 
-    private static void setLockedTarget(LocalPlayer player, LivingEntity nextTarget, boolean applySwapSmoothing) {
+    private static void resetForWorldUnload() {
+        lockedTarget = null;
+        previousCameraType = null;
+        lastEnforcedCameraType = null;
+        lockOnPreferredCameraType = null;
+        occlusionGraceTicks = 0;
+        outOfRangeGraceTicks = 0;
+        CAMERA_CONTROLLER.resetForWorldUnload();
+        resetTargetSwapInput();
+    }
+
+    private static void switchTarget(LocalPlayer player, LivingEntity nextTarget) {
         lockedTarget = nextTarget;
-        CAMERA_CONTROLLER.onTargetSet(player, nextTarget, applySwapSmoothing);
+        CAMERA_CONTROLLER.onTargetSwitched(player, nextTarget);
     }
 
     public static void onRawMouseInput(double deltaX, double deltaY) {
@@ -483,7 +479,7 @@ public final class LockOnHandler {
         resetTargetSwapInput();
         targetSwapCooldownTicks = Math.max(TARGET_SWAP_MIN_COOLDOWN_TICKS, FocusClientConfig.targetSwapCooldownTicks());
         targetSwapReadyForNewFlick = false;
-        setLockedTarget(player, swappedTarget, true);
+        switchTarget(player, swappedTarget);
     }
 
     private static void dampenTargetSwapInput(double factor) {
