@@ -8,7 +8,6 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -214,15 +213,12 @@ public final class LockOnHandler {
         // strafe is correct) while W still walks straight through.
         float currentYaw = event.getEntity().getYRot();
         float lockedYaw = CAMERA_CONTROLLER.getCloseRangeLockedHeadingYaw();
-        float yawDiff = (lockedYaw - currentYaw) * ((float) Math.PI / 180.0F);
-
-        float cos = Mth.cos(yawDiff);
-        float sin = Mth.sin(yawDiff);
-        float origForward = input.forwardImpulse;
-        float origStrafe = input.leftImpulse;
-
-        input.forwardImpulse = origForward * cos + origStrafe * sin;
-        input.leftImpulse = -(origStrafe * cos - origForward * sin);
+        FocusMovementInputRemapper.MovementInput remapped = FocusMovementInputRemapper.rotateToHeading(
+                input.forwardImpulse,
+                input.leftImpulse,
+                lockedYaw - currentYaw);
+        input.forwardImpulse = remapped.forward();
+        input.leftImpulse = remapped.left();
     }
 
     @SubscribeEvent
