@@ -79,7 +79,7 @@ public final class LockOnHandler {
         }
 
         if (!lockedTarget.isAlive()) {
-            LivingEntity replacementTarget = FocusTargetSelector.findClosestTarget(player, lockedTarget);
+            LivingEntity replacementTarget = FocusTargetSelector.findReplacementTarget(player, lockedTarget);
             if (replacementTarget != null) {
                 resetTargetSwapInput();
                 switchTarget(player, replacementTarget);

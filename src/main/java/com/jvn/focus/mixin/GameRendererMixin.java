@@ -73,19 +73,24 @@ public abstract class GameRendererMixin {
         Vec3 blockRayEnd = from.add(lookDirection.scale(blockReach));
         Vec3 entityRayEnd = from.add(lookDirection.scale(entityReach));
 
-        HitResult corrected = minecraft.hitResult;
-        if (FocusClientConfig.correctBlockPlacementRay()) {
-            BlockHitResult blockHit = minecraft.level.clip(
-                    new ClipContext(
-                            from,
-                            blockRayEnd,
-                            ClipContext.Block.OUTLINE,
-                            ClipContext.Fluid.NONE,
-                            minecraft.player));
-            corrected = blockHit;
-        }
+        HitResult original = minecraft.hitResult;
+        boolean correctBlockRay = FocusClientConfig.correctBlockPlacementRay();
+        boolean correctEntityRay = FocusClientConfig.correctEntityHitRay();
+        BlockHitResult correctedBlockHit = minecraft.level.clip(
+                new ClipContext(
+                        from,
+                        blockRayEnd,
+                        ClipContext.Block.OUTLINE,
+                        ClipContext.Fluid.NONE,
+                        minecraft.player));
 
-        if (FocusClientConfig.correctEntityHitRay()) {
+        // A single hit-result drives both interactions. Preserve vanilla entity picks
+        // when only block correction is enabled, while still correcting block picks.
+        HitResult corrected = correctBlockRay && !(original instanceof EntityHitResult && !correctEntityRay)
+                ? correctedBlockHit
+                : original;
+
+        if (correctEntityRay) {
             AABB aabb = new AABB(from, entityRayEnd).inflate(1.0D);
             EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
                     minecraft.player,
@@ -94,16 +99,18 @@ public abstract class GameRendererMixin {
                     aabb,
                     entity -> !entity.isSpectator() && entity.isPickable(),
                     entityReach * entityReach);
-            if (entityHit != null) {
-                if (corrected.getType() == HitResult.Type.MISS) {
-                    corrected = entityHit;
-                } else {
-                    double entityDistance = from.distanceToSqr(entityHit.getLocation());
-                    double blockDistance = from.distanceToSqr(corrected.getLocation());
-                    if (entityDistance < blockDistance) {
-                        corrected = entityHit;
-                    }
-                }
+            // Always compare against the block on the corrected ray. Comparing to
+            // vanilla's differently-angled block ray can allow hits through walls
+            // or reject a clear corrected entity hit.
+            boolean entityWins = entityHit != null
+                    && (correctedBlockHit.getType() == HitResult.Type.MISS
+                            || from.distanceToSqr(entityHit.getLocation())
+                                    < from.distanceToSqr(correctedBlockHit.getLocation()));
+            if (entityWins) {
+                corrected = entityHit;
+            } else if (original instanceof EntityHitResult) {
+                // Entity correction explicitly replaces a stale vanilla entity pick.
+                corrected = correctedBlockHit;
             }
         }
 

@@ -36,6 +36,7 @@ final class FocusTargetSelector {
     private static final double OCCLUDED_LOCK_DISTANCE = 8.0D;
     static final double OCCLUDED_LOCK_DISTANCE_SQR = OCCLUDED_LOCK_DISTANCE * OCCLUDED_LOCK_DISTANCE;
     private static final double LOCK_ON_FOV_THRESHOLD = 0.35D;
+    private static final double REPLACEMENT_FOV_THRESHOLD = 0.0D;
     private static final double TARGET_SCORE_EPSILON = 1.0E-4D;
     private static final float TARGET_SWAP_SCORE_EPSILON = 1.0E-4F;
     private static final int MAX_SIGHT_ITERATIONS = 48;
@@ -80,7 +81,12 @@ final class FocusTargetSelector {
         return bestTarget;
     }
 
-    static LivingEntity findClosestTarget(LocalPlayer player, LivingEntity excludedTarget) {
+    static LivingEntity findReplacementTarget(LocalPlayer player, LivingEntity excludedTarget) {
+        Vec3 eyePosition = player.getEyePosition();
+        Vec3 smoothedLookDirection = CAMERA_CONTROLLER.getSmoothedLookDirection();
+        Vec3 lookDirection = smoothedLookDirection.lengthSqr() > 1.0E-6D
+                ? smoothedLookDirection.normalize()
+                : player.getLookAngle().normalize();
         TargetFilterSettings filterSettings = readTargetFilterSettings();
         LivingEntity bestTarget = null;
         double bestDistanceSqr = Double.MAX_VALUE;
@@ -93,6 +99,12 @@ final class FocusTargetSelector {
                         && candidate != excludedTarget
                         && isTargetAllowed(candidate, filterSettings))) {
             if (!passesNewLockCandidateBaseline(player, entity)) {
+                continue;
+            }
+            // Do not whip the camera around to an unrelated enemy behind the player
+            // when the current target dies. Side-by-side combatants are eligible, but
+            // losing the lock is preferable to a disorienting 180-degree hand-off.
+            if (getTargetAlignment(eyePosition, lookDirection, entity) < REPLACEMENT_FOV_THRESHOLD) {
                 continue;
             }
 
