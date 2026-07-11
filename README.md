@@ -16,10 +16,10 @@
 
 ![focus banner text, and a player using the z-targeting on a blaze](https://cdn.modrinth.com/data/cached_images/43e93503fef9ce0dd15a5c49e09216710b783a06.png)
 
-Focus adds a proper **lock-on system** for **third-person combat**, with a camera that stays centered on your target and makes fights feel a lot more deliberate.
+Focus adds a proper **combat lock-on system** for both **first- and third-person play**, with targeting and camera behavior inspired by *Ocarina of Time* and *Elden Ring*.
 
 - **Lock onto nearby enemies** and keep your camera focused on the fight
-- **Swap between targets** with directional mouse flicks
+- **Swap between targets** with deliberate mouse or right-stick flicks
 - **Swap shoulders on the fly** depending on how you want combat framed
 - **Save your own camera presets** instead of being stuck with one setup
 - Use a full **camera editor** to tweak:

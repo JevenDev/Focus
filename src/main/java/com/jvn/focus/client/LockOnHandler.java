@@ -22,18 +22,14 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
 @EventBusSubscriber(modid = Focus.MOD_ID, value = Dist.CLIENT)
 public final class LockOnHandler {
-    private static final int TARGET_SWAP_MIN_COOLDOWN_TICKS = 8;
     private static final int OCCLUDED_GRACE_TICKS = 15;
     private static final int OUT_OF_RANGE_GRACE_TICKS = 10;
 
     private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
+    private static final FocusTargetSwapInput TARGET_SWAP_INPUT = new FocusTargetSwapInput();
 
     private static LivingEntity lockedTarget;
     private static CameraType previousCameraType;
-    private static double pendingMouseDeltaX;
-    private static double pendingMouseDeltaY;
-    private static int targetSwapCooldownTicks;
-    private static boolean targetSwapReadyForNewFlick = true;
     private static int occlusionGraceTicks;
     private static int outOfRangeGraceTicks;
     private static CameraType lockOnPreferredCameraType;
@@ -67,7 +63,7 @@ public final class LockOnHandler {
 
         updateLockOnState(player, minecraft);
         CAMERA_CONTROLLER.updatePlayerVisibility(player, lockedTarget, 1.0F);
-        updateTargetSwapCooldown();
+        updateTargetSwapInput();
         CAMERA_CONTROLLER.onClientTick(lockedTarget != null);
         if (lockedTarget != null && !previewOrbitActive) {
             tryDirectionalTargetSwap(player);
@@ -125,15 +121,10 @@ public final class LockOnHandler {
         showLockOnStatusMessage(player, Component.translatable(messageKey));
     }
 
-    private static void updateTargetSwapCooldown() {
-        if (targetSwapCooldownTicks > 0) {
-            targetSwapCooldownTicks--;
-            if (targetSwapCooldownTicks == 0 && !targetSwapReadyForNewFlick) {
-                targetSwapReadyForNewFlick = true;
-                pendingMouseDeltaX = 0.0D;
-                pendingMouseDeltaY = 0.0D;
-            }
-        }
+    private static void updateTargetSwapInput() {
+        TARGET_SWAP_INPUT.tick(
+                FocusClientConfig.targetSwapMouseDeadzone(),
+                FocusClientConfig.targetSwapInputDecay());
     }
 
     private static void enforceCameraType(Minecraft minecraft) {
@@ -185,6 +176,13 @@ public final class LockOnHandler {
 
         net.minecraft.client.player.Input input = event.getInput();
         float rawForward = input.forwardImpulse;
+
+        // First-person movement should remain conventional: W follows the view/target.
+        // The preserved walkthrough heading is specifically a back-camera combat aid.
+        if (Minecraft.getInstance().options.getCameraType() != CameraType.THIRD_PERSON_BACK) {
+            CAMERA_CONTROLLER.updateCloseRangeHeadingLock(false, event.getEntity().getYRot());
+            return;
+        }
 
         // Update heading lock state using RAW input (before rotation).
         // This must happen here, not in the render-frame rotation policy,
@@ -312,8 +310,7 @@ public final class LockOnHandler {
             return;
         }
 
-        pendingMouseDeltaX += deltaX;
-        pendingMouseDeltaY += deltaY;
+        TARGET_SWAP_INPUT.record(deltaX, deltaY);
     }
 
     public static void onControlifyLookInput(float deltaX, float deltaY) {
@@ -445,53 +442,28 @@ public final class LockOnHandler {
     }
 
     private static void tryDirectionalTargetSwap(LocalPlayer player) {
-        if (!targetSwapReadyForNewFlick) {
-            return;
-        }
-        if (targetSwapCooldownTicks > 0) {
-            pendingMouseDeltaX = 0.0D;
-            pendingMouseDeltaY = 0.0D;
-            return;
-        }
-
-        double mouseInputDecay = FocusClientConfig.targetSwapInputDecay();
-        double mouseMagnitudeSqr =
-                pendingMouseDeltaX * pendingMouseDeltaX + pendingMouseDeltaY * pendingMouseDeltaY;
-        double deadzone = FocusClientConfig.targetSwapMouseDeadzone();
-        if (mouseMagnitudeSqr < deadzone * deadzone) {
-            dampenTargetSwapInput(mouseInputDecay);
-            return;
-        }
-        double activation = FocusClientConfig.targetSwapMouseActivation();
-        if (mouseMagnitudeSqr < activation * activation) {
-            dampenTargetSwapInput(mouseInputDecay);
+        FocusTargetSwapInput.Direction direction = TARGET_SWAP_INPUT.pollDirection(
+                FocusClientConfig.targetSwapMouseDeadzone(),
+                FocusClientConfig.targetSwapMouseActivation(),
+                FocusClientConfig.targetSwapInputDecay());
+        if (direction == null) {
             return;
         }
 
-        Vec2 mouseDirection = new Vec2((float) pendingMouseDeltaX, (float) -pendingMouseDeltaY);
+        Vec2 mouseDirection = new Vec2((float) direction.x(), (float) -direction.y());
         Vec3 cameraLookDir = CAMERA_CONTROLLER.getSmoothedLookDirection();
         LivingEntity swappedTarget = FocusTargetSelector.findDirectionalTarget(player, lockedTarget, mouseDirection, cameraLookDir);
         if (swappedTarget == null) {
-            dampenTargetSwapInput(0.45D);
+            TARGET_SWAP_INPUT.dampen(0.45D);
             return;
         }
 
-        resetTargetSwapInput();
-        targetSwapCooldownTicks = Math.max(TARGET_SWAP_MIN_COOLDOWN_TICKS, FocusClientConfig.targetSwapCooldownTicks());
-        targetSwapReadyForNewFlick = false;
+        TARGET_SWAP_INPUT.markSwapped(FocusClientConfig.targetSwapCooldownTicks());
         switchTarget(player, swappedTarget);
     }
 
-    private static void dampenTargetSwapInput(double factor) {
-        pendingMouseDeltaX *= factor;
-        pendingMouseDeltaY *= factor;
-    }
-
     private static void resetTargetSwapInput() {
-        pendingMouseDeltaX = 0.0D;
-        pendingMouseDeltaY = 0.0D;
-        targetSwapCooldownTicks = 0;
-        targetSwapReadyForNewFlick = true;
+        TARGET_SWAP_INPUT.reset();
     }
 
     private static void handleOpenCameraEditorInput(Minecraft minecraft) {
