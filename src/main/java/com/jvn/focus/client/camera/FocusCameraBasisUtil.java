@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2016 Exopandora
+// SPDX-FileCopyrightText: 2026 jvn
+// SPDX-License-Identifier: MIT
+
 package com.jvn.focus.client.camera;
 
 import net.minecraft.util.Mth;

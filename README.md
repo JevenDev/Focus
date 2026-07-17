@@ -116,7 +116,7 @@ The camera system in Focus derives from **[Exopandora's](https://modrinth.com/us
 
 ## License
 
-This project is licensed under the **[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html)**.
+Focus is All Rights Reserved by default. Only the shoulder-surfing camera files explicitly marked `SPDX-License-Identifier: MIT` use the [MIT license text](third_party/ShoulderSurfing-MIT.txt). See [LICENSE.txt](LICENSE.txt) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the exact boundary and Shoulder Surfing Reloaded attribution.
 
 Feel free to use this mod in modpacks, videos, etc. Just provide a link back to this page if possible :)
 
