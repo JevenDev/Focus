@@ -57,6 +57,11 @@ The server can control lock-on availability, first-person/front third-person whi
   - Locks onto the best nearby target
   - Press again to disengage
 
+- **Previous Target / Next Target** - *Unassigned by default*
+  - Enable **Manual Target Switching** in Focus's Targeting settings
+  - Assign either or both bindings in Minecraft's Controls menu
+  - Mouse and right-stick target flicks remain the default switching mode
+
 
 - **Swap Shoulder** - `X`
   - Switches the camera between left and right shoulder

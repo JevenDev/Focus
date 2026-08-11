@@ -23,6 +23,8 @@ public final class FocusControlifyEntrypoint implements ControlifyEntrypoint {
 
     private static InputBindingSupplier lockOnBinding;
     private static InputBindingSupplier swapShoulderBinding;
+    private static InputBindingSupplier previousTargetBinding;
+    private static InputBindingSupplier nextTargetBinding;
     private static InputBindingSupplier openCameraEditorBinding;
 
     @Override
@@ -30,6 +32,8 @@ public final class FocusControlifyEntrypoint implements ControlifyEntrypoint {
         ControlifyBindApi bindings = context.bindings();
         lockOnBinding = registerInGameBinding(bindings, "lock_on", FocusKeyMappings.LOCK_ON);
         swapShoulderBinding = registerInGameBinding(bindings, "swap_shoulder", FocusKeyMappings.SWAP_SHOULDER);
+        previousTargetBinding = registerInGameBinding(bindings, "previous_target", FocusKeyMappings.PREVIOUS_TARGET);
+        nextTargetBinding = registerInGameBinding(bindings, "next_target", FocusKeyMappings.NEXT_TARGET);
         openCameraEditorBinding = registerInGameBinding(
                 bindings,
                 "open_camera_editor",
@@ -60,6 +64,12 @@ public final class FocusControlifyEntrypoint implements ControlifyEntrypoint {
         }
         if (consumePress(swapShoulderBinding, controller)) {
             LockOnHandler.onControlifySwapShoulderPressed();
+        }
+        if (consumePress(previousTargetBinding, controller)) {
+            LockOnHandler.onControlifyPreviousTargetPressed();
+        }
+        if (consumePress(nextTargetBinding, controller)) {
+            LockOnHandler.onControlifyNextTargetPressed();
         }
         if (consumePress(openCameraEditorBinding, controller)) {
             LockOnHandler.onControlifyOpenCameraEditorPressed();

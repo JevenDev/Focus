@@ -65,10 +65,11 @@ public final class LockOnHandler {
         handleCameraAdjustmentInput(player);
 
         updateLockOnState(player, minecraft);
+        handleManualTargetSwapInput(player);
         CAMERA_CONTROLLER.updatePlayerVisibility(player, lockedTarget, 1.0F);
         updateTargetSwapInput();
         CAMERA_CONTROLLER.onClientTick(lockedTarget != null);
-        if (lockedTarget != null && !previewOrbitActive) {
+        if (lockedTarget != null && !previewOrbitActive && !FocusClientConfig.manualTargetSwitching()) {
             tryDirectionalTargetSwap(player);
         } else {
             resetTargetSwapInput();
@@ -125,7 +126,11 @@ public final class LockOnHandler {
     }
 
     private static void updateTargetSwapInput() {
-        TARGET_SWAP_INPUT.tick(FocusClientConfig.targetSwapMouseDeadzone());
+        if (FocusClientConfig.manualTargetSwitching()) {
+            TARGET_SWAP_INPUT.reset();
+        } else {
+            TARGET_SWAP_INPUT.tick(FocusClientConfig.targetSwapMouseDeadzone());
+        }
     }
 
     private static void enforceCameraType(Minecraft minecraft) {
@@ -311,7 +316,9 @@ public final class LockOnHandler {
             return;
         }
 
-        TARGET_SWAP_INPUT.record(deltaX, deltaY);
+        if (!FocusClientConfig.manualTargetSwitching()) {
+            TARGET_SWAP_INPUT.record(deltaX, deltaY);
+        }
     }
 
     public static void onControlifyLookInput(float deltaX, float deltaY) {
@@ -354,6 +361,26 @@ public final class LockOnHandler {
             return;
         }
         openCameraEditorScreen(minecraft);
+    }
+
+    public static void onControlifyPreviousTargetPressed() {
+        handleControllerManualTargetSwap(-1.0F);
+    }
+
+    public static void onControlifyNextTargetPressed() {
+        handleControllerManualTargetSwap(1.0F);
+    }
+
+    private static void handleControllerManualTargetSwap(float horizontalDirection) {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        if (player == null
+                || minecraft.level == null
+                || !FocusClientConfig.manualTargetSwitching()
+                || lockedTarget == null) {
+            return;
+        }
+        tryManualTargetSwap(player, horizontalDirection);
     }
 
     public static LivingEntity getLockedTarget() {
@@ -448,6 +475,34 @@ public final class LockOnHandler {
     public static boolean shouldSuppressVanillaMouseTurn() {
         return lockedTarget != null
                 || isCameraEditorPreviewActive();
+    }
+
+    private static void handleManualTargetSwapInput(LocalPlayer player) {
+        boolean previousPressed = false;
+        boolean nextPressed = false;
+        while (FocusKeyMappings.PREVIOUS_TARGET.consumeClick()) {
+            previousPressed = true;
+        }
+        while (FocusKeyMappings.NEXT_TARGET.consumeClick()) {
+            nextPressed = true;
+        }
+        if (!FocusClientConfig.manualTargetSwitching() || lockedTarget == null) {
+            return;
+        }
+        if (previousPressed) {
+            tryManualTargetSwap(player, -1.0F);
+        } else if (nextPressed) {
+            tryManualTargetSwap(player, 1.0F);
+        }
+    }
+
+    private static void tryManualTargetSwap(LocalPlayer player, float horizontalDirection) {
+        LivingEntity swappedTarget = FocusTargetSelector.findDirectionalTarget(
+                player, lockedTarget, new Vec2(horizontalDirection, 0.0F),
+                Minecraft.getInstance().gameRenderer.getMainCamera());
+        if (swappedTarget != null) {
+            switchTarget(player, swappedTarget);
+        }
     }
 
     private static void tryDirectionalTargetSwap(LocalPlayer player) {

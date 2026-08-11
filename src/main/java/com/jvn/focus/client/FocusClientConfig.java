@@ -71,6 +71,7 @@ public final class FocusClientConfig {
     public static final boolean DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON = false;
     public static final boolean DEFAULT_HIDE_VANILLA_CROSSHAIR = true;
     public static final boolean DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE = false;
+    public static final boolean DEFAULT_MANUAL_TARGET_SWITCHING = false;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_DEADZONE = 12.0D;
     public static final double DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION = 21.0D;
     public static final double DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD = 0.56D;
@@ -674,6 +675,10 @@ public final class FocusClientConfig {
         return serverBoolean(BooleanSetting.HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE, config().crosshair.hideVanillaCrosshairOutOfRange());
     }
 
+    public static boolean manualTargetSwitching() {
+        return config().manualTargetSwitching();
+    }
+
     public static double targetSwapMouseDeadzone() {
         return config().targetSwapMouseDeadzone();
     }
@@ -1007,6 +1012,7 @@ public final class FocusClientConfig {
                 correctCrosshairOnlyWhileLockedOn(),
                 hideVanillaCrosshair(),
                 hideVanillaCrosshairOutOfRange(),
+                config().manualTargetSwitching(),
                 config().targetSwapMouseDeadzone(),
                 config().targetSwapMouseActivation(),
                 config().targetSwapDirectionThreshold(),
@@ -1077,6 +1083,7 @@ public final class FocusClientConfig {
         config().crosshair.correctCrosshairOnlyWhileLockedOn(setup.correctCrosshairOnlyWhileLockedOn());
         config().crosshair.hideVanillaCrosshair(setup.hideVanillaCrosshair());
         config().crosshair.hideVanillaCrosshairOutOfRange(setup.hideVanillaCrosshairOutOfRange());
+        config().manualTargetSwitching(setup.manualTargetSwitching());
         config().targetSwapMouseDeadzone(setup.targetSwapMouseDeadzone());
         config().targetSwapMouseActivation(setup.targetSwapMouseActivation());
         config().targetSwapDirectionThreshold(setup.targetSwapDirectionThreshold());
@@ -1453,6 +1460,7 @@ public final class FocusClientConfig {
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON,
                 DEFAULT_HIDE_VANILLA_CROSSHAIR,
                 DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE,
+                DEFAULT_MANUAL_TARGET_SWITCHING,
                 DEFAULT_TARGET_SWAP_MOUSE_DEADZONE,
                 DEFAULT_TARGET_SWAP_MOUSE_ACTIVATION,
                 DEFAULT_TARGET_SWAP_DIRECTION_THRESHOLD,
@@ -1639,6 +1647,7 @@ public final class FocusClientConfig {
         object.addProperty("correctCrosshairOnlyWhileLockedOn", setup.correctCrosshairOnlyWhileLockedOn());
         object.addProperty("hideVanillaCrosshair", setup.hideVanillaCrosshair());
         object.addProperty("hideVanillaCrosshairOutOfRange", setup.hideVanillaCrosshairOutOfRange());
+        object.addProperty("manualTargetSwitching", setup.manualTargetSwitching());
         object.addProperty("targetSwapMouseDeadzone", setup.targetSwapMouseDeadzone());
         object.addProperty("targetSwapMouseActivation", setup.targetSwapMouseActivation());
         object.addProperty("targetSwapDirectionThreshold", setup.targetSwapDirectionThreshold());
@@ -1782,6 +1791,7 @@ public final class FocusClientConfig {
                 DEFAULT_CORRECT_CROSSHAIR_ONLY_WHILE_LOCKED_ON);
         boolean hideVanillaCrosshair = readOptionalBoolean(object, "hideVanillaCrosshair", DEFAULT_HIDE_VANILLA_CROSSHAIR);
         boolean hideVanillaCrosshairOutOfRange = readOptionalBoolean(object, "hideVanillaCrosshairOutOfRange", DEFAULT_HIDE_VANILLA_CROSSHAIR_OUT_OF_RANGE);
+        boolean manualTargetSwitching = readOptionalBoolean(object, "manualTargetSwitching", DEFAULT_MANUAL_TARGET_SWITCHING);
         double targetSwapMouseDeadzone = Mth.clamp(
                 readOptionalDouble(object, "targetSwapMouseDeadzone", DEFAULT_TARGET_SWAP_MOUSE_DEADZONE),
                 MIN_TARGET_SWAP_MOUSE_DEADZONE, MAX_TARGET_SWAP_MOUSE_DEADZONE);
@@ -1872,6 +1882,7 @@ public final class FocusClientConfig {
                 correctCrosshairOnlyWhileLockedOn,
                 hideVanillaCrosshair,
                 hideVanillaCrosshairOutOfRange,
+                manualTargetSwitching,
                 targetSwapMouseDeadzone,
                 targetSwapMouseActivation,
                 targetSwapDirectionThreshold,
@@ -2082,6 +2093,7 @@ public final class FocusClientConfig {
             boolean correctCrosshairOnlyWhileLockedOn,
             boolean hideVanillaCrosshair,
             boolean hideVanillaCrosshairOutOfRange,
+            boolean manualTargetSwitching,
             double targetSwapMouseDeadzone,
             double targetSwapMouseActivation,
             double targetSwapDirectionThreshold,

@@ -63,6 +63,8 @@ public class FocusConfigModel {
     // ── Target Swap ──────────────────────────────────────────────────────────
 
     @SectionHeader("targetSwap")
+    public boolean manualTargetSwitching = false;
+
     @RangeConstraint(min = 0.0, max = 60.0)
     public double targetSwapMouseDeadzone = 12.0;
 
