@@ -4,6 +4,8 @@ import com.jvn.focus.client.camera.FocusCameraController;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -25,6 +27,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Vector3f;
 
 /**
  * Target selection, filtering, and directional-swap logic for the lock-on system.
@@ -50,7 +53,7 @@ final class FocusTargetSelector {
         Vec3 lookDirection = player.getLookAngle().normalize();
         TargetFilterSettings filterSettings = readTargetFilterSettings();
         LivingEntity bestTarget = null;
-        double bestAlignment = LOCK_ON_FOV_THRESHOLD;
+        double bestScore = Double.MAX_VALUE;
         double bestDistanceSqr = Double.MAX_VALUE;
 
         for (LivingEntity entity : player.level().getEntitiesOfClass(
@@ -67,13 +70,18 @@ final class FocusTargetSelector {
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            boolean canBeatCurrent = alignment > bestAlignment + TARGET_SCORE_EPSILON
-                    || (Math.abs(alignment - bestAlignment) <= TARGET_SCORE_EPSILON && distanceSqr < bestDistanceSqr);
+            double score = FocusTargetScoring.acquisitionCost(
+                    alignment,
+                    LOCK_ON_FOV_THRESHOLD,
+                    Math.sqrt(distanceSqr),
+                    MAX_LOCK_DISTANCE);
+            boolean canBeatCurrent = score < bestScore - TARGET_SCORE_EPSILON
+                    || (Math.abs(score - bestScore) <= TARGET_SCORE_EPSILON && distanceSqr < bestDistanceSqr);
             if (!canBeatCurrent || !hasTargetingSight(player, entity)) {
                 continue;
             }
 
-            bestAlignment = alignment;
+            bestScore = score;
             bestDistanceSqr = distanceSqr;
             bestTarget = entity;
         }
@@ -89,6 +97,7 @@ final class FocusTargetSelector {
                 : player.getLookAngle().normalize();
         TargetFilterSettings filterSettings = readTargetFilterSettings();
         LivingEntity bestTarget = null;
+        double bestScore = Double.MAX_VALUE;
         double bestDistanceSqr = Double.MAX_VALUE;
 
         for (LivingEntity entity : player.level().getEntitiesOfClass(
@@ -104,15 +113,24 @@ final class FocusTargetSelector {
             // Do not whip the camera around to an unrelated enemy behind the player
             // when the current target dies. Side-by-side combatants are eligible, but
             // losing the lock is preferable to a disorienting 180-degree hand-off.
-            if (getTargetAlignment(eyePosition, lookDirection, entity) < REPLACEMENT_FOV_THRESHOLD) {
+            double alignment = getTargetAlignment(eyePosition, lookDirection, entity);
+            if (alignment < REPLACEMENT_FOV_THRESHOLD) {
                 continue;
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            if (distanceSqr >= bestDistanceSqr || !hasTargetingSight(player, entity)) {
+            double score = FocusTargetScoring.replacementCost(
+                    alignment,
+                    REPLACEMENT_FOV_THRESHOLD,
+                    Math.sqrt(distanceSqr),
+                    MAX_LOCK_DISTANCE);
+            boolean canBeatCurrent = score < bestScore - TARGET_SCORE_EPSILON
+                    || (Math.abs(score - bestScore) <= TARGET_SCORE_EPSILON && distanceSqr < bestDistanceSqr);
+            if (!canBeatCurrent || !hasTargetingSight(player, entity)) {
                 continue;
             }
 
+            bestScore = score;
             bestDistanceSqr = distanceSqr;
             bestTarget = entity;
         }
@@ -120,7 +138,11 @@ final class FocusTargetSelector {
         return bestTarget;
     }
 
-    static LivingEntity findDirectionalTarget(LocalPlayer player, LivingEntity currentTarget, Vec2 mouseDirection, Vec3 cameraLookDirection) {
+    static LivingEntity findDirectionalTarget(
+            LocalPlayer player,
+            LivingEntity currentTarget,
+            Vec2 mouseDirection,
+            Camera camera) {
         if (currentTarget == null) {
             return null;
         }
@@ -133,19 +155,16 @@ final class FocusTargetSelector {
 
         float mouseDirX = mouseDirection.x / mouseMagnitude;
         float mouseDirY = mouseDirection.y / mouseMagnitude;
-        Vec3 eyePosition = player.getEyePosition();
-        Vec3 lookDirection = cameraLookDirection.lengthSqr() > 1.0E-6D
-                ? cameraLookDirection.normalize()
-                : player.getLookAngle().normalize();
-        Vec3 right = lookDirection.cross(new Vec3(0.0D, 1.0D, 0.0D));
-        if (right.lengthSqr() < 1.0E-6D) {
-            right = new Vec3(1.0D, 0.0D, 0.0D);
-        } else {
-            right = right.normalize();
-        }
-        Vec3 up = right.cross(lookDirection).normalize();
+        Vec3 cameraPosition = camera.getPosition();
+        Vec3 lookDirection = toVec3(camera.getLookVector()).normalize();
+        Vec3 right = toVec3(camera.getLeftVector()).scale(-1.0D).normalize();
+        Vec3 up = toVec3(camera.getUpVector()).normalize();
+        Minecraft minecraft = Minecraft.getInstance();
+        double screenAspectRatio = (double) minecraft.getWindow().getGuiScaledWidth()
+                / Math.max(minecraft.getWindow().getGuiScaledHeight(), 1);
 
-        Vec2 currentTargetScreen = projectToScreenSpace(eyePosition, lookDirection, right, up, currentTarget);
+        Vec2 currentTargetScreen = projectToScreenSpace(
+                cameraPosition, lookDirection, right, up, screenAspectRatio, currentTarget);
         if (currentTargetScreen == null) {
             return null;
         }
@@ -154,8 +173,8 @@ final class FocusTargetSelector {
         double minScreenSeparation = FocusClientConfig.targetSwapMinScreenSeparation();
         TargetFilterSettings filterSettings = readTargetFilterSettings();
         LivingEntity bestTarget = null;
+        double bestScore = Double.MAX_VALUE;
         float bestScreenDistance = Float.MAX_VALUE;
-        float bestAlignment = (float) directionThreshold;
         double bestDistanceSqr = Double.MAX_VALUE;
 
         for (LivingEntity entity : player.level().getEntitiesOfClass(
@@ -169,7 +188,8 @@ final class FocusTargetSelector {
                 continue;
             }
 
-            Vec2 candidateScreen = projectToScreenSpace(eyePosition, lookDirection, right, up, entity);
+            Vec2 candidateScreen = projectToScreenSpace(
+                    cameraPosition, lookDirection, right, up, screenAspectRatio, entity);
             if (candidateScreen == null) {
                 continue;
             }
@@ -189,18 +209,24 @@ final class FocusTargetSelector {
             }
 
             double distanceSqr = player.distanceToSqr(entity);
-            boolean canBeatCurrent = directionalAlignment > bestAlignment + TARGET_SWAP_SCORE_EPSILON
-                    || (Math.abs(directionalAlignment - bestAlignment) <= TARGET_SWAP_SCORE_EPSILON
+            double score = FocusTargetScoring.directionalSwapCost(
+                    directionalAlignment,
+                    directionThreshold,
+                    candidateScreenDistance,
+                    Math.sqrt(distanceSqr),
+                    MAX_LOCK_DISTANCE);
+            boolean canBeatCurrent = score < bestScore - TARGET_SCORE_EPSILON
+                    || (Math.abs(score - bestScore) <= TARGET_SCORE_EPSILON
                             && candidateScreenDistance < bestScreenDistance - TARGET_SWAP_SCORE_EPSILON)
-                    || (Math.abs(directionalAlignment - bestAlignment) <= TARGET_SWAP_SCORE_EPSILON
+                    || (Math.abs(score - bestScore) <= TARGET_SCORE_EPSILON
                             && Math.abs(candidateScreenDistance - bestScreenDistance) <= TARGET_SWAP_SCORE_EPSILON
                             && distanceSqr < bestDistanceSqr);
             if (!canBeatCurrent || !hasTargetingSight(player, entity)) {
                 continue;
             }
 
+            bestScore = score;
             bestScreenDistance = candidateScreenDistance;
-            bestAlignment = directionalAlignment;
             bestDistanceSqr = distanceSqr;
             bestTarget = entity;
         }
@@ -227,8 +253,23 @@ final class FocusTargetSelector {
      * persistence (grace timer only counts real occlusion).
      */
     static boolean hasTargetingSight(LocalPlayer player, LivingEntity target) {
+        Vec3 targetPosition = target.getPosition(1.0F);
+        double targetHeight = target.getBbHeight();
+        Vec3 primaryAimPoint = getTargetAimPoint(target, 1.0F);
+        if (hasTargetingSightTo(player, primaryAimPoint)) {
+            return true;
+        }
+
+        // A single fixed ray makes locks flicker around low walls, stairs, and uneven
+        // terrain. Keep the lock when a meaningful upper-body portion remains visible.
+        Vec3 headAimPoint = targetPosition.add(0.0D, targetHeight * 0.90D, 0.0D);
+        Vec3 torsoAimPoint = targetPosition.add(0.0D, targetHeight * 0.50D, 0.0D);
+        return hasTargetingSightTo(player, headAimPoint)
+                || hasTargetingSightTo(player, torsoAimPoint);
+    }
+
+    private static boolean hasTargetingSightTo(LocalPlayer player, Vec3 to) {
         Vec3 from = player.getEyePosition();
-        Vec3 to = getTargetAimPoint(target, 1.0F);
         Vec3 ray = to.subtract(from);
         double totalDistSqr = ray.lengthSqr();
         if (totalDistSqr < 1.0E-8) {
@@ -372,6 +413,7 @@ final class FocusTargetSelector {
             Vec3 lookDirection,
             Vec3 right,
             Vec3 up,
+            double screenAspectRatio,
             LivingEntity target) {
         Vec3 toTarget = getTargetAimPoint(target, 1.0F).subtract(eyePosition);
         double forward = toTarget.dot(lookDirection);
@@ -379,9 +421,15 @@ final class FocusTargetSelector {
             return null;
         }
 
-        double screenX = toTarget.dot(right) / forward;
+        // Convert to aspect-corrected normalized screen space so a diagonal
+        // flick means the same thing on widescreen and square viewports.
+        double screenX = toTarget.dot(right) / (forward * Math.max(screenAspectRatio, 1.0E-6D));
         double screenY = toTarget.dot(up) / forward;
         return new Vec2((float) screenX, (float) screenY);
+    }
+
+    private static Vec3 toVec3(Vector3f vector) {
+        return new Vec3(vector.x(), vector.y(), vector.z());
     }
 
     private static boolean isTargetAllowed(LivingEntity target, TargetFilterSettings filterSettings) {

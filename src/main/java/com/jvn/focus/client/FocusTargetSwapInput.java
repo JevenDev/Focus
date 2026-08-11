@@ -6,34 +6,56 @@ package com.jvn.focus.client;
  */
 final class FocusTargetSwapInput {
     private static final int MIN_COOLDOWN_TICKS = 8;
+    private static final double DOMINANT_AXIS_RATIO = 1.25D;
 
     private double accumulatedX;
     private double accumulatedY;
+    private double sampledX;
+    private double sampledY;
     private int cooldownTicks;
+    private boolean releasedSinceSwap;
     private boolean armed = true;
 
     void record(double deltaX, double deltaY) {
         if (Double.isFinite(deltaX)) {
             accumulatedX += deltaX;
+            sampledX += deltaX;
         }
         if (Double.isFinite(deltaY)) {
             accumulatedY += deltaY;
+            sampledY += deltaY;
         }
     }
 
-    void tick(double deadzone, double decay) {
+    void tick(double deadzone) {
         if (cooldownTicks > 0) {
             cooldownTicks--;
         }
+
         if (armed) {
+            clearSampledInput();
             return;
         }
 
-        dampen(decay);
-        if (cooldownTicks == 0 && magnitudeSquared() < square(nonNegative(deadzone))) {
-            clearAccumulatedInput();
-            armed = true;
+        // Re-arm from recent input, not the historical accumulator. Input held
+        // during cooldown used to keep the swap disarmed long after release.
+        boolean released = sampledMagnitudeSquared() < square(nonNegative(deadzone));
+        if (released) {
+            releasedSinceSwap = true;
         }
+        clearSampledInput();
+
+        if (cooldownTicks == 0 && releasedSinceSwap) {
+            armed = true;
+            // Preserve a new flick that begins exactly as cooldown expires. If this
+            // interval is quiet, discard its sub-deadzone drift instead.
+            if (released) {
+                clearAccumulatedInput();
+            }
+            return;
+        }
+
+        clearAccumulatedInput();
     }
 
     Direction pollDirection(double deadzone, double activation, double decay) {
@@ -46,12 +68,29 @@ final class FocusTargetSwapInput {
             dampen(decay);
             return null;
         }
+        return stabilizedDirection();
+    }
+
+    private Direction stabilizedDirection() {
+        double absX = Math.abs(accumulatedX);
+        double absY = Math.abs(accumulatedY);
+        if (absX > absY * DOMINANT_AXIS_RATIO) {
+            return new Direction(accumulatedX, 0.0D);
+        }
+        if (absY > absX * DOMINANT_AXIS_RATIO) {
+            return new Direction(0.0D, accumulatedY);
+        }
+
+        // Preserve deliberate diagonal flicks while removing incidental drift
+        // from clearly horizontal or vertical gestures.
         return new Direction(accumulatedX, accumulatedY);
     }
 
     void markSwapped(int configuredCooldownTicks) {
         clearAccumulatedInput();
+        clearSampledInput();
         cooldownTicks = Math.max(MIN_COOLDOWN_TICKS, configuredCooldownTicks);
+        releasedSinceSwap = false;
         armed = false;
     }
 
@@ -63,7 +102,9 @@ final class FocusTargetSwapInput {
 
     void reset() {
         clearAccumulatedInput();
+        clearSampledInput();
         cooldownTicks = 0;
+        releasedSinceSwap = false;
         armed = true;
     }
 
@@ -82,6 +123,15 @@ final class FocusTargetSwapInput {
 
     private double magnitudeSquared() {
         return square(accumulatedX) + square(accumulatedY);
+    }
+
+    private void clearSampledInput() {
+        sampledX = 0.0D;
+        sampledY = 0.0D;
+    }
+
+    private double sampledMagnitudeSquared() {
+        return square(sampledX) + square(sampledY);
     }
 
     private static double nonNegative(double value) {

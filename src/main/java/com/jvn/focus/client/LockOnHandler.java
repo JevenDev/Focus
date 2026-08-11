@@ -24,6 +24,8 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 public final class LockOnHandler {
     private static final int OCCLUDED_GRACE_TICKS = 15;
     private static final int OUT_OF_RANGE_GRACE_TICKS = 10;
+    private static final double CONTROLIFY_TARGET_SWAP_INPUT_SCALE = 3.0D;
+    private static final double MIDNIGHT_CONTROLS_TARGET_SWAP_INPUT_SCALE = 8.0D;
 
     private static final FocusCameraController CAMERA_CONTROLLER = FocusCameraController.getInstance();
     private static final FocusTargetSwapInput TARGET_SWAP_INPUT = new FocusTargetSwapInput();
@@ -123,9 +125,7 @@ public final class LockOnHandler {
     }
 
     private static void updateTargetSwapInput() {
-        TARGET_SWAP_INPUT.tick(
-                FocusClientConfig.targetSwapMouseDeadzone(),
-                FocusClientConfig.targetSwapInputDecay());
+        TARGET_SWAP_INPUT.tick(FocusClientConfig.targetSwapMouseDeadzone());
     }
 
     private static void enforceCameraType(Minecraft minecraft) {
@@ -315,11 +315,19 @@ public final class LockOnHandler {
     }
 
     public static void onControlifyLookInput(float deltaX, float deltaY) {
-        onRawMouseInput(deltaX, deltaY);
+        // Controlify reports degrees per tick (roughly 0..10), while mouse input
+        // arrives as raw cursor pixels. Normalize it to the existing flick threshold.
+        onRawMouseInput(
+                deltaX * CONTROLIFY_TARGET_SWAP_INPUT_SCALE,
+                deltaY * CONTROLIFY_TARGET_SWAP_INPUT_SCALE);
     }
 
     public static void onMidnightControlsLookInput(double deltaX, double deltaY) {
-        onRawMouseInput(deltaX, deltaY);
+        // MidnightControls exposes a smaller pre-rotation impulse than either the
+        // mouse or Controlify, so it needs its own normalization.
+        onRawMouseInput(
+                deltaX * MIDNIGHT_CONTROLS_TARGET_SWAP_INPUT_SCALE,
+                deltaY * MIDNIGHT_CONTROLS_TARGET_SWAP_INPUT_SCALE);
     }
 
     public static void onControlifyLockOnPressed() {
@@ -452,8 +460,11 @@ public final class LockOnHandler {
         }
 
         Vec2 mouseDirection = new Vec2((float) direction.x(), (float) -direction.y());
-        Vec3 cameraLookDir = CAMERA_CONTROLLER.getSmoothedLookDirection();
-        LivingEntity swappedTarget = FocusTargetSelector.findDirectionalTarget(player, lockedTarget, mouseDirection, cameraLookDir);
+        LivingEntity swappedTarget = FocusTargetSelector.findDirectionalTarget(
+                player,
+                lockedTarget,
+                mouseDirection,
+                Minecraft.getInstance().gameRenderer.getMainCamera());
         if (swappedTarget == null) {
             TARGET_SWAP_INPUT.dampen(0.45D);
             return;
