@@ -67,6 +67,11 @@ The server can control lock-on availability, first-person/front third-person whi
   - Lets you preview and adjust your current camera setup live
 
 
+- **Open Indicator Creator** - `F7`
+  - Paint a custom 16×16 lock-on icon with an HSV color wheel
+  - Preview and adjust its size, position, and animation
+
+
 - **Adjust Camera Offsets** *(same default controls as Shoulder Surfing Reloaded)*  
   These can be used while locked on, or while previewing in the camera editor:
 
@@ -113,7 +118,7 @@ If there's a specific mod you would like compatibility with, open an issue in th
 
 - Additional controller polish and default binding presets
 - Overhaul of the entire camera editor screen
-- Custom indicator icon creator; colour, size, position, texture, etc.
+- ✅ Custom indicator icon creator with colour, size, target-relative position, bundled or resource-pack textures, and static/orbit animation
 - Server-side admin commands for live policy editing
 
 ![credits & license](https://cdn.modrinth.com/data/cached_images/5fd3ad80e342e6985dd6ebda1f7afd9c48749fce.png)

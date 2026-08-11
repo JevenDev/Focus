@@ -4,11 +4,7 @@ import com.mojang.math.Axis;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
-final class LockOnIndicatorAnimationUtil {
-    private static final int OOT_MARKER_COUNT = 4;
-    private static final float OOT_ORBIT_RADIUS = 14.0F;
-    private static final float OOT_SPIN_SPEED_DEGREES_PER_TICK = 6.0F;
-
+public final class LockOnIndicatorAnimationUtil {
     private LockOnIndicatorAnimationUtil() {}
 
     static void renderOotTriangleOrbit(
@@ -19,18 +15,59 @@ final class LockOnIndicatorAnimationUtil {
             int drawSize,
             float animationTicks,
             int textureSize) {
-        float halfSize = drawSize * 0.5F;
-        float baseAngle = animationTicks * OOT_SPIN_SPEED_DEGREES_PER_TICK;
+        renderOrbit(guiGraphics, centerX, centerY, texture, drawSize, animationTicks, textureSize, 4, 14.0F, 6.0F, true);
+    }
 
-        for (int markerIndex = 0; markerIndex < OOT_MARKER_COUNT; markerIndex++) {
-            float markerAngleDegrees = baseAngle + markerIndex * (360.0F / OOT_MARKER_COUNT) - 90.0F;
+    public static void renderCentered(
+            GuiGraphics guiGraphics,
+            float centerX,
+            float centerY,
+            ResourceLocation texture,
+            int drawSize,
+            int textureSize) {
+        float halfSize = drawSize * 0.5F;
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(centerX - halfSize, centerY - halfSize, 0.0F);
+        guiGraphics.blit(
+                texture,
+                0,
+                0,
+                drawSize,
+                drawSize,
+                0.0F,
+                0.0F,
+                textureSize,
+                textureSize,
+                textureSize,
+                textureSize);
+        guiGraphics.pose().popPose();
+    }
+    public static void renderOrbit(
+            GuiGraphics guiGraphics,
+            float centerX,
+            float centerY,
+            ResourceLocation texture,
+            int drawSize,
+            float animationTicks,
+            int textureSize,
+            int markerCount,
+            float orbitRadius,
+            float spinSpeed,
+            boolean rotateMarkers) {
+        float halfSize = drawSize * 0.5F;
+        float baseAngle = animationTicks * spinSpeed;
+
+        for (int markerIndex = 0; markerIndex < markerCount; markerIndex++) {
+            float markerAngleDegrees = baseAngle + markerIndex * (360.0F / markerCount) - 90.0F;
             double markerAngleRadians = Math.toRadians(markerAngleDegrees);
-            float markerX = centerX + (float) (Math.cos(markerAngleRadians) * OOT_ORBIT_RADIUS) - halfSize;
-            float markerY = centerY + (float) (Math.sin(markerAngleRadians) * OOT_ORBIT_RADIUS) - halfSize;
+            float markerX = centerX + (float) (Math.cos(markerAngleRadians) * orbitRadius) - halfSize;
+            float markerY = centerY + (float) (Math.sin(markerAngleRadians) * orbitRadius) - halfSize;
 
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(markerX + halfSize, markerY + halfSize, 0.0F);
-            guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(markerAngleDegrees + 90.0F));
+            if (rotateMarkers) {
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(markerAngleDegrees + 90.0F));
+            }
             guiGraphics.pose().translate(-halfSize, -halfSize, 0.0F);
             guiGraphics.blit(texture, 0, 0, drawSize, drawSize, 0.0F, 0.0F, textureSize, textureSize, textureSize, textureSize);
             guiGraphics.pose().popPose();

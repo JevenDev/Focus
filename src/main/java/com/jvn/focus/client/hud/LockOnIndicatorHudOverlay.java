@@ -43,13 +43,20 @@ public final class LockOnIndicatorHudOverlay {
         }
 
         float partialTick = deltaTracker.getGameTimeDeltaPartialTick(minecraft.level.tickRateManager().runsNormally());
-        Vec3 targetPoint = target.getPosition(partialTick).add(0.0D, target.getBbHeight() * TARGET_HEIGHT_FACTOR, 0.0D);
+        FocusClientConfig.LockOnIndicatorStyle style = FocusClientConfig.lockOnIndicatorStyle();
+        double targetHeight = style == FocusClientConfig.LockOnIndicatorStyle.CUSTOM
+                ? FocusClientConfig.customIndicatorTargetHeight()
+                : TARGET_HEIGHT_FACTOR;
+        Vec3 targetPoint = target.getPosition(partialTick).add(0.0D, target.getBbHeight() * targetHeight, 0.0D);
         FocusScreenProjectionUtil.ScreenPoint projectedPoint = FocusScreenProjectionUtil.projectToScreen(minecraft, targetPoint, partialTick, guiGraphics.guiWidth(), guiGraphics.guiHeight());
         if (projectedPoint == null) {
             return;
         }
 
-        FocusClientConfig.LockOnIndicatorStyle style = FocusClientConfig.lockOnIndicatorStyle();
+        if (style == FocusClientConfig.LockOnIndicatorStyle.CUSTOM) {
+            renderCustomIndicator(guiGraphics, projectedPoint, minecraft.level.getGameTime() + partialTick);
+            return;
+        }
         if (style.usesOotTriangleOrbit()) {
             float animationTicks = minecraft.level.getGameTime() + partialTick;
             RenderSystem.enableBlend();
@@ -66,6 +73,45 @@ public final class LockOnIndicatorHudOverlay {
             return;
         }
         drawCenteredIndicator(guiGraphics, projectedPoint, style);
+    }
+
+    private static void renderCustomIndicator(
+            GuiGraphics guiGraphics,
+            FocusScreenProjectionUtil.ScreenPoint projectedPoint,
+            float animationTicks) {
+        float centerX = projectedPoint.x() + FocusClientConfig.customIndicatorOffsetX();
+        float centerY = projectedPoint.y() + FocusClientConfig.customIndicatorOffsetY();
+        ResourceLocation texture = FocusClientConfig.customIndicatorTexture();
+        int drawSize = FocusClientConfig.customIndicatorSize();
+        int sourceTextureSize = FocusClientConfig.customIndicatorSourceTextureSize();
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(
+                FocusClientConfig.customIndicatorRed(),
+                FocusClientConfig.customIndicatorGreen(),
+                FocusClientConfig.customIndicatorBlue(),
+                FocusClientConfig.customIndicatorAlpha());
+
+        if (FocusClientConfig.customIndicatorAnimation() == FocusClientConfig.CustomIndicatorAnimation.ORBIT) {
+            LockOnIndicatorAnimationUtil.renderOrbit(
+                    guiGraphics,
+                    centerX,
+                    centerY,
+                    texture,
+                    drawSize,
+                    animationTicks,
+                    sourceTextureSize,
+                    FocusClientConfig.customIndicatorOrbitMarkerCount(),
+                    FocusClientConfig.customIndicatorOrbitRadius(),
+                    FocusClientConfig.customIndicatorOrbitSpeed(),
+                    FocusClientConfig.customIndicatorRotateOrbitMarkers());
+        } else {
+            LockOnIndicatorAnimationUtil.renderCentered(guiGraphics, centerX, centerY, texture, drawSize, sourceTextureSize);
+        }
+
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableBlend();
     }
 
     private static void drawCenteredIndicator(
@@ -94,4 +140,6 @@ public final class LockOnIndicatorHudOverlay {
         guiGraphics.pose().popPose();
         RenderSystem.disableBlend();
     }
+
+
 }

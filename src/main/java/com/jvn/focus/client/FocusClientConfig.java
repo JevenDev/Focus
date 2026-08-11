@@ -251,7 +251,8 @@ public final class FocusClientConfig {
         OOT_16X("focus.lock_on_client.lock_on_indicator_style.OOT_16X", "textures/ui/hud/lock_on_indicators/oot_lock_on_16x.png", 8, IndicatorType.OOT_TRIANGLES),
         OOT_32X("focus.lock_on_client.lock_on_indicator_style.OOT_32X", "textures/ui/hud/lock_on_indicators/oot_lock_on_32x.png", 8, IndicatorType.OOT_TRIANGLES),
         DS2_16X("focus.lock_on_client.lock_on_indicator_style.DS2_16X", "textures/ui/hud/lock_on_indicators/ds2_lock_on_16x.png", 16, IndicatorType.STATIC_CENTERED),
-        DS2_32X("focus.lock_on_client.lock_on_indicator_style.DS2_32X", "textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png", 8, IndicatorType.STATIC_CENTERED);
+        DS2_32X("focus.lock_on_client.lock_on_indicator_style.DS2_32X", "textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png", 8, IndicatorType.STATIC_CENTERED),
+        CUSTOM("focus.lock_on_client.lock_on_indicator_style.CUSTOM", "textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png", 16, IndicatorType.STATIC_CENTERED);
 
         private final String translationKey;
         private final ResourceLocation texture;
@@ -292,6 +293,46 @@ public final class FocusClientConfig {
         }
     }
 
+    public enum CustomIndicatorIcon implements StringRepresentable {
+        OOT_TRIANGLE("focus.lock_on_client.custom_indicator_icon.OOT_TRIANGLE", "textures/ui/hud/lock_on_indicators/oot_lock_on_32x.png"),
+        DS2_RING("focus.lock_on_client.custom_indicator_icon.DS2_RING", "textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png"),
+        PIXEL_ART("focus.lock_on_client.custom_indicator_icon.PIXEL_ART", null),
+        CUSTOM_TEXTURE("focus.lock_on_client.custom_indicator_icon.CUSTOM_TEXTURE", null);
+
+        private final String translationKey;
+        private final ResourceLocation texture;
+
+        CustomIndicatorIcon(String translationKey, String texturePath) {
+            this.translationKey = translationKey;
+            this.texture = texturePath == null ? null : ResourceLocation.fromNamespaceAndPath(Focus.MOD_ID, texturePath);
+        }
+
+        public ResourceLocation texture() {
+            return texture;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return translationKey;
+        }
+    }
+
+    public enum CustomIndicatorAnimation implements StringRepresentable {
+        STATIC("focus.lock_on_client.custom_indicator_animation.STATIC"),
+        ORBIT("focus.lock_on_client.custom_indicator_animation.ORBIT");
+
+        private final String translationKey;
+
+        CustomIndicatorAnimation(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return translationKey;
+        }
+    }
+
     // Initialization
 
     public static void init() {
@@ -315,6 +356,11 @@ public final class FocusClientConfig {
     }
 
     public static Screen createConfigScreen(Screen parent) {
+        config();
+        return new FocusConfigMenuScreen(parent);
+    }
+
+    static Screen createGeneratedConfigScreen(Screen parent) {
         config();
         return ConfigScreen.create(CONFIG, parent);
     }
@@ -374,6 +420,116 @@ public final class FocusClientConfig {
     public static LockOnIndicatorStyle lockOnIndicatorStyle() {
         return config().lockOnIndicatorStyle();
     }
+
+    public static CustomIndicatorIcon customIndicatorIcon() {
+        return config().customIndicator.icon();
+    }
+
+    public static CustomIndicatorAnimation customIndicatorAnimation() {
+        return config().customIndicator.animation();
+    }
+
+    public static ResourceLocation customIndicatorTexture() {
+        if (customIndicatorIcon() == CustomIndicatorIcon.PIXEL_ART) {
+            return CustomIndicatorPixelTexture.texture();
+        }
+        ResourceLocation builtIn = customIndicatorIcon().texture();
+        if (builtIn != null) {
+            return builtIn;
+        }
+        ResourceLocation custom = ResourceLocation.tryParse(config().customIndicator.customTexture().trim());
+        return custom != null ? custom : LockOnIndicatorStyle.DS2_32X.texture();
+    }
+
+    public static int customIndicatorSourceTextureSize() {
+        return config().customIndicator.sourceTextureSize();
+    }
+
+    public static int customIndicatorSize() {
+        return config().customIndicator.size();
+    }
+
+    public static int customIndicatorOffsetX() {
+        return config().customIndicator.offsetX();
+    }
+
+    public static int customIndicatorOffsetY() {
+        return config().customIndicator.offsetY();
+    }
+
+    public static double customIndicatorTargetHeight() {
+        return config().customIndicator.targetHeight();
+    }
+
+    public static float customIndicatorRed() {
+        return config().customIndicator.red() / 255.0F;
+    }
+
+    public static float customIndicatorGreen() {
+        return config().customIndicator.green() / 255.0F;
+    }
+
+    public static float customIndicatorBlue() {
+        return config().customIndicator.blue() / 255.0F;
+    }
+
+    public static float customIndicatorAlpha() {
+        return config().customIndicator.alpha() / 255.0F;
+    }
+
+    public static int customIndicatorOrbitRadius() {
+        return config().customIndicator.orbitRadius();
+    }
+
+    public static int customIndicatorOrbitMarkerCount() {
+        return config().customIndicator.orbitMarkerCount();
+    }
+
+    public static float customIndicatorOrbitSpeed() {
+        return (float) config().customIndicator.orbitSpeed();
+    }
+
+    public static boolean customIndicatorRotateOrbitMarkers() {
+        return config().customIndicator.rotateOrbitMarkers();
+    }
+
+    public static String customIndicatorPixelArt() {
+        return config().customIndicator.pixelArt();
+    }
+
+    public static void applyCustomIndicatorEditorState(CustomIndicatorEditorState state) {
+        config().lockOnIndicatorStyle(LockOnIndicatorStyle.CUSTOM);
+        config().customIndicator.icon(CustomIndicatorIcon.PIXEL_ART);
+        config().customIndicator.animation(state.animation());
+        config().customIndicator.pixelArt(state.pixelArt());
+        config().customIndicator.sourceTextureSize(CustomIndicatorPixelTexture.SIZE);
+        config().customIndicator.size(state.size());
+        config().customIndicator.offsetX(state.offsetX());
+        config().customIndicator.offsetY(state.offsetY());
+        config().customIndicator.targetHeight(state.targetHeight());
+        config().customIndicator.red(255);
+        config().customIndicator.green(255);
+        config().customIndicator.blue(255);
+        config().customIndicator.alpha(255);
+        config().customIndicator.orbitRadius(state.orbitRadius());
+        config().customIndicator.orbitMarkerCount(state.orbitMarkerCount());
+        config().customIndicator.orbitSpeed(state.orbitSpeed());
+        config().customIndicator.rotateOrbitMarkers(state.rotateOrbitMarkers());
+        CustomIndicatorPixelTexture.invalidate();
+        saveConfig();
+    }
+
+    public record CustomIndicatorEditorState(
+            String pixelArt,
+            CustomIndicatorAnimation animation,
+            int size,
+            int offsetX,
+            int offsetY,
+            double targetHeight,
+            int orbitRadius,
+            int orbitMarkerCount,
+            double orbitSpeed,
+            boolean rotateOrbitMarkers) {}
 
     public static boolean useCustomSwappedShoulderValues() {
         return config().useCustomSwappedShoulderValues();

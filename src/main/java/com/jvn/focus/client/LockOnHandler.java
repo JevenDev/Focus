@@ -57,6 +57,7 @@ public final class LockOnHandler {
             handleSwapShoulderInput(minecraft, player);
         }
         handleOpenCameraEditorInput(minecraft);
+        handleOpenIndicatorEditorInput();
         boolean previewOrbitActive = lockedTarget == null && isCameraEditorPreviewActive();
         CAMERA_CONTROLLER.setPreviewOrbitActive(previewOrbitActive);
         handleCameraAdjustmentInput(player);
@@ -469,6 +470,12 @@ public final class LockOnHandler {
     private static void handleOpenCameraEditorInput(Minecraft minecraft) {
         while (FocusKeyMappings.OPEN_CAMERA_EDITOR.consumeClick()) {
             openCameraEditorScreen(minecraft);
+        }
+    }
+
+    private static void handleOpenIndicatorEditorInput() {
+        while (FocusKeyMappings.OPEN_INDICATOR_EDITOR.consumeClick()) {
+            CustomIndicatorEditorScreen.openFromCurrentScreen();
         }
     }
 

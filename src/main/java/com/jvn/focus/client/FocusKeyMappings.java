@@ -21,6 +21,8 @@ public final class FocusKeyMappings {
             new KeyMapping("key.focus.swap_shoulder", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY);
     public static final KeyMapping OPEN_CAMERA_EDITOR =
             new KeyMapping("key.focus.open_camera_editor", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F6, CATEGORY);
+    public static final KeyMapping OPEN_INDICATOR_EDITOR =
+            new KeyMapping("key.focus.open_indicator_editor", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F7, CATEGORY);
     public static final KeyMapping CAMERA_LEFT =
             new KeyMapping("key.focus.adjust_camera_left", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT, CATEGORY);
     public static final KeyMapping CAMERA_RIGHT =
@@ -41,6 +43,7 @@ public final class FocusKeyMappings {
         event.register(LOCK_ON);
         event.register(SWAP_SHOULDER);
         event.register(OPEN_CAMERA_EDITOR);
+        event.register(OPEN_INDICATOR_EDITOR);
         event.register(CAMERA_LEFT);
         event.register(CAMERA_RIGHT);
         event.register(CAMERA_IN);

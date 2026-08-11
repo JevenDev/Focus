@@ -26,6 +26,9 @@ public class FocusConfigModel {
     public boolean cinematicBarsUnderHud = true;
     public FocusClientConfig.LockOnIndicatorStyle lockOnIndicatorStyle = FocusClientConfig.LockOnIndicatorStyle.OOT_16X;
 
+    @Nest
+    public CustomIndicator customIndicator = new CustomIndicator();
+
     // ── Camera ───────────────────────────────────────────────────────────────
 
     @SectionHeader("camera")
@@ -180,5 +183,52 @@ public class FocusConfigModel {
         public boolean correctCrosshairOnlyWhileLockedOn = false;
         public boolean hideVanillaCrosshair = true;
         public boolean hideVanillaCrosshairOutOfRange = false;
+    }
+
+    public static class CustomIndicator {
+        public FocusClientConfig.CustomIndicatorIcon icon = FocusClientConfig.CustomIndicatorIcon.DS2_RING;
+        public FocusClientConfig.CustomIndicatorAnimation animation = FocusClientConfig.CustomIndicatorAnimation.STATIC;
+        public String customTexture = "focus:textures/ui/hud/lock_on_indicators/ds2_lock_on_32x.png";
+
+        @ExcludeFromScreen
+        public String pixelArt = "";
+
+        @RangeConstraint(min = 1, max = 512)
+        public int sourceTextureSize = 32;
+
+        @RangeConstraint(min = 1, max = 128)
+        public int size = 16;
+
+        @RangeConstraint(min = -128, max = 128)
+        public int offsetX = 0;
+
+        @RangeConstraint(min = -128, max = 128)
+        public int offsetY = 0;
+
+        @RangeConstraint(min = 0.0, max = 1.5)
+        public double targetHeight = 0.75;
+
+        @RangeConstraint(min = 0, max = 255)
+        public int red = 255;
+
+        @RangeConstraint(min = 0, max = 255)
+        public int green = 255;
+
+        @RangeConstraint(min = 0, max = 255)
+        public int blue = 255;
+
+        @RangeConstraint(min = 0, max = 255)
+        public int alpha = 255;
+
+        @RangeConstraint(min = 0, max = 128)
+        public int orbitRadius = 14;
+
+        @RangeConstraint(min = 1, max = 12)
+        public int orbitMarkerCount = 4;
+
+        @RangeConstraint(min = -30.0, max = 30.0)
+        public double orbitSpeed = 6.0;
+
+        public boolean rotateOrbitMarkers = true;
     }
 }
